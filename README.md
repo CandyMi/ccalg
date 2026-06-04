@@ -59,6 +59,14 @@ cmake --build build --target check
 cmake --build build --target bench
 ```
 
+### Premake5 (alternative)
+
+```bash
+premake5 gmake2               # Generate Makefiles
+make -C build config=release  # Build
+./build/test_ccmap            # Run tests
+```
+
 See [docs/building.md](docs/building.md) for details and manual compilation.
 
 ## Documents

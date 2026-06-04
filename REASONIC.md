@@ -394,4 +394,33 @@ g++ -std=c++11 -O2 -Wall -o bench_ccmap bench/bench_ccmap.cpp && ./bench_ccmap
 
 ---
 
+## 16. 变更传播约定
+
+### 16.1 级联更新
+
+核心头文件 (`include/*.h`) 的任何修改，必须同步更新下游产物：
+
+```
+include/*.h 变更
+  → tests/test_*.c           (测试用例覆盖新行为)
+  → bench/bench_*.cpp        (基准数据重新采集)
+  → docs/*.md                (API 文档 / 基准数据更新)
+  → build/docs-html/*.html   (重新生成 HTML 页面)
+```
+
+一个头文件的修改在 HTML 页面反映之前不算完成。
+
+### 16.2 提交前拉取
+
+推送远程前必须先拉取并处理冲突：
+
+```bash
+git pull --rebase origin master   # 拉取 + 变基
+# 如有冲突 → 解决 → git add → git rebase --continue
+# 重新构建 + 运行测试确认无回归
+# 询问用户确认后再推送
+```
+
+---
+
 *此文档由 Reasonix Code 从 `include/*.h` 自动分析生成。*

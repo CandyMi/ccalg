@@ -54,9 +54,9 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border
 """
 
 PAGES = [
-    ("index",             "alg — 简介"),
+    ("index",             "基本介绍"),
     ("getting-started",   "快速开始"),
-    ("api-reference",     "API 参考"),
+    ("api-reference",     "接口参考"),
     ("building",          "构建指南"),
     ("benchmarks",        "性能基准"),
 ]

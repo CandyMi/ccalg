@@ -157,7 +157,7 @@ CCHASHMAP_INLINE bool cchashmap_set(cchashmap_t *m, cchashmap_node_t *node, ccha
   node->hash = CCHASHMAP_HASH_CALL(node, m->seed);
   size_t idx = node->hash & (m->cap - 1);
   cchashmap_node_t *cur = m->buckets[idx];
-  while (cur) { if (CCHASHMAP_EQUAL_CALL(node, cur)) { if (old) *old = cur; return false; } cur = cur->next; }
+  while (cur) { if (node->hash == cur->hash && CCHASHMAP_EQUAL_CALL(node, cur)) { if (old) *old = cur; return false; } cur = cur->next; }
   node->next = m->buckets[idx]; m->buckets[idx] = node; m->size++;
   if ((double)m->size / m->cap >= CCHASHMAP_MAX_LOAD) _cchashmap_resize(m);
   if (old) *old = NULL;
@@ -174,7 +174,7 @@ CCHASHMAP_INLINE cchashmap_node_t *cchashmap_get(cchashmap_t *m, cchashmap_node_
   probe->hash = CCHASHMAP_HASH_CALL(probe, m->seed);
   size_t idx = probe->hash & (m->cap - 1);
   cchashmap_node_t *cur = m->buckets[idx];
-  while (cur) { if (CCHASHMAP_EQUAL_CALL(probe, cur)) return cur; cur = cur->next; }
+  while (cur) { if (probe->hash == cur->hash && CCHASHMAP_EQUAL_CALL(probe, cur)) return cur; cur = cur->next; }
   return NULL;
 }
 

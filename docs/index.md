@@ -1,10 +1,10 @@
-# alg
+# cclag
 
 **header-only · 侵入式 · 零开销回调 · C89 兼容**
 
 C/C++ 高性能数据结构库。每个容器都是单头文件，`#include` 即用。
 
-## 为什么选择 alg
+## 为什么选择 cclag
 
 | 特性 | 说明 |
 | --- | --- |
@@ -78,4 +78,4 @@ cmake --build build --target bench    # 构建 + 基准
 - **NULL 安全** — 所有公有函数守卫 NULL 参数
 - **C89 兼容** — MSVC / GCC / Clang 均可编译
 
-[REASONIC.md](../REASONIC.md) · [AGENTS.md](../AGENTS.md) · BSD 3-Clause
+[ccalg.dev](https://ccalg.dev) · BSD 3-Clause

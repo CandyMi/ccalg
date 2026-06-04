@@ -6,10 +6,12 @@
 
 ## 项目概览
 
-- **项目名**: `alg`
+- **项目名**: `cclag`
 - **类型**: header-only C 数据结构库 (兼容 C89 / C99 / C++ / MSVC)
 - **许可**: BSD
 - **作者**: CandyMi
+- **仓库**: [github.com/CandyMi/cclag](https://github.com/CandyMi/cclag)
+- **网站**: [ccalg.dev](https://ccalg.dev) (由 `gh-pages` 分支托管)
 - **核心特征**: 侵入式 (intrusive)、零内部节点分配 (部分除外)、编译期零开销回调
 
 ---
@@ -356,7 +358,7 @@ cmake --build build --target bench
 
 # 安装头文件到系统
 cmake --install build --prefix /usr/local
-# → /usr/local/include/alg/*.h
+# → /usr/local/include/cclag/*.h
 ```
 
 ### 15.2 Premake5 构建 (备选)
@@ -452,8 +454,8 @@ PREFIX=/usr/local sh scripts/install.sh      # Premake5 / 脚本
 安装后在代码中引入：
 
 ```c
-#include "alg/ccmap.h"
-#include "alg/cchashmap.h"
+#include "cclag/ccmap.h"
+#include "cclag/cchashmap.h"
 ```
 
 直接使用仓库源码时路径为 `<name>.h`（需 `-I include`）。

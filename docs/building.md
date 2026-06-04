@@ -1,6 +1,6 @@
 # 构建指南
 
-alg 是 header-only 库，核心代码无需构建。构建系统用于**单元测试**和**基准测试**。
+cclag 是 header-only 库，核心代码无需构建。构建系统用于**单元测试**和**基准测试**。
 
 ## CMake（推荐）
 
@@ -50,8 +50,8 @@ cmake --install build --prefix /usr/local
 
 ```
 /usr/local/
-├── include/alg/         # 所有 .h 头文件
-└── share/doc/alg/       # LICENSE, README.md
+├── include/cclag/         # 所有 .h 头文件
+└── share/doc/cclag/       # LICENSE, README.md
 ```
 
 自定义前缀：`cmake --install build --prefix ~/.local`
@@ -59,11 +59,11 @@ cmake --install build --prefix /usr/local
 安装后在代码中：
 
 ```c
-#include "alg/ccmap.h"       // 而非 "ccmap.h"
-#include "alg/cchashmap.h"
-#include "alg/cclink.h"
-#include "alg/cclist.h"
-#include "alg/ccheap.h"
+#include "cclag/ccmap.h"       // 而非 "ccmap.h"
+#include "cclag/cchashmap.h"
+#include "cclag/cclink.h"
+#include "cclag/cclist.h"
+#include "cclag/ccheap.h"
 ```
 
 ## Premake5（备选）
@@ -113,13 +113,13 @@ make -C build config=release bench_cclink  # 只构建单向链表基准
 
 ```bash
 PREFIX=/usr/local sh scripts/install.sh
-# → /usr/local/include/alg/*.h
+# → /usr/local/include/cclag/*.h
 
 # 自定义路径
 PREFIX=~/.local sh scripts/install.sh
 ```
 
-安装后在代码中 `#include "alg/ccmap.h"` 等（路径前缀 `alg/`）。
+安装后在代码中 `#include "cclag/ccmap.h"` 等（路径前缀 `cclag/`）。
 
 ## 手动编译
 
@@ -150,4 +150,4 @@ rm -rf build/          # 删除所有构建产物
 sh scripts/deploy-gh-pages.sh
 ```
 
-部署后访问：`https://CandyMi.github.io/alg/`
+部署后访问：`https://ccalg.dev/`

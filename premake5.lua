@@ -1,8 +1,8 @@
--- premake5.lua — build configuration for alg
+-- premake5.lua — build configuration for cclag
 -- Usage: premake5 gmake2  (or vs2022 / xcode4)
 ---@diagnostic disable: undefined-global
 
-workspace "alg"
+workspace "cclag"
   configurations { "Release", "Debug" }
   location "build"
 

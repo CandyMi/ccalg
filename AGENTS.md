@@ -2,16 +2,18 @@
 
 ## Project identity
 
-**alg** — a header-only C data-structure library, compatible with C89 / C99 / C++ / MSVC.
+**cclag** — a header-only C data-structure library, compatible with C89 / C99 / C++ / MSVC.
 
 - **License:** BSD 3-Clause
 - **Author:** CandyMi
+- **Repository:** [github.com/CandyMi/cclag](https://github.com/CandyMi/cclag)
+- **Website:** [ccalg.dev](https://ccalg.dev) (served via `gh-pages` branch)
 - **No build system.** Every header is self-contained; `#include` and use.
 
 ## Repository layout
 
 ```
-alg/
+cclag/
 ├── include/
 │   ├── ccmap.h       # Intrusive red-black tree (ordered map)
 │   ├── cchashmap.h   # Intrusive chained hash map
@@ -267,11 +269,11 @@ After modifying headers or docs, follow this sequence:
 
 ### Install → include path
 
-安装后头文件路径为 `alg/<name>.h`：
+安装后头文件路径为 `cclag/<name>.h`：
 
 ```c
-#include "alg/ccmap.h"       // cmake --install 或 sh scripts/install.sh 后
-#include "alg/cchashmap.h"
+#include "cclag/ccmap.h"       // cmake --install 或 sh scripts/install.sh 后
+#include "cclag/cchashmap.h"
 ```
 
 直接使用仓库源码时路径为 `<name>.h`（需 `-I include`）。

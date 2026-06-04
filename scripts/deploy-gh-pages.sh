@@ -33,4 +33,4 @@ echo "==> Back to $CUR"
 git clean -fd
 git checkout "$CUR"
 rm -rf "$TMP"
-echo "Done. https://CandyMi.github.io/alg/"
+echo "Done. https://ccalg.dev/"

@@ -1,4 +1,4 @@
-# alg
+# cclag
 
 A header-only library for high-performance data structures in C/C++.
 
@@ -78,8 +78,6 @@ See [docs/building.md](docs/building.md) for details and manual compilation.
 | [`docs/getting-started.md`](docs/getting-started.md) | Quick start with examples |
 | [`docs/api-reference.md`](docs/api-reference.md) | Complete API manual |
 | [`docs/building.md`](docs/building.md) | Build system guide |
-| [`REASONIC.md`](REASONIC.md) | Design spec (canonical reference) |
-| [`AGENTS.md`](AGENTS.md) | Agent handbook |
 
 ## License
 

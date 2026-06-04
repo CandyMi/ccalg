@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
-project(alg LANGUAGES C CXX)
+project(cclag LANGUAGES C CXX)
 
 # ── include directory ────────────────────────────────────────────────────
-set(ALG_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
+set(CCLAG_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
 
 # ── common compile settings ──────────────────────────────────────────────
 set(CMAKE_C_STANDARD 99)
@@ -19,9 +19,9 @@ endif()
 enable_testing()
 
 # ── test targets (C) ─────────────────────────────────────────────────────
-macro(add_alg_test name)
+macro(add_cclag_test name)
   add_executable(${name} tests/${name}.c)
-  target_include_directories(${name} PRIVATE ${ALG_INCLUDE_DIR})
+  target_include_directories(${name} PRIVATE ${CCLAG_INCLUDE_DIR})
   add_test(
     NAME        ${name}
     COMMAND     $<TARGET_FILE:${name}>
@@ -35,24 +35,24 @@ macro(add_alg_test name)
   )
 endmacro()
 
-add_alg_test(test_ccmap)
-add_alg_test(test_cchashmap)
-add_alg_test(test_cclist)
-add_alg_test(test_cclink)
-add_alg_test(test_ccheap)
+add_cclag_test(test_ccmap)
+add_cclag_test(test_cchashmap)
+add_cclag_test(test_cclist)
+add_cclag_test(test_cclink)
+add_cclag_test(test_ccheap)
 
 # ── benchmark targets (C++) ──────────────────────────────────────────────
-macro(add_alg_bench name)
+macro(add_cclag_bench name)
   add_executable(${name} bench/${name}.cpp)
-  target_include_directories(${name} PRIVATE ${ALG_INCLUDE_DIR})
+  target_include_directories(${name} PRIVATE ${CCLAG_INCLUDE_DIR})
   target_compile_options(${name} PRIVATE -O2)
 endmacro()
 
-add_alg_bench(bench_ccmap)
-add_alg_bench(bench_cchashmap)
-add_alg_bench(bench_cclist)
-add_alg_bench(bench_cclink)
-add_alg_bench(bench_ccheap)
+add_cclag_bench(bench_ccmap)
+add_cclag_bench(bench_cchashmap)
+add_cclag_bench(bench_cclist)
+add_cclag_bench(bench_cclink)
+add_cclag_bench(bench_ccheap)
 
 # ── convenience targets ──────────────────────────────────────────────────
 
@@ -99,9 +99,9 @@ endif()
 
 # ── install ──────────────────────────────────────────────────────────────
 include(GNUInstallDirs)
-install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/alg"
+install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/cclag"
         FILES_MATCHING PATTERN "*.h")
-install(FILES LICENSE DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/alg"
+install(FILES LICENSE DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/cclag"
         OPTIONAL)
-install(FILES README.md DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/alg"
+install(FILES README.md DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/cclag"
         OPTIONAL)

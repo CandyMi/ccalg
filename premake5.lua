@@ -1,5 +1,6 @@
 -- premake5.lua — build configuration for alg
 -- Usage: premake5 gmake2  (or vs2022 / xcode4)
+---@diagnostic disable: undefined-global
 
 workspace "alg"
   configurations { "Release", "Debug" }
@@ -46,3 +47,6 @@ workspace "alg"
         buildoptions { "-Wall", "-O2" }
       filter {}
   end
+
+  -- ── install (via script) ──────────────────────────────────────────────
+  --  PREFIX=/usr/local sh scripts/install.sh

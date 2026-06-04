@@ -101,14 +101,12 @@ make -C build config=release bench_cclink  # 只构建单向链表基准
 
 ### 安装
 
-Premake5 无内置安装目标，手动复制：
-
 ```bash
-# 安装头文件
-cp -r include /usr/local/include/alg
+PREFIX=/usr/local sh scripts/install.sh
+# → /usr/local/include/alg/*.h
 
-# 或自定义路径
-cp -r include ~/.local/include/alg
+# 自定义路径
+PREFIX=~/.local sh scripts/install.sh
 ```
 
 ## 手动编译

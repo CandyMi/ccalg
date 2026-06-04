@@ -425,11 +425,40 @@ include/*.h 变更
   → gh-pages 分支            (部署到 GitHub Pages)
 ```
 
-一个头文件的修改在 gh-pages 部署之前不算完成。部署命令：
+一个头文件的修改在 gh-pages 部署之前不算完成。
+
+### 16.2 完整开发流程
+
+```
+1. 修改代码           include/*.h / tests/ / bench/ / docs/
+2. 构建 + 测试        cmake --build build --target check
+3. 更新基准数据        cmake --build build --target bench
+                     → 将结果写入 docs/benchmarks.md
+4. 更新文档           docs/*.md 同步 API 变更
+5. 生成 HTML          cmake --build build --target docs-html
+6. 提交 + 推送        git add → commit → pull --rebase → push
+7. 部署 GitHub Pages  sh scripts/deploy-gh-pages.sh
+```
+
+### 16.3 安装后 include 路径
+
+安装命令：
 
 ```bash
-sh scripts/deploy-gh-pages.sh
+cmake --install build --prefix /usr/local    # CMake
+PREFIX=/usr/local sh scripts/install.sh      # Premake5 / 脚本
 ```
+
+安装后在代码中引入：
+
+```c
+#include "alg/ccmap.h"
+#include "alg/cchashmap.h"
+```
+
+直接使用仓库源码时路径为 `<name>.h`（需 `-I include`）。
+
+### 16.4 提交前拉取
 
 ### 16.2 提交前拉取
 

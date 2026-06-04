@@ -250,6 +250,31 @@ Output goes to `build/docs-html/`. Open `build/docs-html/index.html` in a browse
 
 Requires Python 3 with `markdown` package (`pip install markdown`). See `scripts/md2html.py` for the conversion script.
 
+## Full development workflow
+
+After modifying headers or docs, follow this sequence:
+
+```
+1. 修改代码           include/*.h 或 tests/或 docs/
+2. 构建 + 测试        cmake --build build --target check
+3. 更新基准数据        cmake --build build --target bench  → 更新 docs/benchmarks.md
+4. 更新文档           docs/*.md 同步
+5. 生成 HTML          cmake --build build --target docs-html
+6. 提交 master        git add → commit → pull --rebase → push origin master
+7. 部署 gh-pages      sh scripts/deploy-gh-pages.sh
+```
+
+### Install → include path
+
+安装后头文件路径为 `alg/<name>.h`：
+
+```c
+#include "alg/ccmap.h"       // cmake --install 或 sh scripts/install.sh 后
+#include "alg/cchashmap.h"
+```
+
+直接使用仓库源码时路径为 `<name>.h`（需 `-I include`）。
+
 ## Editing conventions for this repo
 
 - **REASONIC.md** is the canonical design reference — keep it in sync with header changes.

@@ -56,6 +56,16 @@ cmake --install build --prefix /usr/local
 
 自定义前缀：`cmake --install build --prefix ~/.local`
 
+安装后在代码中：
+
+```c
+#include "alg/ccmap.h"       // 而非 "ccmap.h"
+#include "alg/cchashmap.h"
+#include "alg/cclink.h"
+#include "alg/cclist.h"
+#include "alg/ccheap.h"
+```
+
 ## Premake5（备选）
 
 ### 生成与构建
@@ -108,6 +118,8 @@ PREFIX=/usr/local sh scripts/install.sh
 # 自定义路径
 PREFIX=~/.local sh scripts/install.sh
 ```
+
+安装后在代码中 `#include "alg/ccmap.h"` 等（路径前缀 `alg/`）。
 
 ## 手动编译
 

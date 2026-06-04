@@ -10,7 +10,7 @@
 - **类型**: header-only C 数据结构库 (兼容 C89 / C99 / C++ / MSVC)
 - **许可**: BSD
 - **作者**: CandyMi
-- **仓库**: [github.com/CandyMi/cclag](https://github.com/CandyMi/cclag)
+- **仓库**: [github.com/CandyMi/ccalg](https://github.com/CandyMi/ccalg)
 - **网站**: [ccalg.dev](https://ccalg.dev) (由 `gh-pages` 分支托管)
 - **核心特征**: 侵入式 (intrusive)、零内部节点分配 (部分除外)、编译期零开销回调
 

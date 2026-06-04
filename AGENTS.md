@@ -6,7 +6,7 @@
 
 - **License:** BSD 3-Clause
 - **Author:** CandyMi
-- **Repository:** [github.com/CandyMi/cclag](https://github.com/CandyMi/cclag)
+- **Repository:** [github.com/CandyMi/ccalg](https://github.com/CandyMi/ccalg)
 - **Website:** [ccalg.dev](https://ccalg.dev) (served via `gh-pages` branch)
 - **No build system.** Every header is self-contained; `#include` and use.
 

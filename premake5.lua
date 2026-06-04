@@ -7,38 +7,42 @@ workspace "alg"
 
   includedirs { "include" }
 
-  -- ── tests (C) ─────────────────────────────────────────────────────────
-  project "alg_tests"
-    kind "ConsoleApp"
-    language "C"
-    cdialect "C99"
-    targetdir "bin/%{cfg.buildcfg}"
+  filter "configurations:Debug"
+    symbols "On"
 
-    files { "tests/test_*.c" }
-
-    filter "configurations:Debug"
-      symbols "On"
-      buildoptions { "-Wall", "-Wextra", "-Wno-missing-field-initializers" }
-
-    filter "configurations:Release"
-      optimize "On"
-      buildoptions { "-Wall", "-Wextra", "-Wno-missing-field-initializers" }
-
-  -- ── benchmarks (C++) ──────────────────────────────────────────────────
-  project "alg_bench"
-    kind "ConsoleApp"
-    language "C++"
-    cppdialect "C++11"
-    targetdir "bin/%{cfg.buildcfg}"
-
-    files { "bench/bench_*.cpp" }
-
-    filter "configurations:Debug"
-      symbols "On"
-      buildoptions { "-Wall", "-O2" }
-
-    filter "configurations:Release"
-      optimize "On"
-      buildoptions { "-Wall", "-O2" }
+  filter "configurations:Release"
+    optimize "On"
 
   filter {}
+
+  -- ── tests (C) ─────────────────────────────────────────────────────────
+  local tests = {
+    "test_ccmap", "test_cchashmap", "test_cclist", "test_ccheap"
+  }
+  for _, name in ipairs(tests) do
+    project(name)
+      kind "ConsoleApp"
+      language "C"
+      cdialect "C99"
+      targetdir "build/bin/%{cfg.buildcfg}"
+      files { "tests/" .. name .. ".c" }
+      filter "toolset:gcc or toolset:clang"
+        buildoptions { "-Wall", "-Wextra", "-Wno-missing-field-initializers" }
+      filter {}
+  end
+
+  -- ── benchmarks (C++) ──────────────────────────────────────────────────
+  local benches = {
+    "bench_ccmap", "bench_cchashmap", "bench_cclist", "bench_ccheap"
+  }
+  for _, name in ipairs(benches) do
+    project(name)
+      kind "ConsoleApp"
+      language "C++"
+      cppdialect "C++11"
+      targetdir "build/bin/%{cfg.buildcfg}"
+      files { "bench/" .. name .. ".cpp" }
+      filter "toolset:gcc or toolset:clang"
+        buildoptions { "-Wall", "-O2" }
+      filter {}
+  end

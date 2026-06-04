@@ -71,3 +71,6 @@ Testing/
 # OS files
 .DS_Store
 __pycache__/
+
+# premake5 binary output (legacy)
+bin/

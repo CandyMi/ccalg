@@ -16,9 +16,10 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
 | 目标 | 命令 | 说明 |
 | --- | --- | --- |
-| 全量构建 | `cmake --build build` | 4 个测试 + 4 个 benchmark |
+| 全量构建 | `cmake --build build` | 5 个测试 + 5 个 benchmark |
 | 测试 | `cmake --build build --target check` | 构建 + CTest 运行全部单元测试 |
 | 基准 | `cmake --build build --target bench` | 构建 + 依次运行全部 benchmark |
+| 文档 | `cmake --build build --target docs-html` | docs/*.md → HTML（语法高亮） |
 | 单项构建 | `cmake --build build --target test_ccmap` | 只构建指定目标 |
 | CTest 过滤 | `ctest --test-dir build -L unit` | 按标签过滤测试 |
 
@@ -39,30 +40,47 @@ ctest --test-dir build -L unit --output-on-failure
 ctest --test-dir build --output-on-failure
 ```
 
-### 手动运行单个测试
-
-```bash
-./build/test_ccmap      # 红黑树
-./build/test_cchashmap  # 哈希表
-./build/test_cclist     # 双向链表
-./build/test_ccheap     # 优先队列
-```
-
-### 手动运行单个 benchmark
-
-```bash
-./build/bench_ccmap      # ccmap vs std::map
-./build/bench_cchashmap  # cchashmap vs std::unordered_map
-./build/bench_cclist     # cclist vs std::list
-./build/bench_ccheap     # ccheap vs std::priority_queue
-```
-
 ## Premake5（备选）
 
+### 生成与构建
+
 ```bash
-premake5 gmake2               # 生成 Makefile
-make -C build config=release  # 构建
-./build/bin/Release/test_ccmap
+premake5 gmake2                   # 生成 Makefile
+make -C build config=release -j4  # 构建（5 测试 + 5 基准）
+```
+
+产物位置：
+
+| 类型 | 路径 |
+| --- | --- |
+| 测试 | `build/test_*` |
+| 基准 | `build/bench_*` |
+
+### 构建单个目标
+
+```bash
+make -C build config=release test_ccmap    # 只构建红黑树测试
+make -C build config=release bench_cclink  # 只构建单向链表基准
+```
+
+### 运行测试
+
+```bash
+./build/test_ccmap
+./build/test_cchashmap
+./build/test_cclink
+./build/test_cclist
+./build/test_ccheap
+```
+
+### 运行基准
+
+```bash
+./build/bench_ccmap
+./build/bench_cchashmap
+./build/bench_cclink
+./build/bench_cclist
+./build/bench_ccheap
 ```
 
 ## 手动编译
@@ -83,5 +101,4 @@ g++ -std=c++11 -O2 -Wall \
 
 ```bash
 rm -rf build/          # 删除所有构建产物
-cmake --build build --target clean  # 或只清理编译产物
 ```

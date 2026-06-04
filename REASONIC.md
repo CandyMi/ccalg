@@ -358,8 +358,15 @@ cmake --build build --target bench
 ### 15.2 Premake5 构建 (备选)
 
 ```bash
-premake5 gmake2               # 生成 Makefile
-make -C build config=release  # 构建
+premake5 gmake2                   # 生成 Makefile
+make -C build config=release -j4  # 构建（5 测试 + 5 基准）
+```
+
+产物：`build/test_*`（测试）、`build/bench_*`（基准）。单个目标：
+
+```bash
+make -C build config=release test_cclink   # 只构建单向链表测试
+./build/test_cclink                        # 运行
 ```
 
 ### 15.3 手动编译
@@ -381,6 +388,7 @@ g++ -std=c++11 -O2 -Wall -o bench_ccmap bench/bench_ccmap.cpp && ./bench_ccmap
 | --- | --- | --- |
 | `tests/test_ccmap.c` | ccmap 红黑树 | 2058 |
 | `tests/test_cchashmap.c` | cchashmap 哈希表 | 2043 |
+| `tests/test_cclink.c` | cclink 单向链表 | 54 |
 | `tests/test_cclist.c` | cclist 双向链表 | 78 |
 | `tests/test_ccheap.c` | ccheap D-ary 堆 | 1255 |
 

@@ -72,12 +72,7 @@ See [docs/building.md](docs/building.md) for details and manual compilation.
 
 ## Documents
 
-| Document | Description |
-|---|---|
-| [`docs/index.md`](docs/index.md) | Documentation index |
-| [`docs/getting-started.md`](docs/getting-started.md) | Quick start with examples |
-| [`docs/api-reference.md`](docs/api-reference.md) | Complete API manual |
-| [`docs/building.md`](docs/building.md) | Build system guide |
+Online documentation → [**ccalg.dev**](https://ccalg.dev)
 
 ## License
 

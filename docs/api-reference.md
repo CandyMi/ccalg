@@ -305,6 +305,9 @@ void cclink_push_back(cclink_t *l, cclink_node_t *n);
 
 void cclink_remove(cclink_t *l, cclink_node_t *n);
 // O(n) 删除。节点不在链表中则无操作。
+
+cclink_node_t *cclink_pop_front(cclink_t *l);
+// O(1) 弹出头部。空返回 NULL。
 ```
 
 ### 迭代器 / 访问器

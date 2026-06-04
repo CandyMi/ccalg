@@ -140,6 +140,14 @@ CCLINK_INLINE void cclink_remove(cclink_t *l, cclink_node_t *n) {
   _cclink_unlink(l, prev, n);
 }
 
+/* remove and return head (O(1)).  Returns NULL if list is empty. */
+CCLINK_INLINE cclink_node_t *cclink_pop_front(cclink_t *l) {
+  if (!l || !l->head) return NULL;
+  cclink_node_t *n = l->head;
+  _cclink_unlink(l, NULL, n);
+  return n;
+}
+
 /* ── iteration ────────────────────────────────────────────────────────── */
 
 CCLINK_INLINE cclink_node_t *cclink_begin(const cclink_t *l) {

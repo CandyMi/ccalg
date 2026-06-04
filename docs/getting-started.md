@@ -129,7 +129,37 @@ int main() {
 }
 ```
 
-## 5. ccheap — 优先队列
+## 5. cclink — 单向链表
+
+```c
+#include <stdio.h>
+#include "cclink.h"
+
+struct entry { int val; cclink_node_t node; };
+
+int main() {
+    cclink_t l; cclink_init(&l);
+
+    struct entry e1 = {1}, e2 = {2}, e3 = {3};
+    cclink_push_back(&l, &e1.node);
+    cclink_push_back(&l, &e2.node);
+    cclink_push_back(&l, &e3.node);
+
+    /* 正向遍历: 1, 2, 3 */
+    for (cclink_node_t *n = cclink_begin(&l); n != cclink_end(&l); n = cclink_next(n))
+        printf("%d\n", CCLINK_CONTAINER(n, struct entry, node)->val);
+
+    /* pop_front: 取出头部 */
+    while (!cclink_empty(&l)) {
+        cclink_node_t *n = cclink_pop_front(&l);
+        printf("popped: %d\n", CCLINK_CONTAINER(n, struct entry, node)->val);
+    }
+
+    return 0;
+}
+```
+
+## 6. ccheap — 优先队列
 
 ```c
 #include <stdio.h>

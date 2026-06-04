@@ -96,6 +96,29 @@ TEST(remove_tail) {
   n = cclink_next(n); ASSERT(n == NULL);
 }
 
+TEST(pop_front) {
+  cclink_t l; cclink_init(&l);
+  struct entry e1 = {1}, e2 = {2}, e3 = {3};
+  cclink_push_back(&l, &e1.node);
+  cclink_push_back(&l, &e2.node);
+  cclink_push_back(&l, &e3.node);
+
+  cclink_node_t *n = cclink_pop_front(&l);
+  ASSERT(n == &e1.node);
+  ASSERT(cclink_size(&l) == 2);
+  ASSERT(cclink_front(&l) == &e2.node);
+
+  n = cclink_pop_front(&l);
+  ASSERT(n == &e2.node);
+  ASSERT(cclink_size(&l) == 1);
+
+  n = cclink_pop_front(&l);
+  ASSERT(n == &e3.node);
+  ASSERT(cclink_empty(&l));
+
+  ASSERT(cclink_pop_front(&l) == NULL);  /* empty */
+}
+
 TEST(remove_absent) {
   cclink_t l; cclink_init(&l);
   struct entry e1 = {1}, e2 = {2};
@@ -181,6 +204,7 @@ int main(void) {
   RUN(remove_head);
   RUN(remove_middle);
   RUN(remove_tail);
+  RUN(pop_front);
   RUN(remove_absent);
   RUN(clear);
   RUN(verify_valid);

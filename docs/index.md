@@ -6,13 +6,15 @@ C/C++ 高性能数据结构库。每个容器都是单头文件，`#include` 即
 
 ## 容器
 
-| 容器 | 结构 | 头文件 | 内部分配 |
-| --- | --- | --- | --- |
-| `ccmap` | 红黑树（有序映射） | `include/ccmap.h` | 无 |
-| `cchashmap` | 链式哈希表 | `include/cchashmap.h` | 桶数组 |
-| `cclink` | 单向链表 | `include/cclink.h` | 无 |
-| `cclist` | 双向链表 | `include/cclist.h` | 无 |
-| `ccheap` | D-ary 堆（优先队列） | `include/ccheap.h` | 数组（值模式） |
+| 容器 | 结构 | 插入 | 查找 | 删除 | 迭代 |
+| --- | --- | --- | --- | --- | --- |
+| `ccmap` | 红黑树 | O(log n) | O(log n) | O(log n) | O(n) 有序 |
+| `cchashmap` | 链式哈希表 | O(1) 均摊 | O(1) 均摊 | O(1) 均摊 | O(n) 无序 |
+| `cclink` | 单向链表 | O(1) 头插 | O(n) | O(n) 任意 / O(1) 头 | O(n) |
+| `cclist` | 双向链表 | O(1) 头/尾 | O(n) | O(1) 给定节点 | O(n) |
+| `ccheap` | D-ary 堆 | O(log n) | — (peek O1) | O(log n) pop | — |
+
+> 均摊复杂度基于默认配置（ccmap 红黑树保证最坏 O(log n)，cchashmap 负载因子 ≤1.25 保证均摊 O(1)）。
 
 ## 一分钟上手
 

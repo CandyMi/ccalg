@@ -60,17 +60,17 @@ int main() {
   printf("            stl    %8.2f ms  (sum=%lld)\n", ms(t2, t3), sink);
   printf("            ratio  %8.2fx\n\n", ms(t0, t1) / ms(t2, t3));
 
-  /* ── remove (pop all from front) ────────────────────────────────────── */
+  /* ── pop_front ─────────────────────────────────────────────────────── */
   t0 = clk::now();
-  while (!cclink_empty(&cl)) cclink_remove(&cl, cclink_front(&cl));
+  while (!cclink_empty(&cl)) cclink_pop_front(&cl);
   t1 = clk::now();
-  printf("  remove:   cclink %8.2f ms\n", ms(t0, t1));
+  printf("  pop:      cclink %8.2f ms\n", ms(t0, t1));
 
   t2 = clk::now();
   while (!fl.empty()) fl.pop_front();
   t3 = clk::now();
   printf("            stl    %8.2f ms\n", ms(t2, t3));
-  printf("            ratio  %8.2fx\n", ms(t0, t1) / ms(t2, t3));
+  printf("            ratio  %8.2fx\n\n", ms(t0, t1) / ms(t2, t3));
 
   delete[] entries;
   return 0;

@@ -92,6 +92,8 @@ def main():
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{title}</title>
+<link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
+<link rel="stylesheet" media="(prefers-color-scheme: dark)"  href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
 <style>{CSS}</style>
 </head>
 <body>
@@ -105,6 +107,8 @@ def main():
     alg — header-only C data-structure library · BSD 3-Clause · <a href="https://github.com/CandyMi/alg">GitHub</a>
   </footer>
 </main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
 </body>
 </html>"""
         with open(dst, "w", encoding="utf-8") as f:

@@ -72,7 +72,7 @@ See [docs/building.md](docs/building.md) for details and manual compilation.
 
 ## Documents
 
-Online documentation → [**ccalg.dev**](https://ccalg.dev)
+Online documentation → <a href="https://ccalg.dev" target="_blank"><b>ccalg.dev</b></a>
 
 ## License
 

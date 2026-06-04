@@ -33,6 +33,9 @@ static double ms(clk::time_point s, clk::time_point e) {
   return std::chrono::duration<double, std::milli>(e - s).count();
 }
 
+/* anti-optimisation sink — compiler can't elide loops that feed this */
+static volatile long long sink;
+
 int main() {
   enum { N = 100000 };
   printf("=== ccmap vs std::map  (%d elements) ===\n\n", N);
@@ -56,15 +59,23 @@ int main() {
   printf("           ratio %8.2fx\n\n", ms(t0, t1) / ms(t2, t3));
 
   /* ── find ───────────────────────────────────────────────────────────── */
+  sink = 0;
   t0 = clk::now();
-  for (int i = 0; i < N; i++) { volatile auto *f = ccmap_find(&m, &cc_entries[i].node); (void)f; }
+  for (int i = 0; i < N; i++) {
+    ccmap_node_t *f = ccmap_find(&m, &cc_entries[i].node);
+    sink += (long long)(uintptr_t)f;
+  }
   t1 = clk::now();
-  printf("  find:    ccmap %8.2f ms\n", ms(t0, t1));
+  printf("  find:    ccmap %8.2f ms  (sum=%lld)\n", ms(t0, t1), sink);
 
+  sink = 0;
   t2 = clk::now();
-  for (int i = 0; i < N; i++) { volatile auto it = sm.find(&st_entries[i]); (void)it; }
+  for (int i = 0; i < N; i++) {
+    auto it = sm.find(&st_entries[i]);
+    sink += (long long)(uintptr_t)&*it;
+  }
   t3 = clk::now();
-  printf("           stl   %8.2f ms\n", ms(t2, t3));
+  printf("           stl   %8.2f ms  (sum=%lld)\n", ms(t2, t3), sink);
   printf("           ratio %8.2fx\n\n", ms(t0, t1) / ms(t2, t3));
 
   /* ── erase ──────────────────────────────────────────────────────────── */

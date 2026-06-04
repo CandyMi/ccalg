@@ -12,7 +12,6 @@
 #include <algorithm>
 #include <random>
 
-/* pre-define node + entry for macro-mode dispatch */
 typedef struct cchashmap_node {
   struct cchashmap_node *next;
   uint64_t               hash;
@@ -34,6 +33,7 @@ using clk = std::chrono::high_resolution_clock;
 static double ms(clk::time_point s, clk::time_point e) {
   return std::chrono::duration<double, std::milli>(e - s).count();
 }
+static volatile long long sink;
 
 int main() {
   enum { N = 100000 };
@@ -64,18 +64,24 @@ int main() {
   std::shuffle(keys.begin(), keys.end(), rng);
 
   /* ── find ───────────────────────────────────────────────────────────── */
+  sink = 0;
   t0 = clk::now();
   for (int i = 0; i < N; i++) {
     hmap_entry probe; probe.key = keys[i];
-    volatile auto *f = cchashmap_get(&m, &probe.node); (void)f;
+    cchashmap_node_t *f = cchashmap_get(&m, &probe.node);
+    sink += (long long)(uintptr_t)f;
   }
   t1 = clk::now();
-  printf("  find:    cchashmap %8.2f ms\n", ms(t0, t1));
+  printf("  find:    cchashmap %8.2f ms  (sum=%lld)\n", ms(t0, t1), sink);
 
+  sink = 0;
   t2 = clk::now();
-  for (int i = 0; i < N; i++) { volatile auto it = um.find(keys[i]); (void)it; }
+  for (int i = 0; i < N; i++) {
+    auto it = um.find(keys[i]);
+    sink += (it != um.end()) ? it->second : 0;
+  }
   t3 = clk::now();
-  printf("           stl       %8.2f ms\n", ms(t2, t3));
+  printf("           stl       %8.2f ms  (sum=%lld)\n", ms(t2, t3), sink);
   printf("           ratio     %8.2fx\n\n", ms(t0, t1) / ms(t2, t3));
 
   std::shuffle(keys.begin(), keys.end(), rng);

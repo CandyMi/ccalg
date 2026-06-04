@@ -30,6 +30,7 @@ git branch -m "$BRANCH"
 git push -f origin "$BRANCH"
 
 echo "==> Back to $CUR"
+git clean -fd
 git checkout "$CUR"
 rm -rf "$TMP"
 echo "Done. https://CandyMi.github.io/alg/"

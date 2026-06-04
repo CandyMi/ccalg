@@ -40,6 +40,22 @@ ctest --test-dir build -L unit --output-on-failure
 ctest --test-dir build --output-on-failure
 ```
 
+### 安装
+
+```bash
+cmake --install build --prefix /usr/local
+```
+
+安装后：
+
+```
+/usr/local/
+├── include/alg/         # 所有 .h 头文件
+└── share/doc/alg/       # LICENSE, README.md
+```
+
+自定义前缀：`cmake --install build --prefix ~/.local`
+
 ## Premake5（备选）
 
 ### 生成与构建
@@ -81,6 +97,18 @@ make -C build config=release bench_cclink  # 只构建单向链表基准
 ./build/bench_cclink
 ./build/bench_cclist
 ./build/bench_ccheap
+```
+
+### 安装
+
+Premake5 无内置安装目标，手动复制：
+
+```bash
+# 安装头文件
+cp -r include /usr/local/include/alg
+
+# 或自定义路径
+cp -r include ~/.local/include/alg
 ```
 
 ## 手动编译

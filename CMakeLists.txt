@@ -96,3 +96,12 @@ if(PYTHON3)
 else()
   message(STATUS "python3 not found — `docs-html` target disabled")
 endif()
+
+# ── install ──────────────────────────────────────────────────────────────
+include(GNUInstallDirs)
+install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/alg"
+        FILES_MATCHING PATTERN "*.h")
+install(FILES LICENSE DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/alg"
+        OPTIONAL)
+install(FILES README.md DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/alg"
+        OPTIONAL)

@@ -353,6 +353,10 @@ cmake --build build --target check
 
 # 一键构建 + 基准测试
 cmake --build build --target bench
+
+# 安装头文件到系统
+cmake --install build --prefix /usr/local
+# → /usr/local/include/alg/*.h
 ```
 
 ### 15.2 Premake5 构建 (备选)
@@ -367,6 +371,9 @@ make -C build config=release -j4  # 构建（5 测试 + 5 基准）
 ```bash
 make -C build config=release test_cclink   # 只构建单向链表测试
 ./build/test_cclink                        # 运行
+
+# 安装头文件（手动）
+cp -r include /usr/local/include/alg
 ```
 
 ### 15.3 手动编译

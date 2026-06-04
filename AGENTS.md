@@ -236,6 +236,7 @@ build: add CMake + premake5, CTest integration, docs-html target
 - **Use imperative mood** ("add" not "added").
 - **Breaking changes** get `!` after type/scope: `feat(ccmap)!: change insert return type`
 - **Pull before push.** Run `git pull --rebase` first; resolve conflicts, re-test, then ask user to confirm before pushing.
+- **Sync gh-pages.** After pushing master, regenerate HTML and deploy to gh-pages: `sh scripts/deploy-gh-pages.sh`
 
 ## Docs → HTML
 
@@ -256,4 +257,4 @@ Requires Python 3 with `markdown` package (`pip install markdown`). See `scripts
 - **Macro prefixes are per-container.** Do NOT add cross-container shared macros; each header is self-contained.
 - **New containers** need matching test (`tests/test_ccxxx.c`) and benchmark (`bench/bench_ccxxx.cpp`).
 - **Docs** live in `docs/` — keep `docs/index.md` updated when adding files.
-- **Cascade updates.** When core code (include/*.h) changes, also update: tests → benchmarks/data → docs/md → docs-html. A header change is not complete until the HTML reflects it.
+- **Cascade updates.** When core code (include/*.h) changes, also update: tests → benchmarks/data → docs/md → docs-html → gh-pages. A header change is not complete until the HTML is deployed.

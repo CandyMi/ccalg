@@ -128,3 +128,14 @@ g++ -std=c++11 -O2 -Wall \
 ```bash
 rm -rf build/          # 删除所有构建产物
 ```
+
+## GitHub Pages
+
+文档 HTML 部署在 `gh-pages` 分支，通过 GitHub Pages 提供在线浏览。
+
+```bash
+# 生成 HTML 并推送到 gh-pages 分支
+sh scripts/deploy-gh-pages.sh
+```
+
+部署后访问：`https://CandyMi.github.io/alg/`

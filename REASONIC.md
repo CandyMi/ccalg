@@ -422,9 +422,14 @@ include/*.h 变更
   → bench/bench_*.cpp        (基准数据重新采集)
   → docs/*.md                (API 文档 / 基准数据更新)
   → build/docs-html/*.html   (重新生成 HTML 页面)
+  → gh-pages 分支            (部署到 GitHub Pages)
 ```
 
-一个头文件的修改在 HTML 页面反映之前不算完成。
+一个头文件的修改在 gh-pages 部署之前不算完成。部署命令：
+
+```bash
+sh scripts/deploy-gh-pages.sh
+```
 
 ### 16.2 提交前拉取
 

@@ -1,35 +1,64 @@
-# alg — C 数据结构库文档
+# alg
 
 **header-only · 侵入式 · 零开销回调 · C89 兼容**
 
-## 文档导航
+C/C++ 高性能数据结构库。每个容器都是单头文件，`#include` 即用。
+
+## 容器
+
+| 容器 | 结构 | 头文件 | 内部分配 |
+| --- | --- | --- | --- |
+| `ccmap` | 红黑树（有序映射） | `include/ccmap.h` | 无 |
+| `cchashmap` | 链式哈希表 | `include/cchashmap.h` | 桶数组 |
+| `cclist` | 双向链表 | `include/cclist.h` | 无 |
+| `ccheap` | D-ary 堆（优先队列） | `include/ccheap.h` | 数组（值模式） |
+
+## 一分钟上手
+
+```c
+#include "ccmap.h"
+
+struct entry { int key; ccmap_node_t node; };
+
+static int64_t cmp(const ccmap_node_t *a, const ccmap_node_t *b) {
+    return (int64_t)CCMAP_CONTAINER(a, struct entry, node)->key
+         - (int64_t)CCMAP_CONTAINER(b, struct entry, node)->key;
+}
+
+int main() {
+    ccmap_t m; ccmap_init(&m, cmp);
+    struct entry e1 = {42}, e2 = {7}, e3 = {99};
+    ccmap_insert(&m, &e1.node, NULL);
+    ccmap_insert(&m, &e2.node, NULL);
+    ccmap_insert(&m, &e3.node, NULL);
+    // 有序遍历: 7 → 42 → 99
+    for (ccmap_node_t *n = ccmap_begin(&m); n; n = ccmap_next(n))
+        printf("%d\n", CCMAP_CONTAINER(n, struct entry, node)->key);
+}
+```
+
+## 构建
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target check    # 构建 + 测试
+cmake --build build --target bench    # 构建 + 基准
+```
+
+## 文档
 
 | 文档 | 说明 |
 | --- | --- |
-| [快速开始](getting-started.md) | 5 分钟上手，含完整示例 |
+| [快速开始](getting-started.md) | 5 分钟上手，完整示例 |
 | [API 参考](api-reference.md) | 四个容器的完整 API 手册 |
 | [构建指南](building.md) | CMake / Premake5 / 手动编译 |
+| [性能基准](benchmarks.md) | ccmap / cchashmap / cclist / ccheap vs STL |
 
-## 容器一览
+## 设计
 
-| 容器 | 头文件 | 数据结构 | 内部分配 |
-| --- | --- | --- | --- |
-| `ccmap` | [`include/ccmap.h`](../include/ccmap.h) | 侵入式红黑树（有序映射） | 无 |
-| `cchashmap` | [`include/cchashmap.h`](../include/cchashmap.h) | 侵入式链式哈希表 | 桶数组 |
-| `cclist` | [`include/cclist.h`](../include/cclist.h) | 侵入式双向链表 | 无 |
-| `ccheap` | [`include/ccheap.h`](../include/ccheap.h) | D-ary 堆（优先队列） | 数组（值模式） |
+- **侵入式** — 节点嵌入用户结构体，无隐藏分配
+- **零开销回调** — 宏模式消除函数指针间接调用
+- **NULL 安全** — 所有公有函数守卫 NULL 参数
+- **C89 兼容** — MSVC / GCC / Clang 均可编译
 
-## 设计文档
-
-| 文档 | 说明 |
-| --- | --- |
-| [`REASONIC.md`](../REASONIC.md) | 设计规范与接口约定（权威参考） |
-| [`AGENTS.md`](../AGENTS.md) | AI Agent 操作手册 |
-| [`README.md`](../README.md) | 项目简介 |
-
-## 快速链接
-
-- **构建**: `cmake -S . -B build && cmake --build build`
-- **测试**: `ctest --test-dir build -L unit --output-on-failure`
-- **基准**: `cmake --build build --target bench`
-- **协议**: BSD 3-Clause
+[REASONIC.md](../REASONIC.md) · [AGENTS.md](../AGENTS.md) · BSD 3-Clause

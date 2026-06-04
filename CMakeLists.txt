@@ -38,6 +38,7 @@ endmacro()
 add_alg_test(test_ccmap)
 add_alg_test(test_cchashmap)
 add_alg_test(test_cclist)
+add_alg_test(test_cclink)
 add_alg_test(test_ccheap)
 
 # ── benchmark targets (C++) ──────────────────────────────────────────────
@@ -50,6 +51,7 @@ endmacro()
 add_alg_bench(bench_ccmap)
 add_alg_bench(bench_cchashmap)
 add_alg_bench(bench_cclist)
+add_alg_bench(bench_cclink)
 add_alg_bench(bench_ccheap)
 
 # ── convenience targets ──────────────────────────────────────────────────
@@ -57,7 +59,7 @@ add_alg_bench(bench_ccheap)
 # `cmake --build build --target check` — build + run all tests
 add_custom_target(check
   COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -L unit
-  DEPENDS test_ccmap test_cchashmap test_cclist test_ccheap
+  DEPENDS test_ccmap test_cchashmap test_cclink test_cclist test_ccheap
   USES_TERMINAL
   COMMENT "Running all unit tests"
 )
@@ -70,12 +72,15 @@ add_custom_target(bench
   COMMAND ${CMAKE_COMMAND} -E echo "=== cchashmap vs std::unordered_map ==="
   COMMAND $<TARGET_FILE:bench_cchashmap>
   COMMAND ${CMAKE_COMMAND} -E echo ""
+  COMMAND ${CMAKE_COMMAND} -E echo "=== cclink vs std::forward_list ==="
+  COMMAND $<TARGET_FILE:bench_cclink>
+  COMMAND ${CMAKE_COMMAND} -E echo ""
   COMMAND ${CMAKE_COMMAND} -E echo "=== cclist vs std::list ==="
   COMMAND $<TARGET_FILE:bench_cclist>
   COMMAND ${CMAKE_COMMAND} -E echo ""
   COMMAND ${CMAKE_COMMAND} -E echo "=== ccheap vs std::priority_queue ==="
   COMMAND $<TARGET_FILE:bench_ccheap>
-  DEPENDS bench_ccmap bench_cchashmap bench_cclist bench_ccheap
+  DEPENDS bench_ccmap bench_cchashmap bench_cclink bench_cclist bench_ccheap
   USES_TERMINAL
   COMMENT "Running all benchmarks"
 )

@@ -260,6 +260,81 @@ cclist_ecode_t cclist_verify(const cclist_t *l);
 
 ---
 
+---
+
+## cclink — 侵入式单向链表
+
+头文件: [`include/cclink.h`](../include/cclink.h)
+
+轻量单向链表，无内部分配。可作为哈希桶链等场景的构建块。
+
+### 类型
+
+```c
+typedef struct cclink_node {
+    struct cclink_node *next;
+} cclink_node_t;
+
+typedef struct cclink {
+    cclink_node_t *head;
+    size_t         size;
+} cclink_t;
+```
+
+### 编译期配置
+
+| 宏 | 作用 | 默认 |
+| --- | --- | --- |
+| `CCLINK_NODE_T` | 阻止默认节点 typedef | 未定义 |
+
+### 生命周期
+
+```c
+void cclink_init(cclink_t *l);
+void cclink_clear(cclink_t *l);  // 同 init
+```
+
+### 增删
+
+```c
+void cclink_push(cclink_t *l, cclink_node_t *n);
+// O(1) 头部插入。
+
+void cclink_push_back(cclink_t *l, cclink_node_t *n);
+// O(n) 尾部追加。
+
+void cclink_remove(cclink_t *l, cclink_node_t *n);
+// O(n) 删除。节点不在链表中则无操作。
+```
+
+### 迭代器 / 访问器
+
+```c
+cclink_node_t *cclink_begin(const cclink_t *l);   // → head
+cclink_node_t *cclink_end(const cclink_t *l);     // 总是 NULL
+cclink_node_t *cclink_next(const cclink_node_t *n);
+cclink_node_t *cclink_front(const cclink_t *l);   // → head
+```
+
+### 查询
+
+```c
+size_t cclink_size(const cclink_t *l);   // NULL 返回 0
+bool   cclink_empty(const cclink_t *l);  // NULL 返回 true
+```
+
+### 调试
+
+```c
+bool cclink_has_cycle(const cclink_t *l);
+// Floyd 龟兔算法，O(N) O(1)。
+
+cclink_ecode_t cclink_verify(const cclink_t *l);
+// 返回 0 或: ISNULL(1) / HASCYCLE(2) / SIZEERROR(3)
+```
+
+---
+
 ## ccheap — D-ary 堆（优先队列）
 
 头文件: [`include/ccheap.h`](../include/ccheap.h)

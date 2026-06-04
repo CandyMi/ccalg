@@ -10,6 +10,7 @@ C/C++ 高性能数据结构库。每个容器都是单头文件，`#include` 即
 | --- | --- | --- | --- |
 | `ccmap` | 红黑树（有序映射） | `include/ccmap.h` | 无 |
 | `cchashmap` | 链式哈希表 | `include/cchashmap.h` | 桶数组 |
+| `cclink` | 单向链表 | `include/cclink.h` | 无 |
 | `cclist` | 双向链表 | `include/cclist.h` | 无 |
 | `ccheap` | D-ary 堆（优先队列） | `include/ccheap.h` | 数组（值模式） |
 

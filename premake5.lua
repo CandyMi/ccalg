@@ -17,7 +17,7 @@ workspace "alg"
 
   -- ── tests (C) ─────────────────────────────────────────────────────────
   local tests = {
-    "test_ccmap", "test_cchashmap", "test_cclist", "test_ccheap"
+    "test_ccmap", "test_cchashmap", "test_cclink", "test_cclist", "test_ccheap"
   }
   for _, name in ipairs(tests) do
     project(name)
@@ -33,7 +33,7 @@ workspace "alg"
 
   -- ── benchmarks (C++) ──────────────────────────────────────────────────
   local benches = {
-    "bench_ccmap", "bench_cchashmap", "bench_cclist", "bench_ccheap"
+    "bench_ccmap", "bench_cchashmap", "bench_cclink", "bench_cclist", "bench_ccheap"
   }
   for _, name in ipairs(benches) do
     project(name)

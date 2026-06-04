@@ -33,6 +33,16 @@
 
 > push/pop 比 `std::list` 快 10-12×。侵入式链表无单独节点分配开销。
 
+## cclink vs `std::forward_list` — 200K 操作
+
+| 操作 | cclink | `std::forward_list` | 倍率 |
+| --- | --- | --- | --- |
+| push_front | **0.30 ms** | 10.83 ms | **0.03×** |
+| iterate | 2.50 ms | 0.80 ms | 3.13× |
+| pop_front | **0.49 ms** | 7.73 ms | **0.06×** |
+
+> push/pop 比 `std::forward_list` 快 15-30×。迭代稍慢于 STL（侵入式 container_of 比直接指针访问多一次偏移计算）。
+
 ## ccheap vs `std::priority_queue` — 200K 操作
 
 | 操作 | ccheap | `std::priority_queue` | 倍率 |

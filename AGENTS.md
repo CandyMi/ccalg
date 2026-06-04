@@ -15,7 +15,8 @@ alg/
 ├── include/
 │   ├── ccmap.h       # Intrusive red-black tree (ordered map)
 │   ├── cchashmap.h   # Intrusive chained hash map
-│   ├── cclist.h      # Intrusive doubly-linked list
+│   ├── cclink.h      # Intrusive singly-linked list
+├── cclist.h      # Intrusive doubly-linked list
 │   └── ccheap.h      # D-ary heap (priority queue, pointer + value modes)
 ├── REASONIC.md       # Auto-generated design spec & API reference
 ├── README.md
@@ -59,6 +60,7 @@ Every container **owns its namespace**: prefix is always the container abbreviat
 |---|---|---|
 | `ccmap` | `CCMAP_` | `CCMAP_INLINE`, `CCMAP_CONTAINER`, `CCMAP_COMPARE`, `CCMAP_RED`, `CCMAP_BLACK` |
 | `cchashmap` | `CCHASHMAP_` | `CCHASHMAP_INLINE`, `CCHASHMAP_CONTAINER`, `CCHASHMAP_REALLOC`, `CCHASHMAP_HASH` |
+| `cclink` | `CCLINK_` | `CCLINK_INLINE`, `CCLINK_CONTAINER` |
 | `cclist` | `CCLIST_` | `CCLIST_INLINE`, `CCLIST_CONTAINER` |
 | `ccheap` | `CCHEAP_` | `CCHEAP_INLINE`, `CCHEAP_COMPARE`, `CCHEAP_REALLOC`, `CCHEAP_VALUE` |
 
@@ -75,7 +77,7 @@ Containers that allocate memory internally expose replaceable allocator macros:
 ```
 
 - `cchashmap` and `ccheap` provide these.
-- `ccmap` and `cclist` have no internal allocation → no allocator macros.
+- `ccmap`, `cclink`, and `cclist` have no internal allocation → no allocator macros.
 
 ### API naming conventions
 
@@ -174,6 +176,7 @@ make -C build                 # Build
 |---|---|---|
 | `tests/test_ccmap.c` | Red-black tree | 2058 |
 | `tests/test_cchashmap.c` | Hash map | 2043 |
+| `tests/test_cclink.c` | Singly-linked list | 46 |
 | `tests/test_cclist.c` | Doubly-linked list | 78 |
 | `tests/test_ccheap.c` | D-ary heap | 1255 |
 
@@ -183,6 +186,7 @@ make -C build                 # Build
 |---|---|---|
 | `bench/bench_ccmap.cpp` | `ccmap` vs `std::map` | 100K ops |
 | `bench/bench_cchashmap.cpp` | `cchashmap` vs `std::unordered_map` | 100K ops |
+| `bench/bench_cclink.cpp` | `cclink` vs `std::forward_list` | 200K ops |
 | `bench/bench_cclist.cpp` | `cclist` vs `std::list` | 200K ops |
 | `bench/bench_ccheap.cpp` | `ccheap` vs `std::priority_queue` | 200K ops |
 
@@ -211,7 +215,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ### Scopes
 
-Use the container name where applicable: `ccmap`, `cchashmap`, `cclist`, `ccheap`.  
+Use the container name where applicable: `ccmap`, `cchashmap`, `cclink`, `cclist`, `ccheap`.  
 Use `all` for cross-container changes, `ci` for CI/build, `docs` for documentation.
 
 ### Examples

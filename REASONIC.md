@@ -20,6 +20,7 @@
 | --- | --- | --- |
 | [ccmap.h](include/ccmap.h) | `ccmap_t` / `ccmap_node_t` | 侵入式红黑树 (有序映射) |
 | [cchashmap.h](include/cchashmap.h) | `cchashmap_t` / `cchashmap_node_t` | 侵入式链式哈希表 |
+| [cclink.h](include/cclink.h) | `cclink_t` / `cclink_node_t` | 侵入式单向链表 |
 | [cclist.h](include/cclist.h) | `cclist_t` / `cclist_node_t` | 侵入式双向链表 |
 | [ccheap.h](include/ccheap.h) | `ccheap_t` / `ccheap_node_t` | D-ary 堆 (优先队列，支持值/指针双模式) |
 

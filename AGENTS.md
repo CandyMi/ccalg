@@ -177,7 +177,7 @@ make -C build                 # Build
 |---|---|---|
 | `tests/test_ccmap.c` | Red-black tree | 2058 |
 | `tests/test_cchashmap.c` | Hash map | 2043 |
-| `tests/test_cclink.c` | Singly-linked list | 46 |
+| `tests/test_cclink.c` | Singly-linked list | 54 |
 | `tests/test_cclist.c` | Doubly-linked list | 78 |
 | `tests/test_ccheap.c` | D-ary heap | 1255 |
 

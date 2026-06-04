@@ -342,7 +342,7 @@ for (ccmap_node_t *n = ccmap_begin(&m); n != ccmap_end(&m); n = ccmap_next(n)) {
 # 配置 — 所有产物隔离在 build/ 目录
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-# 全量构建 (4 个测试 + 4 个 benchmark)
+# 全量构建 (5 个测试 + 5 个 benchmark)
 cmake --build build
 
 # 运行单元测试 (CTest, label 过滤)

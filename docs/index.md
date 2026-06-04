@@ -69,7 +69,7 @@ cmake --build build --target bench    # 构建 + 基准
 | [快速开始](getting-started.md) | 5 分钟上手，完整示例 |
 | [API 参考](api-reference.md) | 四个容器的完整 API 手册 |
 | [构建指南](building.md) | CMake / Premake5 / 手动编译 |
-| [性能基准](benchmarks.md) | ccmap / cchashmap / cclist / ccheap vs STL |
+| [性能基准](benchmarks.md) | ccmap / cchashmap / cclink / cclist / ccheap vs STL |
 
 ## 设计
 

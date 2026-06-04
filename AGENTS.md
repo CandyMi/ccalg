@@ -16,7 +16,7 @@ alg/
 │   ├── ccmap.h       # Intrusive red-black tree (ordered map)
 │   ├── cchashmap.h   # Intrusive chained hash map
 │   ├── cclink.h      # Intrusive singly-linked list
-├── cclist.h      # Intrusive doubly-linked list
+│   ├── cclist.h      # Intrusive doubly-linked list
 │   └── ccheap.h      # D-ary heap (priority queue, pointer + value modes)
 ├── REASONIC.md       # Auto-generated design spec & API reference
 ├── README.md
@@ -24,6 +24,7 @@ alg/
 ├── tests/            # Unit tests (C, one per container)
 ├── bench/            # Benchmarks (C++ vs STL)
 ├── docs/             # User-facing documentation
+├── scripts/          # Helper scripts (install, deploy, md2html)
 ├── CMakeLists.txt    # CMake build (primary)
 └── premake5.lua      # Premake5 build (alternative)
 ```

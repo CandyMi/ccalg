@@ -21,7 +21,8 @@ echo "==> Deploying to $BRANCH"
 git checkout --orphan "$BRANCH-tmp" 2>/dev/null || true
 git rm -rfq --cached . 2>/dev/null || true
 cp "$TMP"/*.html .
-git add api-reference.html benchmarks.html building.html getting-started.html index.html
+echo "ccalg.dev" > CNAME
+git add CNAME api-reference.html benchmarks.html building.html getting-started.html index.html
 git commit -m "docs: deploy $(date +%Y-%m-%d)"
 
 echo "==> Pushing $BRANCH"

@@ -20,7 +20,7 @@ cclag/
 │   ├── cclink.h      # Intrusive singly-linked list
 │   ├── cclist.h      # Intrusive doubly-linked list
 │   └── ccheap.h      # D-ary heap (priority queue, pointer + value modes)
-├── REASONIC.md       # Auto-generated design spec & API reference
+├── REASONIX.md       # Auto-generated design spec & API reference
 ├── README.md
 ├── LICENSE
 ├── tests/            # Unit tests (C, one per container)
@@ -142,7 +142,7 @@ Each container guards its `typedef` with `#ifndef CCXXX_NODE_T`. Users can pre-d
 11. [ ] Allocator hooks `CCXXX_REALLOC` / `CCXXX_MALLOC` / `CCXXX_FREE` if the container allocates
 12. [ ] Internal helpers prefixed `_xxx_` or `_ccxxx_`
 13. [ ] BSD license header + brief design comment at top
-14. [ ] Update `REASONIC.md` to reflect the new container
+14. [ ] Update `REASONIX.md` to reflect the new container
 
 ## Build, test, and benchmark
 
@@ -211,7 +211,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 | `fix` | Bug fix |
 | `refactor` | Macro rename, internal restructure (no API change) |
 | `test` | Add/update tests or benchmarks |
-| `docs` | Documentation changes (docs/, REASONIC.md, AGENTS.md, README.md) |
+| `docs` | Documentation changes (docs/, REASONIX.md, AGENTS.md, README.md) |
 | `build` | Build system (CMakeLists.txt, premake5.lua, scripts) |
 | `style` | Formatting, comment changes (no code change) |
 | `chore` | .gitignore, license, repo maintenance |
@@ -280,7 +280,15 @@ After modifying headers or docs, follow this sequence:
 
 ## Editing conventions for this repo
 
-- **REASONIC.md** is the canonical design reference — keep it in sync with header changes.
+### Language rules (mandatory)
+
+- **README.md and `docs/*.md`** — always Chinese (中文).
+- **REASONIX.md and AGENTS.md** — always English.
+- Unless explicitly requested otherwise, all future additions and updates must follow these rules.
+
+### Other conventions
+
+- **REASONIX.md** is the canonical design reference — keep it in sync with header changes.
 - **Build artifacts** go in `build/` (gitignored). Do not commit binaries in `tests/` or `bench/`.
 - **Macro prefixes are per-container.** Do NOT add cross-container shared macros; each header is self-contained.
 - **New containers** need matching test (`tests/test_ccxxx.c`) and benchmark (`bench/bench_ccxxx.cpp`).

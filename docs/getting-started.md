@@ -173,31 +173,31 @@ int main() {
 }
 ```
 
-## 6. ccheap — 优先队列
+## 6. ccheap — 优先队列 / 定时器
+
+`ccheap_node_t` 是一个 8 字节 union，包含 `priority` 和 `timeout`——堆不访问字段，由比较器定义语义。
 
 ```c
 #include <stdio.h>
+#define CCHEAP_COMPARE(a, b) \
+    ((int64_t)(b)->priority - (int64_t)(a)->priority)
 #include "ccheap.h"
 
-struct node { uint32_t conv; uint32_t priority; };
-
-/* min-heap: 值越小优先级越高 */
-static int64_t cmp(const struct node *a, const struct node *b) {
-    return (int64_t)b->priority - (int64_t)a->priority;
-}
-
 int main() {
-    ccheap_t h; heap_init(&h, cmp);
+    ccheap_t h;
+    heap_init(&h, NULL);  // CCHEAP_COMPARE 定义后第二个参数被忽略
 
-    struct node n1 = {0, 50}, n2 = {0, 10}, n3 = {0, 30};
+    ccheap_node_t n1 = {.priority = 50};
+    ccheap_node_t n2 = {.priority = 10};
+    ccheap_node_t n3 = {.priority = 30};
     heap_push(&h, &n1);
     heap_push(&h, &n2);
     heap_push(&h, &n3);
 
-    /* 弹出顺序: 10, 30, 50 */
+    /* 弹出顺序: .priority = 10, 30, 50 */
     while (heap_size(&h) > 0) {
-        struct node *top = heap_pop(&h);
-        printf("%u\n", top->priority);
+        ccheap_node_t *top = heap_pop(&h);
+        printf("%llu\n", (unsigned long long)top->priority);
     }
 
     heap_destroy(&h);
@@ -205,13 +205,29 @@ int main() {
 }
 ```
 
-### CCHEAP_VALUE 模式（连续存储，更好缓存局部性）
+### 嵌入自定义结构体（携带额外数据）
 
 ```c
-#define CCHEAP_VALUE
+struct task { ccheap_node_t node; void (*cb)(void *); void *arg; };
+
+static int64_t cmp(const ccheap_node_t *a, const ccheap_node_t *b) {
+    return (int64_t)b->timeout - (int64_t)a->timeout;
+}
+
+/* ccheap_t h; heap_init(&h, cmp); */
+/* struct task t = {{.timeout = now() + 5000}, my_cb, NULL}; */
+/* heap_push(&h, &t.node); */
+/* struct task *done = CCHEAP_CONTAINER(heap_pop(&h), struct task, node); */
+/* done->cb(done->arg); */
+```
+
+### 零开销宏模式
+
+```c
+#define CCHEAP_COMPARE(a, b) \
+    ((int64_t)(b)->timeout - (int64_t)(a)->timeout)
 #include "ccheap.h"
-/* 节点以值形式存储在连续数组中，堆拥有元素内存 */
-/* 注意：节点含指针字段时用默认指针模式 */
+/* heap_init(&h, NULL) — 第二个参数被忽略 */
 ```
 
 ## 6. 构建与测试

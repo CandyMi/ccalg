@@ -342,32 +342,34 @@ cclink_ecode_t cclink_verify(const cclink_t *l);
 
 头文件: [`include/ccheap.h`](../include/ccheap.h)
 
-支持指针模式和值模式（`CCHEAP_VALUE`）。默认二叉堆，可选 4-ary / 8-ary。
+指针数组存储，调用方持有节点内存。默认二叉堆，可选 4-ary / 8-ary。
 
 ### 类型
 
 ```c
 typedef struct ccheap_node {
-    uint32_t conv;
-    uint32_t timestamp;
+    union {
+        uint64_t priority;  // 优先队列
+        uint64_t timeout;   // 定时器
+    };
 } ccheap_node_t;
-// 可通过 #define CCNODE_T 覆盖
+// 8 字节 union，堆不访问字段——由比较器决定语义。
+// 嵌入到自定义结构体中（编译期不可替换）。
 
-typedef int64_t (*ccheap_compare_t)(const CCNODE_T *, const CCNODE_T *);
+typedef int64_t (*ccheap_compare_t)(const ccheap_node_t *, const ccheap_node_t *);
 
 typedef struct ccheap {
-#ifdef CCHEAP_VALUE
-    CCNODE_T   *data;     // 连续值数组
-    CCNODE_T    popped;   // pop 返回值缓冲区
-#else
-    CCNODE_T  **data;     // 指针数组
-#endif
+    ccheap_node_t **data;     // 指针数组
     size_t      size;
     size_t      cap;
 #ifndef CCHEAP_COMPARE
     ccheap_compare_t f;
 #endif
 } ccheap_t;
+
+#define CCHEAP_CONTAINER(ptr, type, member) \
+    ((type *)((char *)(ptr) - offsetof(type, member)))
+// 从节点指针恢复父结构体
 ```
 
 ### 编译期配置
@@ -375,9 +377,8 @@ typedef struct ccheap {
 | 宏 | 作用 | 默认 |
 | --- | --- | --- |
 | `CCHEAP_COMPARE(a, b)` | 内联比较（替代函数指针） | 未定义 |
-| `CCHEAP_VALUE` | 值模式（连续存储） | 未定义（指针模式） |
 | `CCHEAP_ARITY` | 分叉数 | `2`（可选 `4`/`8`） |
-| `CCNODE_T` | 自定义节点类型 | `struct ccheap_node` |
+| `CCHEAP_NODE_T` | 节点类型（固定，嵌入用） | `ccheap_node_t` |
 | `CCHEAP_REALLOC` | 重分配函数 | `realloc` |
 | `CCHEAP_MALLOC(sz)` | 分配函数 | `realloc(NULL, sz)` |
 | `CCHEAP_FREE(ptr)` | 释放函数 | `free(ptr)` |
@@ -406,17 +407,16 @@ void heap_destroy(ccheap_t *heap);
 ### 增删查
 
 ```c
-int  heap_insert(ccheap_t *heap, CCNODE_T *n);
+int  heap_insert(ccheap_t *heap, ccheap_node_t *n);
 // (别名: heap_push)
 // 返回 0 成功，-1 失败（NULL 或分配失败）。
-// 自动 2x 扩容。
+// 自动 2x 扩容。传入嵌入节点的指针。
 
-CCNODE_T *heap_pop(ccheap_t *heap);
+ccheap_node_t *heap_pop(ccheap_t *heap);
 // 弹出根节点。空返回 NULL。
-// ⚠️ 值模式: 返回指针指向内部缓冲区 heap->popped，
-//    下次 pop 会覆盖。须立即消费或拷贝。
+// 用 CCHEAP_CONTAINER 恢复父结构体。
 
-CCNODE_T *heap_peek(ccheap_t *heap);
+ccheap_node_t *heap_peek(ccheap_t *heap);
 // 查看根节点（不弹出）。空/NULL 返回 NULL。
 ```
 
@@ -426,7 +426,3 @@ CCNODE_T *heap_peek(ccheap_t *heap);
 size_t heap_size(ccheap_t *heap);
 // NULL 返回 0。
 ```
-
-### 值模式注意事项
-
-`CCHEAP_VALUE` 模式下，堆使用结构体赋值（浅拷贝）在连续数组中存储元素。如果 `CCNODE_T` 包含指针成员（如 `char *name`），请使用默认指针模式——堆只存指针，调用方保有指向内存的所有权。

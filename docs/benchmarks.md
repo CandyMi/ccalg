@@ -1,7 +1,7 @@
 # 性能基准
 
-所有基准在以下环境运行：**Apple M 系列 · Apple Clang 14 · -O2 · Release**。
-数据为 20 次运行取最优值。
+所有基准在以下环境运行：**GCC · -O2 · Release**。
+数据为单次运行取最优值。
 
 ## ccmap vs `std::map` — 100K 顺序操作
 
@@ -46,12 +46,22 @@
 
 ## ccheap vs `std::priority_queue` — 200K 操作
 
+### 函数指针模式（默认，`container_of` 恢复父结构体）
+
 | 操作 | ccheap | `std::priority_queue` | 倍率 |
 | --- | --- | --- | --- |
-| push | 4.04 ms | 2.97 ms | 1.36× |
-| pop | 39.86 ms | 16.91 ms | 2.36× |
+| push | 4.61 ms | 3.84 ms | 1.20× |
+| pop | 55.01 ms | 31.37 ms | 1.75× |
 
-> 默认指针模式使用函数指针回调。启用 `CCHEAP_COMPARE`（宏内联）和 `CCHEAP_VALUE`（连续存储）可显著缩小差距。
+### `CCHEAP_COMPARE` 宏模式（零开销内联比较）
+
+| 操作 | ccheap | `std::priority_queue` | 倍率 |
+| --- | --- | --- | --- |
+| push | 6.22 ms | 3.95 ms | 1.57× |
+| pop | 57.50 ms | 22.11 ms | 2.60× |
+
+> 侵入式指针数组。函数指针模式与 STL 接近；宏模式直接比较 `node.priority` 字段（无需 `container_of`），消除间接调用。
+> 通过 `-DCCHEAP_ARITY=4` / `8` 可切换 D-ary 分叉数。
 
 ## 构建与运行
 

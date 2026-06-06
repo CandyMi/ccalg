@@ -24,7 +24,7 @@
 | [cchashmap.h](include/cchashmap.h) | `cchashmap_t` / `cchashmap_node_t` | Intrusive chained hash map |
 | [cclink.h](include/cclink.h) | `cclink_t` / `cclink_node_t` | Intrusive singly-linked list |
 | [cclist.h](include/cclist.h) | `cclist_t` / `cclist_node_t` | Intrusive doubly-linked list |
-| [ccheap.h](include/ccheap.h) | `ccheap_t` / `ccheap_node_t` | D-ary heap (priority queue; pointer + value dual-mode) |
+| [ccheap.h](include/ccheap.h) | `ccheap_t` / `ccheap_node_t` | D-ary heap (priority queue) |
 
 ---
 
@@ -41,7 +41,7 @@ struct my_entry {
 };
 ```
 
-**Exceptions**: `cchashmap_t` internally manages a bucket array.  `ccheap_t` in `CCHEAP_VALUE` mode owns element memory.
+**Exceptions**: `cchashmap_t` internally manages a bucket array.
 
 ### 2.2 container_of Macro
 
@@ -51,12 +51,12 @@ Every container provides `CCXXX_CONTAINER(ptr, type, member)` to recover the par
 CCMAP_CONTAINER(ptr, type, member)
 CCHASHMAP_CONTAINER(ptr, type, member)
 CCLIST_CONTAINER(ptr, type, member)
-(ccheap has no CONTAINER; access via direct fields of ccheap_node_t)
+CCHEAP_CONTAINER(ptr, type, member)
 ```
 
 ### 2.3 Node Type Guard
 
-Each container's `typedef` is wrapped in `#ifndef CCXXX_NODE_T`, allowing users to pre-define their own node struct before `#include`.
+Each container's `typedef` is wrapped in `#ifndef CCXXX_NODE_T`, allowing users to pre-define their own node struct before `#include`.  **Exception**: `ccheap` — `CCHEAP_NODE_T` is fixed to `ccheap_node_t`; users embed it via `CCHEAP_CONTAINER`.
 
 ---
 
@@ -222,13 +222,12 @@ All public functions guard with `if (!m)` or `if (!m || !node)` at the top.  Pas
 | `CCHASHMAP_MALLOC` | cchashmap | Alloc function | `realloc(NULL, sz)` |
 | `CCHASHMAP_FREE` | cchashmap | Free function | `free(ptr)` |
 | `CCHEAP_COMPARE(a,b)` | ccheap | Inline compare | none |
-| `CCHEAP_VALUE` | ccheap | Value mode (store elements directly) | none (ptr mode) |
 | `CCHEAP_ARITY` | ccheap | D-ary branching factor | `2` (or `4`/`8`) |
 | `CCHEAP_REALLOC` | ccheap | Realloc | `realloc` |
 | `CCHEAP_MALLOC` | ccheap | Alloc | `realloc(NULL, sz)` |
 | `CCHEAP_FREE` | ccheap | Free | `free` |
 | `CCHEAP_DEFAULT_CAP` | ccheap | Initial capacity | `32` |
-| `CCNODE_T` | ccheap | Override default node type | `struct ccheap_node` |
+| `CCHEAP_NODE_T` | ccheap | Node type (fixed, embed into user struct) | `ccheap_node_t` |
 
 ### Internal Constants
 
@@ -276,27 +275,13 @@ All public functions guard with `if (!m)` or `if (!m || !node)` at the top.  Pas
 
 ## 12. Heap Details (ccheap)
 
-### 12.1 Dual Storage Modes
-
-| Mode | Definition | Data layout | Ownership |
-| --- | --- | --- | --- |
-| **Pointer mode** (default) | none | `CCNODE_T **data` (pointer array) | Caller owns nodes |
-| **Value mode** | `#define CCHEAP_VALUE` | `CCNODE_T *data` (contiguous values) | Heap owns elements |
-
-Value mode note (from header):
-> IMPORTANT: value mode uses struct assignment (shallow copy). If your node_t contains pointers (e.g. `char *name`), use pointer mode instead.
-
-### 12.2 Value-Mode Pop Trap
-
-`heap_pop` in value mode returns a pointer to an internal buffer `heap->popped`.  **The next `heap_pop` call overwrites this buffer.**  Callers must consume or copy the return value before the next pop.
-
-### 12.3 D-ary Unrolling
+### 12.1 D-ary Unrolling
 
 Child comparison loops are unrolled at compile time based on `CCHEAP_ARITY` (2/4/8) via `#if CCHEAP_ARITY_N > N` conditional compilation.  Index macros: `CCHEAP_PARENT(i)`, `CCHEAP_CHILD(i, k)`.
 
-### 12.4 Default Node Structure
+### 12.2 Default Node Structure
 
-`ccheap_node_t` provides `conv` and `timestamp` fields by default.  Override with `#define CCNODE_T`.
+`ccheap_node_t` is an 8-byte anonymous union of `uint64_t priority` and `uint64_t timeout`.  Heap never accesses either member — the comparison callback defines the meaning.  The type is fixed; users embed it in their own structs and recover the parent with `CCHEAP_CONTAINER`.
 
 ---
 
@@ -308,6 +293,7 @@ Child comparison loops are unrolled at compile time based on `CCHEAP_ARITY` (2/4
 | `CCHASHMAP_CONTAINER` (= `container_of`) | cchashmap | cchashmap only |
 | `CCMAP_INLINE` | ccmap | ccmap only |
 | `CCHASHMAP_INLINE` | cchashmap | cchashmap only |
+| `CCHEAP_CONTAINER` (= `container_of`) | ccheap | ccheap only |
 | `CCHASHMAP_REALLOC` / `CCHASHMAP_MALLOC` / `CCHASHMAP_FREE` | cchashmap | hashmap allocator hooks |
 | `CCHASHMAP_MAX_LOAD` / `CCHASHMAP_DEFAULT_SLOT` | cchashmap | hashmap config |
 

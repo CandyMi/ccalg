@@ -1,6 +1,17 @@
 /*
 **  Benchmark: ccheap vs std::priority_queue
-**  Build:  g++ -std=c++11 -O2 -o bench_ccheap bench_ccheap.cpp && ./bench_ccheap
+**
+**  Build (function-pointer, container_of — default):
+**    g++ -std=c++11 -O2 -o bench_ccheap bench_ccheap.cpp && ./bench_ccheap
+**
+**  Build (CCHEAP_COMPARE macro, inline — zero call overhead):
+**    g++ -std=c++11 -O2 -DBENCH_MACRO -o bench_ccheap bench_ccheap.cpp && ./bench_ccheap
+**
+**  Build (4-ary heap):
+**    g++ -std=c++11 -O2 -DCCHEAP_ARITY=4 -o bench_ccheap bench_ccheap.cpp && ./bench_ccheap
+**
+**  Build (macro + 4-ary):
+**    g++ -std=c++11 -O2 -DBENCH_MACRO -DCCHEAP_ARITY=4 -o bench_ccheap bench_ccheap.cpp && ./bench_ccheap
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,67 +22,127 @@
 #include <algorithm>
 #include <random>
 
-#define CCNODE_T struct heap_node
-struct heap_node { uint32_t conv; uint32_t priority; };
+/* ── CCHEAP_COMPARE: must be defined BEFORE #include ─────────────────── */
 
-static int64_t min_cmp(const heap_node *a, const heap_node *b) {
-  return (int64_t)b->priority - (int64_t)a->priority;
-}
+#ifdef BENCH_MACRO
+  /* macro mode: compare node fields directly (no container_of needed —
+     the union puts priority/timeout right on ccheap_node_t) */
+  #define CCHEAP_COMPARE(a, b) \
+      ((int64_t)(b)->priority - (int64_t)(a)->priority)
+#endif
+
 #include "../include/ccheap.h"
+
+/* ── user struct: embedded ccheap_node_t + payload ──────────────────── */
+
+struct task {
+  ccheap_node_t node;
+  uint32_t      payload;
+};
+
+/* ── comparison (function-pointer mode, uses container_of) ──────────── */
+
+#ifndef BENCH_MACRO
+static int64_t min_cmp(const ccheap_node_t *a, const ccheap_node_t *b) {
+  const struct task *ta = CCHEAP_CONTAINER(a, struct task, node);
+  const struct task *tb = CCHEAP_CONTAINER(b, struct task, node);
+  return (int64_t)tb->node.priority - (int64_t)ta->node.priority;
+}
+#endif
+
+/* ── helpers ────────────────────────────────────────────────────────── */
 
 using clk = std::chrono::high_resolution_clock;
 static double ms(clk::time_point s, clk::time_point e) {
   return std::chrono::duration<double, std::milli>(e - s).count();
 }
 
-struct stl_node { uint32_t priority; };
-struct stl_cmp { bool operator()(const stl_node &a, const stl_node &b) const { return a.priority > b.priority; } };
+struct stl_item { uint32_t key; uint32_t payload; };
+struct stl_cmp  { bool operator()(const stl_item &a, const stl_item &b) const {
+    return a.key > b.key;
+}};
 
-int main() {
-  enum { N = 200000 };
-  printf("=== ccheap vs std::priority_queue  (%d elements) ===\n\n", N);
+/* ── run once ───────────────────────────────────────────────────────── */
 
-  std::vector<uint32_t> prios(N);
-  for (int i = 0; i < N; i++) prios[i] = (uint32_t)i;
+static void run(int N) {
+  /* prepare shuffled data */
+  std::vector<uint32_t> keys(N);
+  for (int i = 0; i < N; i++) keys[i] = (uint32_t)i;
   std::mt19937 rng(42);
-  std::shuffle(prios.begin(), prios.end(), rng);
+  std::shuffle(keys.begin(), keys.end(), rng);
 
-  auto n1 = new heap_node[N];
-  auto sn = new stl_node[N];
-  for (int i = 0; i < N; i++) { n1[i].priority = prios[i]; sn[i].priority = prios[i]; }
+  auto tasks = new struct task[N];
+  auto stl   = new stl_item[N];
+  for (int i = 0; i < N; i++) {
+    tasks[i].node.priority = keys[i];
+    tasks[i].payload       = keys[i];
+    stl[i].key             = keys[i];
+    stl[i].payload         = keys[i];
+  }
 
-  /* ── push ───────────────────────────────────────────────────────────── */
-  ccheap_t h; heap_init(&h, min_cmp);
+  /* ── push ─────────────────────────────────────────────────────────── */
+  ccheap_t h;
+#ifdef BENCH_MACRO
+  heap_init(&h, NULL);            /* 2nd arg ignored */
+#else
+  heap_init(&h, min_cmp);
+#endif
   auto t0 = clk::now();
-  for (int i = 0; i < N; i++) heap_push(&h, &n1[i]);
+  for (int i = 0; i < N; i++) heap_push(&h, &tasks[i].node);
   auto t1 = clk::now();
-  printf("  push:     ccheap (ptr+fn)  %8.2f ms\n", ms(t0, t1));
+  printf("  push:     ccheap            %8.2f ms\n", ms(t0, t1));
 
-  std::priority_queue<stl_node, std::vector<stl_node>, stl_cmp> pq;
+  std::priority_queue<stl_item, std::vector<stl_item>, stl_cmp> pq;
   auto t2 = clk::now();
-  for (int i = 0; i < N; i++) pq.push(sn[i]);
+  for (int i = 0; i < N; i++) pq.push(stl[i]);
   auto t3 = clk::now();
-  printf("            std::priority_q  %8.2f ms\n", ms(t2, t3));
-  printf("            ratio            %8.2fx\n\n", ms(t0, t1) / ms(t2, t3));
+  printf("            std::priority_q   %8.2f ms\n", ms(t2, t3));
+  printf("            ratio             %8.2fx\n\n", ms(t0, t1) / ms(t2, t3));
 
-  /* ── pop ────────────────────────────────────────────────────────────── */
+  /* ── pop ──────────────────────────────────────────────────────────── */
   t0 = clk::now();
-  for (int i = 0; i < N; i++) { volatile auto *p = heap_pop(&h); (void)p; }
+  for (int i = 0; i < N; i++) {
+    ccheap_node_t *np = heap_pop(&h);
+    volatile auto *t = CCHEAP_CONTAINER(np, struct task, node);
+    (void)t;
+  }
   t1 = clk::now();
-  printf("  pop:      ccheap (ptr+fn)  %8.2f ms\n", ms(t0, t1));
+  printf("  pop:      ccheap            %8.2f ms\n", ms(t0, t1));
 
   t2 = clk::now();
   for (int i = 0; i < N; i++) pq.pop();
   t3 = clk::now();
-  printf("            std::priority_q  %8.2f ms\n", ms(t2, t3));
-  printf("            ratio            %8.2fx\n\n", ms(t0, t1) / ms(t2, t3));
+  printf("            std::priority_q   %8.2f ms\n", ms(t2, t3));
+  printf("            ratio             %8.2fx\n\n", ms(t0, t1) / ms(t2, t3));
 
   heap_destroy(&h);
-  delete[] n1;
-  delete[] sn;
+  delete[] tasks;
+  delete[] stl;
+}
 
-  printf("  Note: ccheap also supports CCHEAP_COMPARE (macro, zero-overhead\n"
-         "        inline compare) and CCHEAP_VALUE (contiguous storage, better\n"
-         "        cache locality).  Use -D flags to test those modes.\n");
+/* ── main ───────────────────────────────────────────────────────────── */
+
+int main() {
+  enum { N = 200000 };
+
+#ifdef BENCH_MACRO
+  printf("=== ccheap (CCHEAP_COMPARE macro, zero-overhead inline) ===\n");
+#else
+  printf("=== ccheap (function pointer + container_of) ===\n");
+#endif
+#ifdef CCHEAP_ARITY
+  printf("    arity = %d\n", CCHEAP_ARITY);
+#else
+  printf("    arity = 2 (default)\n");
+#endif
+  printf("    %d elements\n\n", N);
+
+  run(N);
+
+  printf("  Build variations:\n");
+  printf("    -DBENCH_MACRO        CCHEAP_COMPARE inline (zero call overhead)\n");
+  printf("    -DCCHEAP_ARITY=4     4-ary heap\n");
+  printf("    -DCCHEAP_ARITY=8     8-ary heap\n");
+  printf("    -DBENCH_MACRO -DCCHEAP_ARITY=4    combine\n");
   return 0;
 }

@@ -19,7 +19,7 @@ cclag/
 │   ├── cchashmap.h   # Intrusive chained hash map
 │   ├── cclink.h      # Intrusive singly-linked list
 │   ├── cclist.h      # Intrusive doubly-linked list
-│   └── ccheap.h      # D-ary heap (priority queue, pointer + value modes)
+│   └── ccheap.h      # D-ary heap (priority queue)
 ├── REASONIX.md       # Auto-generated design spec & API reference
 ├── README.md
 ├── LICENSE
@@ -38,7 +38,6 @@ cclag/
 Every container manages **user-embedded nodes**, not allocated elements. The user embeds `xxx_node_t` in their struct; the container operates on node pointers. No `malloc`/`free` on user data — exceptions:
 
 - `cchashmap` internally manages a bucket array.
-- `ccheap` in `CCHEAP_VALUE` mode owns element memory (shallow-copy, no pointer members).
 
 ### Container-of idiom
 
@@ -65,7 +64,7 @@ Every container **owns its namespace**: prefix is always the container abbreviat
 | `cchashmap` | `CCHASHMAP_` | `CCHASHMAP_INLINE`, `CCHASHMAP_CONTAINER`, `CCHASHMAP_REALLOC`, `CCHASHMAP_HASH` |
 | `cclink` | `CCLINK_` | `CCLINK_INLINE`, `CCLINK_CONTAINER` |
 | `cclist` | `CCLIST_` | `CCLIST_INLINE`, `CCLIST_CONTAINER` |
-| `ccheap` | `CCHEAP_` | `CCHEAP_INLINE`, `CCHEAP_COMPARE`, `CCHEAP_REALLOC`, `CCHEAP_VALUE` |
+| `ccheap` | `CCHEAP_` | `CCHEAP_INLINE`, `CCHEAP_COMPARE`, `CCHEAP_REALLOC`, `CCHEAP_NODE_T` |
 
 **No macro is shared across containers.** Each header defines its own `CCXXX_INLINE` and `CCXXX_CONTAINER` independently.
 
@@ -125,7 +124,7 @@ Each header starts with a compiler-detection block for `static inline`:
 
 ## Node-type override
 
-Each container guards its `typedef` with `#ifndef CCXXX_NODE_T`. Users can pre-define the node struct and then `#define CCXXX_NODE_T` before `#include` to suppress the default. Useful when the default node fields (e.g. `ccheap_node_t`'s `conv`/`timestamp`) conflict.
+Each container guards its `typedef` with `#ifndef CCXXX_NODE_T`. Users can pre-define the node struct and then `#define CCXXX_NODE_T` before `#include` to suppress the default.  **Exception**: `ccheap` — `CCHEAP_NODE_T` is fixed to `ccheap_node_t`; users always embed it and recover their parent struct with `CCHEAP_CONTAINER`.
 
 ## Adding a new container — checklist
 
@@ -224,7 +223,7 @@ Use `all` for cross-container changes, `ci` for CI/build, `docs` for documentati
 ### Examples
 
 ```
-feat(ccheap): add CCHEAP_VALUE mode for contiguous storage
+feat(ccheap): add D-ary heap with inline comparator
 fix(cchashmap): replace realloc(ptr,0) with free(ptr) for portability
 refactor(cchashmap): rename CCMAP_ macros to CCHASHMAP_ prefix
 test(all): add full test suite and STL benchmarks

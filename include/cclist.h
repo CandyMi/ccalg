@@ -15,6 +15,16 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/* ── branch hint ──────────────────────────────────────────────────────── */
+
+#ifndef cclist_unlikely
+  #if defined(__GNUC__) || defined(__clang__)
+    #define cclist_unlikely(x) __builtin_expect(!!(x), 0)
+  #else
+    #define cclist_unlikely(x) (x)
+  #endif
+#endif
+
 #if defined(__cplusplus)
   /* C++ has built-in bool */
 #elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
@@ -104,24 +114,24 @@ CCLIST_INLINE cclist_node_t *cclist_back(const cclist_t *l)  { return l ? l->tai
 /* ── push / pop ───────────────────────────────────────────────────────── */
 
 CCLIST_INLINE void cclist_push_front(cclist_t *l, cclist_node_t *n) {
-  if (!l || !n) return;
+  if (cclist_unlikely(!l || !n)) return;
   _cclist_link(l, n, NULL, l->head);
 }
 
 CCLIST_INLINE void cclist_push_back(cclist_t *l, cclist_node_t *n) {
-  if (!l || !n) return;
+  if (cclist_unlikely(!l || !n)) return;
   _cclist_link(l, n, l->tail, NULL);
 }
 
 CCLIST_INLINE cclist_node_t *cclist_pop_front(cclist_t *l) {
-  if (!l || !l->head) return NULL;
+  if (cclist_unlikely(!l || !l->head)) return NULL;
   cclist_node_t *n = l->head;
   _cclist_unlink(l, n);
   return n;
 }
 
 CCLIST_INLINE cclist_node_t *cclist_pop_back(cclist_t *l) {
-  if (!l || !l->tail) return NULL;
+  if (cclist_unlikely(!l || !l->tail)) return NULL;
   cclist_node_t *n = l->tail;
   _cclist_unlink(l, n);
   return n;
@@ -130,17 +140,17 @@ CCLIST_INLINE cclist_node_t *cclist_pop_back(cclist_t *l) {
 /* ── insert / remove ──────────────────────────────────────────────────── */
 
 CCLIST_INLINE void cclist_insert_before(cclist_t *l, cclist_node_t *pos, cclist_node_t *n) {
-  if (!l || !pos || !n) return;
+  if (cclist_unlikely(!l || !pos || !n)) return;
   _cclist_link(l, n, pos->prev, pos);
 }
 
 CCLIST_INLINE void cclist_insert_after(cclist_t *l, cclist_node_t *pos, cclist_node_t *n) {
-  if (!l || !pos || !n) return;
+  if (cclist_unlikely(!l || !pos || !n)) return;
   _cclist_link(l, n, pos, pos->next);
 }
 
 CCLIST_INLINE void cclist_remove(cclist_t *l, cclist_node_t *n) {
-  if (!l || !n) return;
+  if (cclist_unlikely(!l || !n)) return;
   _cclist_unlink(l, n);
 }
 

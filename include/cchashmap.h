@@ -36,6 +36,16 @@
 #define CCHASHMAP_H
 
 #include <stdint.h>
+
+/* ── branch hint ──────────────────────────────────────────────────────── */
+
+#ifndef cchashmap_unlikely
+  #if defined(__GNUC__) || defined(__clang__)
+    #define cchashmap_unlikely(x) __builtin_expect(!!(x), 0)
+  #else
+    #define cchashmap_unlikely(x) (x)
+  #endif
+#endif
 #include <stddef.h>
 #include <string.h>
 #include <stdbool.h>
@@ -116,7 +126,7 @@ typedef struct cchashmap {
 /* ── API ──────────────────────────────────────────────────────────────── */
 
 CCHASHMAP_INLINE void cchashmap_init(cchashmap_t *m, cchashmap_hash_t hfn, cchashmap_equal_t efn) {
-  if (!m) return;
+  if (cchashmap_unlikely(!m)) return;
   m->buckets = NULL;
   m->size = m->cap = 0;
   m->seed = (size_t)(uintptr_t)m;
@@ -129,7 +139,7 @@ CCHASHMAP_INLINE void cchashmap_init(cchashmap_t *m, cchashmap_hash_t hfn, cchas
 }
 
 CCHASHMAP_INLINE void cchashmap_destroy(cchashmap_t *m) {
-  if (!m) return;
+  if (cchashmap_unlikely(!m)) return;
   (void)CCHASHMAP_FREE(m->buckets);
   m->buckets = NULL; m->size = m->cap = 0;
 }
@@ -150,7 +160,7 @@ CCHASHMAP_INLINE void _cchashmap_resize(cchashmap_t *m) {
 
 #define cchashmap_insert(m, n, o) cchashmap_set((m), (n), (o))
 CCHASHMAP_INLINE bool cchashmap_set(cchashmap_t *m, cchashmap_node_t *node, cchashmap_node_t **old) {
-  if (!m || !node) return false;
+  if (cchashmap_unlikely(!m || !node)) return false;
   if (!m->buckets) _cchashmap_resize(m);
 #ifndef CCHASHMAP_HASH
   cchashmap_hash_t hash_fn;
@@ -168,7 +178,7 @@ CCHASHMAP_INLINE bool cchashmap_set(cchashmap_t *m, cchashmap_node_t *node, ccha
 
 #define cchashmap_find(m, n) cchashmap_get((m), (n))
 CCHASHMAP_INLINE cchashmap_node_t *cchashmap_get(cchashmap_t *m, cchashmap_node_t *probe) {
-  if (!m || !probe || !m->buckets) return NULL;
+  if (cchashmap_unlikely(!m || !probe || !m->buckets)) return NULL;
 #ifndef CCHASHMAP_HASH
   cchashmap_hash_t hash_fn;
   cchashmap_equal_t equal_fn;
@@ -182,7 +192,7 @@ CCHASHMAP_INLINE cchashmap_node_t *cchashmap_get(cchashmap_t *m, cchashmap_node_
 
 #define cchashmap_erase(m, n) cchashmap_del((m), (n))
 CCHASHMAP_INLINE void cchashmap_del(cchashmap_t *m, cchashmap_node_t *node) {
-  if (!m || !node || !m->buckets) return;
+  if (cchashmap_unlikely(!m || !node || !m->buckets)) return;
   size_t idx = node->hash & (m->cap - 1);
   cchashmap_node_t **pp = &m->buckets[idx];
   while (*pp) { if (*pp == node) { *pp = node->next; m->size--; return; } pp = &(*pp)->next; }

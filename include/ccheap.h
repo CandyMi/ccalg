@@ -87,6 +87,17 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stddef.h>
+
+/* ── branch hint ──────────────────────────────────────────────────────── */
+
+#ifndef ccheap_unlikely
+  #if defined(__GNUC__) || defined(__clang__)
+    #define ccheap_unlikely(x) __builtin_expect(!!(x), 0)
+  #else
+    #define ccheap_unlikely(x) (x)
+  #endif
+#endif
+
 /* ── portable inline (C89 / MSVC compat) ─────────────────────────────── */
 
 #if defined(__cplusplus) || (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L)
@@ -193,7 +204,7 @@ typedef struct ccheap {
 CCHEAP_INLINE int
 heap_init(ccheap_t *heap, ccheap_compare_t f)
 {
-  if (!heap) return -1;
+  if (ccheap_unlikely(!heap)) return -1;
   heap->data = (CCHEAP_NODE_T **)CCHEAP_MALLOC(sizeof(CCHEAP_NODE_T *) * CCHEAP_DEFAULT_CAP);
   if (!heap->data) return -1;
   heap->size = 0;
@@ -210,7 +221,7 @@ heap_init(ccheap_t *heap, ccheap_compare_t f)
 CCHEAP_INLINE int
 heap_insert(ccheap_t *heap, CCHEAP_NODE_T *n)
 {
-  if (!heap || !heap->data || !n) return -1;
+  if (ccheap_unlikely(!heap || !heap->data || !n)) return -1;
 
   if (heap->size == heap->cap) {
     if (heap->cap > SIZE_MAX / 2 / sizeof(CCHEAP_NODE_T *)) return -1;
@@ -238,7 +249,7 @@ heap_insert(ccheap_t *heap, CCHEAP_NODE_T *n)
 CCHEAP_INLINE CCHEAP_NODE_T *
 heap_pop(ccheap_t *heap)
 {
-  if (!heap || !heap->data || heap->size == 0) return NULL;
+  if (ccheap_unlikely(!heap || !heap->data || heap->size == 0)) return NULL;
 
   CCHEAP_NODE_T *result = heap->data[0];
 
@@ -291,7 +302,7 @@ heap_pop(ccheap_t *heap)
 CCHEAP_INLINE CCHEAP_NODE_T *
 heap_peek(ccheap_t *heap)
 {
-  if (!heap || !heap->data || heap->size == 0) return NULL;
+  if (ccheap_unlikely(!heap || !heap->data || heap->size == 0)) return NULL;
   return CCHEAP_PEEK(heap);
 }
 

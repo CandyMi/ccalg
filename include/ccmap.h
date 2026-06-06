@@ -23,6 +23,16 @@
 #include <stddef.h>
 #include <string.h>
 
+/* ── branch hint ──────────────────────────────────────────────────────── */
+
+#ifndef ccmap_unlikely
+  #if defined(__GNUC__) || defined(__clang__)
+    #define ccmap_unlikely(x) __builtin_expect(!!(x), 0)
+  #else
+    #define ccmap_unlikely(x) (x)
+  #endif
+#endif
+
 #if defined(__cplusplus) || (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L)
   #define CCMAP_INLINE static inline
 #elif defined(_MSC_VER)
@@ -195,7 +205,7 @@ CCMAP_INLINE void _rb_del_fix(ccmap_t *m, ccmap_node_t *x, ccmap_node_t *xp) {
 /* ── public API ───────────────────────────────────────────────────────── */
 
 CCMAP_INLINE void ccmap_init(ccmap_t *m, ccmap_cmp_t cmp) {
-  if (!m) return;
+  if (ccmap_unlikely(!m)) return;
   m->root  = NULL;
   m->first = NULL;
   m->size  = 0;
@@ -207,7 +217,7 @@ CCMAP_INLINE void ccmap_init(ccmap_t *m, ccmap_cmp_t cmp) {
 }
 
 CCMAP_INLINE int ccmap_insert(ccmap_t *m, ccmap_node_t *node, ccmap_node_t **out) {
-  if (!m || !node) return -1;
+  if (ccmap_unlikely(!m || !node)) return -1;
   node->child[CCMAP_LEFT] = node->child[CCMAP_RIGHT] = NULL;
   _rb_spc(node, NULL, CCMAP_RED);
 #ifndef CCMAP_COMPARE
@@ -248,7 +258,7 @@ CCMAP_INLINE int ccmap_insert(ccmap_t *m, ccmap_node_t *node, ccmap_node_t **out
 }
 
 CCMAP_INLINE ccmap_node_t *ccmap_find(ccmap_t *m, const ccmap_node_t *probe) {
-  if (!m || !probe) return NULL;
+  if (ccmap_unlikely(!m || !probe)) return NULL;
   ccmap_node_t *x = m->root;
 #ifndef CCMAP_COMPARE
   ccmap_cmp_t cmp_fn = m->cmp;
@@ -262,7 +272,7 @@ CCMAP_INLINE ccmap_node_t *ccmap_find(ccmap_t *m, const ccmap_node_t *probe) {
 }
 
 CCMAP_INLINE void ccmap_erase(ccmap_t *m, ccmap_node_t *z) {
-  if (!m || !z) return;
+  if (ccmap_unlikely(!m || !z)) return;
   ccmap_node_t *y = z, *x = NULL, *xp = NULL;
   int yc = _rb_c(y);
 

@@ -29,6 +29,16 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/* ── branch hint ──────────────────────────────────────────────────────── */
+
+#ifndef cclink_unlikely
+  #if defined(__GNUC__) || defined(__clang__)
+    #define cclink_unlikely(x) __builtin_expect(!!(x), 0)
+  #else
+    #define cclink_unlikely(x) (x)
+  #endif
+#endif
+
 /* ── C89 bool shim ───────────────────────────────────────────────────── */
 
 #if defined(__cplusplus)
@@ -110,7 +120,7 @@ CCLINK_INLINE void cclink_clear(cclink_t *l) { cclink_init(l); }
 /* ── push (O(1) at head) ──────────────────────────────────────────────── */
 
 CCLINK_INLINE void cclink_push(cclink_t *l, cclink_node_t *n) {
-  if (!l || !n) return;
+  if (cclink_unlikely(!l || !n)) return;
   n->next = l->head;
   l->head = n;
   if (!l->tail) l->tail = n;   /* was empty */
@@ -120,7 +130,7 @@ CCLINK_INLINE void cclink_push(cclink_t *l, cclink_node_t *n) {
 /* ── push_back (O(1)) ────────────────────────────────────────────────── */
 
 CCLINK_INLINE void cclink_push_back(cclink_t *l, cclink_node_t *n) {
-  if (!l || !n) return;
+  if (cclink_unlikely(!l || !n)) return;
   n->next = NULL;
   if (l->tail) { l->tail->next = n; l->tail = n; }
   else         { l->head = l->tail = n; }
@@ -130,7 +140,7 @@ CCLINK_INLINE void cclink_push_back(cclink_t *l, cclink_node_t *n) {
 /* ── remove (O(n)) ────────────────────────────────────────────────────── */
 
 CCLINK_INLINE void cclink_remove(cclink_t *l, cclink_node_t *n) {
-  if (!l || !n) return;
+  if (cclink_unlikely(!l || !n)) return;
   cclink_node_t *prev = _cclink_prev(l, n);
   if (!prev && l->head != n) return;  /* not in list */
   _cclink_unlink(l, prev, n);
@@ -138,7 +148,7 @@ CCLINK_INLINE void cclink_remove(cclink_t *l, cclink_node_t *n) {
 
 /* remove and return head (O(1)).  Returns NULL if list is empty. */
 CCLINK_INLINE cclink_node_t *cclink_pop_front(cclink_t *l) {
-  if (!l || !l->head) return NULL;
+  if (cclink_unlikely(!l || !l->head)) return NULL;
   cclink_node_t *n = l->head;
   _cclink_unlink(l, NULL, n);
   return n;

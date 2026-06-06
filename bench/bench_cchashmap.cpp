@@ -30,7 +30,6 @@ struct cc_entry {
   cchashmap_node_t  node;
 };
 
-#define CCHASHMAP_NODE_T
 #define CCHASHMAP_HASH(n, seed)  ((void)(seed), (uint64_t)container_of((n), struct cc_entry, node)->key)
 #define CCHASHMAP_EQUAL(a, b)    (container_of((a), struct cc_entry, node)->key == \
                                    container_of((b), struct cc_entry, node)->key)

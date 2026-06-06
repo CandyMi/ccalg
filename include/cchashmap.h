@@ -75,7 +75,9 @@
 #ifndef CCHASHMAP_MAX_LOAD
   #define CCHASHMAP_MAX_LOAD 1.25
 #endif
-#define CCHASHMAP_DEFAULT_SLOT 8
+#ifndef CCHASHMAP_DEFAULT_SLOT
+  #define CCHASHMAP_DEFAULT_SLOT 64
+#endif
 
 /* ── comparison dispatch ──────────────────────────────────────────────── */
 

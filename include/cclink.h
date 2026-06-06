@@ -2,11 +2,8 @@
 **  LICENSE: BSD
 **  Author: CandyMi[https://github.com/candymi]
 **
-**  Intrusive singly-linked list.  Embed `cclink_node_t` in your struct.
-**  No internal allocation — caller owns all node memory.
-**
-**  Designed as a lightweight building block for chained data structures
-**  (e.g. cchashmap bucket chains) but also usable standalone.
+**  Intrusive singly-linked list with head + tail pointers.
+**  Embed `cclink_node_t` in your struct.  No internal allocation.
 **
 **  ── Container-of ──
 **
@@ -17,7 +14,8 @@
 **    struct entry { int key; cclink_node_t node; };
 **    cclink_t list; cclink_init(&list);
 **    struct entry e = {42};
-**    cclink_push(&list, &e.node);          // insert at head
+**    cclink_push(&list, &e.node);          // O(1) push front
+**    cclink_push_back(&list, &e.node);     // O(1) push back (tail)
 **    cclink_remove(&list, &e.node);        // O(n) removal
 **
 **    for (cclink_node_t *n = cclink_begin(&list); n != cclink_end(&list);
@@ -77,6 +75,7 @@ typedef struct cclink_node {
 
 typedef struct cclink {
   cclink_node_t *head;
+  cclink_node_t *tail;
   size_t         size;
 } cclink_t;
 
@@ -87,6 +86,7 @@ CCLINK_INLINE void _cclink_unlink(cclink_t *l, cclink_node_t *prev,
                                    cclink_node_t *n) {
   if (prev) prev->next = n->next;
   else      l->head     = n->next;
+  if (!n->next) l->tail = prev;   /* n was tail */
   l->size--;
   n->next = NULL;
 }
@@ -104,7 +104,7 @@ CCLINK_INLINE cclink_node_t *_cclink_prev(const cclink_t *l,
 
 CCLINK_INLINE void cclink_init(cclink_t *l) {
   if (!l) return;
-  l->head = NULL;
+  l->head = l->tail = NULL;
   l->size = 0;
 }
 
@@ -116,18 +116,17 @@ CCLINK_INLINE void cclink_push(cclink_t *l, cclink_node_t *n) {
   if (!l || !n) return;
   n->next = l->head;
   l->head = n;
+  if (!l->tail) l->tail = n;   /* was empty */
   l->size++;
 }
 
-/* ── push_back (O(n)) ─────────────────────────────────────────────────── */
+/* ── push_back (O(1)) ────────────────────────────────────────────────── */
 
 CCLINK_INLINE void cclink_push_back(cclink_t *l, cclink_node_t *n) {
   if (!l || !n) return;
   n->next = NULL;
-  if (!l->head) { l->head = n; l->size++; return; }
-  cclink_node_t *p = l->head;
-  while (p->next) p = p->next;
-  p->next = n;
+  if (l->tail) { l->tail->next = n; l->tail = n; }
+  else         { l->head = l->tail = n; }
   l->size++;
 }
 
@@ -161,6 +160,9 @@ CCLINK_INLINE cclink_node_t *cclink_next(const cclink_node_t *n) {
 }
 CCLINK_INLINE cclink_node_t *cclink_front(const cclink_t *l) {
   return l ? l->head : NULL;
+}
+CCLINK_INLINE cclink_node_t *cclink_back(const cclink_t *l) {
+  return l ? l->tail : NULL;
 }
 
 /* ── query ────────────────────────────────────────────────────────────── */

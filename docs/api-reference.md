@@ -278,6 +278,7 @@ typedef struct cclink_node {
 
 typedef struct cclink {
     cclink_node_t *head;
+    cclink_node_t *tail;
     size_t         size;
 } cclink_t;
 ```
@@ -302,7 +303,7 @@ void cclink_push(cclink_t *l, cclink_node_t *n);
 // O(1) 头部插入。
 
 void cclink_push_back(cclink_t *l, cclink_node_t *n);
-// O(n) 尾部追加。
+// O(1) 尾部追加。
 
 void cclink_remove(cclink_t *l, cclink_node_t *n);
 // O(n) 删除。节点不在链表中则无操作。
@@ -318,6 +319,7 @@ cclink_node_t *cclink_begin(const cclink_t *l);   // → head
 cclink_node_t *cclink_end(const cclink_t *l);     // 总是 NULL
 cclink_node_t *cclink_next(const cclink_node_t *n);
 cclink_node_t *cclink_front(const cclink_t *l);   // → head
+cclink_node_t *cclink_back(const cclink_t *l);    // → tail
 ```
 
 ### 查询

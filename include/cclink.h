@@ -66,12 +66,9 @@
 
 /* ── types ────────────────────────────────────────────────────────────── */
 
-#ifndef CCLINK_NODE_T
 typedef struct cclink_node {
   struct cclink_node *next;
 } cclink_node_t;
-#define CCLINK_NODE_T
-#endif
 
 typedef struct cclink {
   cclink_node_t *head;

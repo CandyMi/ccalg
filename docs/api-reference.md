@@ -129,6 +129,7 @@ typedef struct cchashmap {
 | `CCHASHMAP_REALLOC` | 重分配函数 | `realloc` |
 | `CCHASHMAP_MALLOC(sz)` | 分配函数 | `realloc(NULL, sz)` |
 | `CCHASHMAP_FREE(ptr)` | 释放函数 | `free(ptr)` |
+| `CCHASHMAP_DEFAULT_SLOT` | 初始桶数 | `64` |
 | `CCHASHMAP_MAX_LOAD` | 最大负载因子 | `1.25` |
 
 ### 生命周期

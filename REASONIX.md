@@ -218,6 +218,8 @@ All public functions guard with `if (!m)` or `if (!m || !node)` at the top.  Pas
 | `CCHASHMAP_EQUAL(a,b)` | cchashmap | Inline equality | none |
 | `CCHASHMAP_NODE_T` | cchashmap | Override default node type | none |
 | `CCHASHMAP_MAX_LOAD` | cchashmap | Max load factor | `1.25` |
+| `CCHASHMAP_DEFAULT_SLOT` | cchashmap | Initial bucket count | `64` |
+| `CCHASHMAP_MAX_LOAD` | cchashmap | Max load factor | `1.25` |
 | `CCHASHMAP_REALLOC` | cchashmap | Realloc function | `realloc` |
 | `CCHASHMAP_MALLOC` | cchashmap | Alloc function | `realloc(NULL, sz)` |
 | `CCHASHMAP_FREE` | cchashmap | Free function | `free(ptr)` |
@@ -235,7 +237,7 @@ All public functions guard with `if (!m)` or `if (!m || !node)` at the top.  Pas
 | --- | --- | --- |
 | `CCMAP_RED` / `CCMAP_BLACK` | `0` / `1` | Red-black tree colors |
 | `CCMAP_LEFT` / `CCMAP_RIGHT` | `0` / `1` | Tree directions |
-| `CCHASHMAP_DEFAULT_SLOT` | `8` | Hashmap initial bucket count |
+| `CCHASHMAP_DEFAULT_SLOT` | `64` | Hashmap initial bucket count |
 | `CCHEAP_DEFAULT_CAP` | `32` | Heap initial capacity |
 
 ---

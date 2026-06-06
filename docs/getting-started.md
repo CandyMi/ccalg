@@ -230,7 +230,40 @@ static int64_t cmp(const ccheap_node_t *a, const ccheap_node_t *b) {
 /* heap_init(&h, NULL) — 第二个参数被忽略 */
 ```
 
-## 6. 构建与测试
+## 7. ccvector — 动态数组
+
+```c
+#include <stdio.h>
+#include "ccvector.h"
+
+int main() {
+    ccvector_t v; ccvector_init(&v);
+
+    for (int i = 0; i < 5; i++) {
+        ccvector_node_t e = {.value = (uint32_t)i};
+        ccvector_push_back(&v, e);
+    }
+
+    for (size_t i = 0; i < ccvector_size(&v); i++)
+        printf("%u\n", ccvector_at(&v, i)->value);
+    /* 输出: 0, 1, 2, 3, 4 */
+
+    ccvector_pop_back(&v);  /* 移除 4 */
+    ccvector_destroy(&v);
+    return 0;
+}
+```
+
+### 自定义元素类型
+
+```c
+#define CCVECTOR_NODE_T struct point
+struct point { float x, y; };
+#include "ccvector.h"
+/* 现在 ccvector 存储 struct point 值 */
+```
+
+## 8. 构建与测试
 
 ```bash
 # CMake 一键构建 + 测试

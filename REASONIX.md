@@ -25,6 +25,7 @@
 | [cclink.h](include/cclink.h) | `cclink_t` / `cclink_node_t` | Intrusive singly-linked list |
 | [cclist.h](include/cclist.h) | `cclist_t` / `cclist_node_t` | Intrusive doubly-linked list |
 | [ccheap.h](include/ccheap.h) | `ccheap_t` / `ccheap_node_t` | D-ary heap (priority queue) |
+| [ccvector.h](include/ccvector.h) | `ccvector_t` / `ccvector_node_t` | Dynamic array (value-based) |
 
 ---
 
@@ -41,7 +42,7 @@ struct my_entry {
 };
 ```
 
-**Exceptions**: `cchashmap_t` internally manages a bucket array.
+**Exceptions**: `cchashmap_t` internally manages a bucket array.  `ccvector_t` stores elements by **value** (not pointers) — it owns element memory and copies on push.
 
 ### 2.2 container_of Macro
 
@@ -120,8 +121,8 @@ Containers that allocate memory internally expose replaceable macros:
 | `CCXXX_REALLOC` | Reallocate | `realloc` |
 | `CCXXX_FREE(ptr)` | Free | `free(ptr)` |
 
-- `cchashmap` and `ccheap` use this mechanism.
-- `ccmap` and `cclist` have zero internal allocation → no allocator macros.
+- `cchashmap`, `ccheap`, and `ccvector` use this mechanism.
+- `ccmap`, `cclink`, and `cclist` have zero internal allocation → no allocator macros.
 
 ---
 
@@ -230,6 +231,11 @@ All public functions guard with `if (!m)` or `if (!m || !node)` at the top.  Pas
 | `CCHEAP_FREE` | ccheap | Free | `free` |
 | `CCHEAP_DEFAULT_CAP` | ccheap | Initial capacity | `32` |
 | `CCHEAP_NODE_T` | ccheap | Node type (fixed, embed into user struct) | `ccheap_node_t` |
+| `CCVECTOR_NODE_T` | ccvector | Element type | `ccvector_node_t` |
+| `CCVECTOR_REALLOC` | ccvector | Realloc | `realloc` |
+| `CCVECTOR_MALLOC` | ccvector | Alloc | `realloc(NULL, sz)` |
+| `CCVECTOR_FREE` | ccvector | Free | `free` |
+| `CCVECTOR_DEFAULT_CAP` | ccvector | Initial capacity | `8` |
 
 ### Internal Constants
 
@@ -239,6 +245,7 @@ All public functions guard with `if (!m)` or `if (!m || !node)` at the top.  Pas
 | `CCMAP_LEFT` / `CCMAP_RIGHT` | `0` / `1` | Tree directions |
 | `CCHASHMAP_DEFAULT_SLOT` | `64` | Hashmap initial bucket count |
 | `CCHEAP_DEFAULT_CAP` | `32` | Heap initial capacity |
+| `CCVECTOR_DEFAULT_CAP` | `8` | Vector initial capacity |
 
 ---
 
@@ -287,7 +294,16 @@ Child comparison loops are unrolled at compile time based on `CCHEAP_ARITY` (2/4
 
 ---
 
-## 13. Per-Container Macros (No Cross-Container Sharing)
+## 13. Vector Details (ccvector)
+
+- **Value storage**: elements stored by value in contiguous `CCVECTOR_NODE_T *buckets` array.  `push_back` copies the element into the array.
+- **Auto-grow**: 2× on full, starting from `CCVECTOR_DEFAULT_CAP=8`.
+- **Access**: `ccvector_at(v, i)` returns `NULL` on out-of-bounds (unlike `std::vector::operator[]`).
+- **Element type**: overridable via `CCVECTOR_NODE_T` before `#include`.
+
+---
+
+## 14. Per-Container Macros (No Cross-Container Sharing)
 
 | Macro | Source | Consumer |
 | --- | --- | --- |
@@ -295,6 +311,7 @@ Child comparison loops are unrolled at compile time based on `CCHEAP_ARITY` (2/4
 | `CCHASHMAP_CONTAINER` (= `container_of`) | cchashmap | cchashmap only |
 | `CCMAP_INLINE` | ccmap | ccmap only |
 | `CCHASHMAP_INLINE` | cchashmap | cchashmap only |
+| `CCVECTOR_INLINE` | ccvector | ccvector only |
 | `CCHEAP_CONTAINER` (= `container_of`) | ccheap | ccheap only |
 | `CCHASHMAP_REALLOC` / `CCHASHMAP_MALLOC` / `CCHASHMAP_FREE` | cchashmap | hashmap allocator hooks |
 | `CCHASHMAP_MAX_LOAD` / `CCHASHMAP_DEFAULT_SLOT` | cchashmap | hashmap config |
@@ -303,7 +320,7 @@ Child comparison loops are unrolled at compile time based on `CCHEAP_ARITY` (2/4
 
 ---
 
-## 14. New-Container Checklist
+## 15. New-Container Checklist
 
 When adding a new data structure:
 
@@ -324,7 +341,7 @@ When adding a new data structure:
 
 ---
 
-## 15. Build, Test & Benchmark
+## 16. Build, Test & Benchmark
 
 ### 15.1 CMake (Recommended)
 
@@ -332,7 +349,7 @@ When adding a new data structure:
 # Configure — all artifacts in build/
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-# Full build (5 tests + 5 benchmarks)
+# Full build (6 tests + 6 benchmarks)
 cmake --build build
 
 # Unit tests (CTest, label filter)
@@ -353,7 +370,7 @@ cmake --install build --prefix /usr/local
 
 ```bash
 premake5 gmake2                   # Generate Makefile
-make -C build config=release -j4  # Build (5 tests + 5 benchmarks)
+make -C build config=release -j4  # Build (6 tests + 6 benchmarks)
 ```
 
 Outputs: `build/test_*` (tests), `build/bench_*` (benchmarks).  Single target:
@@ -388,6 +405,7 @@ g++ -std=c++11 -O2 -Wall -o bench_ccmap bench/bench_ccmap.cpp && ./bench_ccmap
 | `tests/test_cclink.c` | cclink singly-linked list | 54 |
 | `tests/test_cclist.c` | cclist doubly-linked list | 78 |
 | `tests/test_ccheap.c` | ccheap D-ary heap | 1255 |
+| `tests/test_ccvector.c` | ccvector dynamic array | 548 |
 
 ### 15.5 Benchmark Comparisons
 
@@ -398,10 +416,11 @@ g++ -std=c++11 -O2 -Wall -o bench_ccmap bench/bench_ccmap.cpp && ./bench_ccmap
 | `bench/bench_cclist.cpp` | cclist vs `std::list` | 200K |
 | `bench/bench_cclink.cpp` | cclink vs `std::forward_list` | 200K |
 | `bench/bench_ccheap.cpp` | ccheap vs `std::priority_queue` | 200K |
+| `bench/bench_ccvector.cpp` | ccvector vs `std::vector` | 500K |
 
 ---
 
-## 16. Change Propagation
+## 17. Change Propagation
 
 ### 16.1 Cascade
 

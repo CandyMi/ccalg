@@ -27,6 +27,7 @@ C/C++ 高性能数据结构库。每个容器都是单头文件，`#include` 即
 | `cclink` | 单向链表 | O(1) 头插 | O(n) | O(n) 任意 / O(1) 头 | O(n) |
 | `cclist` | 双向链表 | O(1) 头/尾 | O(n) | O(1) 给定节点 | O(n) |
 | `ccheap` | D-ary 堆 | O(log n) | — (peek O1) | O(log n) pop | — |
+| `ccvector` | 动态数组 | O(1) 均摊 | O(1) 随机 | O(1) 尾部 | O(n) |
 
 > 均摊复杂度基于默认配置（ccmap 红黑树保证最坏 O(log n)，cchashmap 负载因子 ≤1.25 保证均摊 O(1)）。
 
@@ -67,9 +68,9 @@ cmake --build build --target bench    # 构建 + 基准
 | 文档 | 说明 |
 | --- | --- |
 | [快速开始](getting-started.md) | 5 分钟上手，完整示例 |
-| [API 参考](api-reference.md) | 四个容器的完整 API 手册 |
+| [API 参考](api-reference.md) | 所有容器的完整 API 手册 |
 | [构建指南](building.md) | CMake / Premake5 / 手动编译 |
-| [性能基准](benchmarks.md) | ccmap / cchashmap / cclink / cclist / ccheap vs STL |
+| [性能基准](benchmarks.md) | ccmap / cchashmap / cclink / cclist / ccheap / ccvector vs STL |
 
 ## 设计
 

@@ -13,6 +13,7 @@ Compatible with C89 / C99 / C++ / MSVC.  BSD 3-Clause.
 | `cclink` | [`include/cclink.h`](include/cclink.h) | Intrusive singly-linked list | No |
 | `cclist` | [`include/cclist.h`](include/cclist.h) | Intrusive doubly-linked list | No |
 | `ccheap` | [`include/ccheap.h`](include/ccheap.h) | D-ary heap (priority queue) | Array (value mode) |
+| `ccvector` | [`include/ccvector.h`](include/ccvector.h) | Dynamic array | Yes |
 
 All containers are **intrusive** — nodes are embedded in user structs, no hidden allocations.
 

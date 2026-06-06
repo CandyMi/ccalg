@@ -19,7 +19,8 @@ cclag/
 │   ├── cchashmap.h   # Intrusive chained hash map
 │   ├── cclink.h      # Intrusive singly-linked list
 │   ├── cclist.h      # Intrusive doubly-linked list
-│   └── ccheap.h      # D-ary heap (priority queue)
+│   ├── ccheap.h      # D-ary heap (priority queue)
+│   └── ccvector.h    # Dynamic array (value-based)
 ├── REASONIX.md       # Auto-generated design spec & API reference
 ├── README.md
 ├── LICENSE
@@ -65,6 +66,7 @@ Every container **owns its namespace**: prefix is always the container abbreviat
 | `cclink` | `CCLINK_` | `CCLINK_INLINE`, `CCLINK_CONTAINER` |
 | `cclist` | `CCLIST_` | `CCLIST_INLINE`, `CCLIST_CONTAINER` |
 | `ccheap` | `CCHEAP_` | `CCHEAP_INLINE`, `CCHEAP_COMPARE`, `CCHEAP_REALLOC`, `CCHEAP_NODE_T` |
+| `ccvector` | `CCVECTOR_` | `CCVECTOR_INLINE`, `CCVECTOR_REALLOC`, `CCVECTOR_NODE_T` |
 
 **No macro is shared across containers.** Each header defines its own `CCXXX_INLINE` and `CCXXX_CONTAINER` independently.
 
@@ -78,7 +80,7 @@ Containers that allocate memory internally expose replaceable allocator macros:
 #define CCXXX_FREE(ptr)  CCXXX_REALLOC(ptr, 0)   // or free(ptr) for ccheap
 ```
 
-- `cchashmap` and `ccheap` provide these.
+- `cchashmap`, `ccheap`, and `ccvector` provide these.
 - `ccmap`, `cclink`, and `cclist` have no internal allocation → no allocator macros.
 
 ### API naming conventions
@@ -181,6 +183,7 @@ make -C build                 # Build
 | `tests/test_cclink.c` | Singly-linked list | 54 |
 | `tests/test_cclist.c` | Doubly-linked list | 78 |
 | `tests/test_ccheap.c` | D-ary heap | 1255 |
+| `tests/test_ccvector.c` | Dynamic array | 548 |
 
 ### Benchmarks (C++ vs STL)
 
@@ -191,6 +194,7 @@ make -C build                 # Build
 | `bench/bench_cclink.cpp` | `cclink` vs `std::forward_list` | 200K ops |
 | `bench/bench_cclist.cpp` | `cclist` vs `std::list` | 200K ops |
 | `bench/bench_ccheap.cpp` | `ccheap` vs `std::priority_queue` | 200K ops |
+| `bench/bench_ccvector.cpp` | `ccvector` vs `std::vector` | 500K ops |
 
 ## Git commit conventions
 

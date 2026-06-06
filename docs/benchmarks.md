@@ -69,6 +69,16 @@
 > 侵入式指针数组。函数指针模式与 STL 接近；宏模式直接比较 `node.priority` 字段（无需 `container_of`），消除间接调用。
 > 通过 `-DCCHEAP_ARITY=4` / `8` 可切换 D-ary 分叉数。
 
+## ccvector vs `std::vector` — 500K 操作
+
+| 操作 | ccvector | `std::vector` | 倍率 |
+| --- | --- | --- | --- |
+| push_back | **1.22 ms** | 2.30 ms | **0.53×** |
+| random access | 3.15 ms | 2.08 ms | 1.52× |
+| pop_back | ~0 ms | ~0 ms | ~1× |
+
+> push_back 比 STL 快 1.9×——ccvector 更轻量，无迭代器失效追踪。access 稍慢因 `ccvector_at` 做 NULL + 边界检查（STL `operator[]` 无检查）。
+
 ## 构建与运行
 
 ```bash

@@ -429,3 +429,93 @@ ccheap_node_t *heap_peek(ccheap_t *heap);
 size_t heap_size(ccheap_t *heap);
 // NULL 返回 0。
 ```
+
+---
+
+## ccvector — 动态数组
+
+头文件: [`include/ccvector.h`](../include/ccvector.h)
+
+值存储的动态数组，元素以值形式存入连续内存。自动 2x 扩容。ccvector 不是侵入式容器——元素通过浅拷贝存入内部数组。
+
+### 类型
+
+```c
+typedef struct ccvector_node {
+    union { uint32_t value; };
+} ccvector_node_t;
+// 可通过 #define CCVECTOR_NODE_T 自定义元素类型
+
+typedef struct ccvector {
+    CCVECTOR_NODE_T *buckets;  // 连续数组
+    size_t           len;      // 元素数量
+    size_t           cap;      // 当前容量
+} ccvector_t;
+```
+
+### 编译期配置
+
+| 宏 | 作用 | 默认 |
+| --- | --- | --- |
+| `CCVECTOR_NODE_T` | 元素类型 | `ccvector_node_t` |
+| `CCVECTOR_REALLOC` | 重分配函数 | `realloc` |
+| `CCVECTOR_MALLOC(sz)` | 分配函数 | `realloc(NULL, sz)` |
+| `CCVECTOR_FREE(ptr)` | 释放函数 | `free(ptr)` |
+| `CCVECTOR_DEFAULT_CAP` | 初始容量 | `8` |
+
+### 生命周期
+
+```c
+int  ccvector_init(ccvector_t *v);
+// 返回 0 成功，-1 失败（v NULL 或分配失败）。初始容量 8。
+
+void ccvector_destroy(ccvector_t *v);
+// 释放内部数组。NULL 安全。
+
+void ccvector_clear(ccvector_t *v);
+// 重置 len=0，不释放内存。NULL 安全。
+```
+
+### 增删
+
+```c
+int  ccvector_push_back(ccvector_t *v, CCVECTOR_NODE_T elem);
+// 尾部追加，按值拷贝。返回 0 成功，-1 失败。
+// 容量满时自动 2x 扩容。
+
+int  ccvector_pop_back(ccvector_t *v);
+// 尾部弹出（len--）。返回 0 成功，-1 空。
+```
+
+### 访问
+
+```c
+CCVECTOR_NODE_T *ccvector_at(ccvector_t *v, size_t i);
+// 索引访问。越界返回 NULL。
+
+CCVECTOR_NODE_T *ccvector_front(ccvector_t *v);
+// 首元素。空返回 NULL。
+
+CCVECTOR_NODE_T *ccvector_back(ccvector_t *v);
+// 尾元素。空返回 NULL。
+```
+
+### 查询
+
+```c
+size_t ccvector_size(ccvector_t *v);
+// 元素数量。NULL 返回 0。
+
+size_t ccvector_capacity(ccvector_t *v);
+// 当前容量。NULL 返回 0。
+
+int    ccvector_empty(ccvector_t *v);
+// NULL 或空返回非零。
+```
+
+### 预留
+
+```c
+int  ccvector_reserve(ccvector_t *v, size_t new_cap);
+// 预分配容量。new_cap > 当前 cap 时扩容。
+```

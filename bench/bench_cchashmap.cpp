@@ -1,11 +1,12 @@
 /*
-**  Benchmark: cchashmap vs std::unordered_map vs uthash
+**  Benchmark: cchashmap vs std::unordered_map  (vs uthash, optional)
 **
-**  Build:
-**    g++ -std=c++11 -O2 -I/tmp -o bench_cchashmap bench_cchashmap.cpp && ./bench_cchashmap
+**  Build (default — cchashmap vs STL):
+**    g++ -std=c++11 -O2 -o bench_cchashmap bench_cchashmap.cpp && ./bench_cchashmap
 **
-**  uthash.h must be accessible via -I (single header, download from
-**    https://github.com/troydhanson/uthash/blob/master/src/uthash.h)
+**  Build (with uthash — download uthash.h first):
+**    curl -sLo deps/uthash.h https://raw.githubusercontent.com/troydhanson/uthash/master/src/uthash.h
+**    g++ -std=c++11 -O2 -DCCLAG_HAS_UTHASH -Ideps -o bench_cchashmap bench_cchashmap.cpp && ./bench_cchashmap
 */
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,15 +37,17 @@ struct cc_entry {
 
 #include "../include/cchashmap.h"
 
-/* ── uthash (intrusive, macro-based) ──────────────────────────────────── */
+/* ── uthash (intrusive, macro-based — opt-in via -DCCLAG_HAS_UTHASH) ── */
 
+#ifdef CCLAG_HAS_UTHASH
 #include "uthash.h"
 
 struct uth_entry {
   int            key;
   int            val;
-  UT_hash_handle hh;        /* makes this struct hashable */
+  UT_hash_handle hh;
 };
+#endif
 
 /* ── STL ──────────────────────────────────────────────────────────────── */
 
@@ -60,52 +63,65 @@ static double ms(clk::time_point s, clk::time_point e) {
 }
 static volatile long long sink;
 
+/* ── helpers ──────────────────────────────────────────────────────────── */
+
+static void print_ratio(const char *label, double a, double b) {
+  if (b > 0) printf("           %-20s %8.2fx\n", label, a / b);
+}
+
 /* ── main ────────────────────────────────────────────────────────────── */
 
 int main() {
   enum { N = 200000 };
+#ifdef CCLAG_HAS_UTHASH
   printf("=== cchashmap vs std::unordered_map vs uthash  (%d elements) ===\n\n", N);
+#else
+  printf("=== cchashmap vs std::unordered_map  (%d elements) ===\n", N);
+  printf("    (rebuild with -DCCLAG_HAS_UTHASH for uthash comparison)\n\n");
+#endif
 
   std::vector<int> keys(N);
   for (int i = 0; i < N; i++) keys[i] = i;
   std::mt19937 rng(42);
   std::shuffle(keys.begin(), keys.end(), rng);
 
-  /* ── cchashmap entry ───────────────────────────────────────────────── */
   auto cc_entries = new struct cc_entry[N];
   for (int i = 0; i < N; i++) cc_entries[i].key = keys[i];
 
-  /* ── uthash entry ──────────────────────────────────────────────────── */
+#ifdef CCLAG_HAS_UTHASH
   auto uth_entries = new struct uth_entry[N];
   for (int i = 0; i < N; i++) { uth_entries[i].key = keys[i]; uth_entries[i].val = i; }
+#endif
 
   /* ───────────────────────────────────────────────────────────────────
   **  INSERT
   ** ─────────────────────────────────────────────────────────────────── */
 
-  /* cchashmap */
   cchashmap_t m; cchashmap_init(&m, NULL, NULL);
   auto t0 = clk::now();
   for (int i = 0; i < N; i++) cchashmap_set(&m, &cc_entries[i].node, NULL);
   auto t1 = clk::now();
   printf("  insert:  cchashmap          %8.2f ms  (size=%zu)\n", ms(t0, t1), cchashmap_size(&m));
 
-  /* uthash */
+#ifdef CCLAG_HAS_UTHASH
   struct uth_entry *uth_tbl = NULL;
   auto t2 = clk::now();
   for (int i = 0; i < N; i++) HASH_ADD_INT(uth_tbl, key, &uth_entries[i]);
   auto t3 = clk::now();
   printf("           uthash             %8.2f ms\n", ms(t2, t3));
+#endif
 
-  /* std::unordered_map */
   std::unordered_map<int, int> um;
   auto t4 = clk::now();
   for (int i = 0; i < N; i++) um[keys[i]] = i;
   auto t5 = clk::now();
   printf("           std::unordered_map %8.2f ms\n", ms(t4, t5));
-  printf("           cchashmap/stl      %8.2fx\n", ms(t0, t1) / ms(t4, t5));
-  printf("           uthash/stl         %8.2fx\n", ms(t2, t3) / ms(t4, t5));
-  printf("           cchashmap/uthash   %8.2fx\n\n", ms(t0, t1) / ms(t2, t3));
+  print_ratio("cchashmap/stl", ms(t0, t1), ms(t4, t5));
+#ifdef CCLAG_HAS_UTHASH
+  print_ratio("uthash/stl", ms(t2, t3), ms(t4, t5));
+  print_ratio("cchashmap/uthash", ms(t0, t1), ms(t2, t3));
+#endif
+  printf("\n");
 
   std::shuffle(keys.begin(), keys.end(), rng);
 
@@ -113,7 +129,6 @@ int main() {
   **  FIND
   ** ─────────────────────────────────────────────────────────────────── */
 
-  /* cchashmap */
   sink = 0;
   t0 = clk::now();
   for (int i = 0; i < N; i++) {
@@ -124,7 +139,7 @@ int main() {
   t1 = clk::now();
   printf("  find:    cchashmap          %8.2f ms  (sum=%lld)\n", ms(t0, t1), sink);
 
-  /* uthash */
+#ifdef CCLAG_HAS_UTHASH
   sink = 0;
   t2 = clk::now();
   for (int i = 0; i < N; i++) {
@@ -134,8 +149,8 @@ int main() {
   }
   t3 = clk::now();
   printf("           uthash             %8.2f ms  (sum=%lld)\n", ms(t2, t3), sink);
+#endif
 
-  /* std::unordered_map */
   sink = 0;
   t4 = clk::now();
   for (int i = 0; i < N; i++) {
@@ -144,9 +159,12 @@ int main() {
   }
   t5 = clk::now();
   printf("           std::unordered_map %8.2f ms  (sum=%lld)\n", ms(t4, t5), sink);
-  printf("           cchashmap/stl      %8.2fx\n", ms(t0, t1) / ms(t4, t5));
-  printf("           uthash/stl         %8.2fx\n", ms(t2, t3) / ms(t4, t5));
-  printf("           cchashmap/uthash   %8.2fx\n\n", ms(t0, t1) / ms(t2, t3));
+  print_ratio("cchashmap/stl", ms(t0, t1), ms(t4, t5));
+#ifdef CCLAG_HAS_UTHASH
+  print_ratio("uthash/stl", ms(t2, t3), ms(t4, t5));
+  print_ratio("cchashmap/uthash", ms(t0, t1), ms(t2, t3));
+#endif
+  printf("\n");
 
   std::shuffle(keys.begin(), keys.end(), rng);
 
@@ -154,29 +172,32 @@ int main() {
   **  ERASE
   ** ─────────────────────────────────────────────────────────────────── */
 
-  /* cchashmap */
   t0 = clk::now();
   for (int i = 0; i < N; i++) cchashmap_del(&m, &cc_entries[keys[i]].node);
   t1 = clk::now();
   printf("  erase:   cchashmap          %8.2f ms\n", ms(t0, t1));
 
-  /* uthash */
+#ifdef CCLAG_HAS_UTHASH
   t2 = clk::now();
   for (int i = 0; i < N; i++) HASH_DEL(uth_tbl, &uth_entries[keys[i]]);
   t3 = clk::now();
   printf("           uthash             %8.2f ms\n", ms(t2, t3));
+#endif
 
-  /* std::unordered_map */
   t4 = clk::now();
   for (int i = 0; i < N; i++) um.erase(keys[i]);
   t5 = clk::now();
   printf("           std::unordered_map %8.2f ms\n", ms(t4, t5));
-  printf("           cchashmap/stl      %8.2fx\n", ms(t0, t1) / ms(t4, t5));
-  printf("           uthash/stl         %8.2fx\n", ms(t2, t3) / ms(t4, t5));
-  printf("           cchashmap/uthash   %8.2fx\n", ms(t0, t1) / ms(t2, t3));
+  print_ratio("cchashmap/stl", ms(t0, t1), ms(t4, t5));
+#ifdef CCLAG_HAS_UTHASH
+  print_ratio("uthash/stl", ms(t2, t3), ms(t4, t5));
+  print_ratio("cchashmap/uthash", ms(t0, t1), ms(t2, t3));
+#endif
 
   cchashmap_destroy(&m);
   delete[] cc_entries;
+#ifdef CCLAG_HAS_UTHASH
   delete[] uth_entries;
+#endif
   return 0;
 }

@@ -44,11 +44,11 @@
 
 | 操作 | cclink | `std::forward_list` | 倍率 |
 | --- | --- | --- | --- |
-| push | **0.20 ms** | 8.10 ms | **0.02×** |
-| iterate | 0.43 ms | 0.49 ms | 0.88× |
-| pop | **0.37 ms** | 7.55 ms | **0.05×** |
+| push | **0.26 ms** | 8.69 ms | **0.03×** |
+| iterate | 0.57 ms | 0.62 ms | 0.93× |
+| pop | **0.47 ms** | 9.02 ms | **0.05×** |
 
-> push/pop 比 `std::forward_list` 快 20-40×。侵入式单链表无节点分配。
+> push/pop 比 `std::forward_list` 快 19-33×。侵入式单链表 head+tail 指针，push_front / pop_front 均为 O(1)。
 
 ## ccheap vs `std::priority_queue` — 200K 操作
 

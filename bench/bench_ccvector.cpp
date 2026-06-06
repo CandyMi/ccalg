@@ -41,7 +41,7 @@ int main() {
          ms(t2, t3), sv.size(), sv.capacity());
   printf("              ratio      %8.2fx\n\n", ms(t0, t1) / ms(t2, t3));
 
-  /* ── random access (read) ──────────────────────────────────────────── */
+  /* ── random access (read, unchecked) ───────────────────────────────── */
   std::vector<size_t> indices(N);
   for (size_t i = 0; i < N; i++) indices[i] = i;
   std::mt19937 rng(42);

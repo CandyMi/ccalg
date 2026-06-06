@@ -33,6 +33,16 @@
 #include <stddef.h>
 #include <string.h>
 
+/* ── branch hint (cross-platform) ─────────────────────────────────────── */
+
+#ifndef ccvector_unlikely
+  #if defined(__GNUC__) || defined(__clang__)
+    #define ccvector_unlikely(x) __builtin_expect(!!(x), 0)
+  #else
+    #define ccvector_unlikely(x) (x)
+  #endif
+#endif
+
 /* ── portable inline (C89 / MSVC compat) ─────────────────────────────── */
 
 #if defined(__cplusplus) || (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L)
@@ -133,7 +143,7 @@ ccvector_pop_back(ccvector_t *v) {
 
 CCVECTOR_INLINE CCVECTOR_NODE_T *
 ccvector_at(ccvector_t *v, size_t i) {
-  if (!v || i >= v->len) return NULL;
+  if (ccvector_unlikely(!v || i >= v->len)) return NULL;
   return &v->buckets[i];
 }
 

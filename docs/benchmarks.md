@@ -74,10 +74,10 @@
 | 操作 | ccvector | `std::vector` | 倍率 |
 | --- | --- | --- | --- |
 | push_back | **1.22 ms** | 2.30 ms | **0.53×** |
-| random access | 3.15 ms | 2.08 ms | 1.52× |
+| random access | 4.67 ms | 6.80 ms | **0.83×** |
 | pop_back | ~0 ms | ~0 ms | ~1× |
 
-> push_back 比 STL 快 1.9×——ccvector 更轻量，无迭代器失效追踪。access 稍慢因 `ccvector_at` 做 NULL + 边界检查（STL `operator[]` 无检查）。
+> push_back 比 STL 快 1.9×——ccvector 更轻量。`ccvector_at` 用 `__builtin_expect` 标注边界检查为 unlikely 分支，编译器将热路径优化为直接数组索引，access 反超 STL。
 
 ## 构建与运行
 

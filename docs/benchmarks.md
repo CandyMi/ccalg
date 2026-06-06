@@ -13,15 +13,22 @@
 
 > ccmap 擦除比 `std::map` 快 8.5×——侵入式设计无需释放节点内存。
 
-## cchashmap vs `std::unordered_map` — 100K 随机操作
+## cchashmap vs `std::unordered_map` vs uthash — 200K 随机操作
 
-| 操作 | cchashmap | `std::unordered_map` | 倍率 |
+| 操作 | cchashmap | uthash | `std::unordered_map` |
 | --- | --- | --- | --- |
-| insert | **3.01 ms** | 9.36 ms | **0.32×** |
-| find | **1.40 ms** | 2.17 ms | **0.65×** |
-| erase | **1.44 ms** | 12.24 ms | **0.12×** |
+| insert | 37.21 ms | 41.27 ms | **24.50 ms** |
+| find | **4.97 ms** | 22.63 ms | 9.80 ms |
+| erase | **8.82 ms** | 29.55 ms | 55.14 ms |
 
-> 全链路优于 STL——链式哈希 + 位掩码索引 + hash 预检查三重优化生效。
+| 操作 | cchashmap/stl | uthash/stl | cchashmap/uthash |
+| --- | --- | --- | --- |
+| insert | 1.52× | 1.68× | **0.90×** |
+| find | **0.51×** | 2.31× | **0.22×** |
+| erase | **0.16×** | 0.54× | **0.30×** |
+
+> cchashmap find 比 uthash 快 4.5×, erase 快 3.3×。链式哈希 + 位掩码索引 + hash 缓存三重优化生效。uthash 同为侵入式设计，但每次查找需重新计算哈希值。
+> cchashmap 与 uthash 均为 header-only、侵入式 C 哈希表。插入性能接近（cchashmap 略优），查找/删除 cchashmap 显著领先。
 
 ## cclist vs `std::list` — 200K 操作
 

@@ -26,6 +26,7 @@
 | [cclist.h](include/cclist.h) | `cclist_t` / `cclist_node_t` | Intrusive doubly-linked list |
 | [ccheap.h](include/ccheap.h) | `ccheap_t` / `ccheap_node_t` | D-ary heap (priority queue) |
 | [ccvector.h](include/ccvector.h) | `ccvector_t` / `ccvector_node_t` | Dynamic array (value-based) |
+| [ccflatmap.h](include/ccflatmap.h) | `ccflatmap_t` / `ccflatmap_node_t` | Sorted-array map (value-based) |
 
 ---
 
@@ -42,7 +43,7 @@ struct my_entry {
 };
 ```
 
-**Exceptions**: `cchashmap_t` internally manages a bucket array.  `ccvector_t` stores elements by **value** (not pointers) — it owns element memory and copies on push.
+**Exceptions**: `cchashmap_t` internally manages a bucket array.  `ccvector_t` and `ccflatmap_t` store elements by **value** (not pointers) — they own element memory and copy on push/insert.
 
 ### 2.2 container_of Macro
 
@@ -97,6 +98,7 @@ Each container uses its own `CCXXX_INLINE` prefix (`CCMAP_INLINE`, `CCHASHMAP_IN
 | `ccmap` | `ccmap_cmp_t`: `int64_t (*)(const ccmap_node_t*, const ccmap_node_t*)` | `#define CCMAP_COMPARE(a, b)` |
 | `cchashmap` | `cchashmap_hash_t`: `uint64_t (*)(const cchashmap_node_t*, size_t seed)` <br> `cchashmap_equal_t`: `bool (*)(const cchashmap_node_t*, const cchashmap_node_t*)` | `#define CCHASHMAP_HASH(n, seed)` <br> `#define CCHASHMAP_EQUAL(a, b)` |
 | `ccheap` | `ccheap_compare_t`: `int64_t (*)(const ccheap_node_t*, const ccheap_node_t*)` | `#define CCHEAP_COMPARE(a, b)` |
+| `ccflatmap` | `ccflatmap_cmp_t`: `int64_t (*)(const CCFLATMAP_NODE_T*, const CCFLATMAP_NODE_T*)` | `#define CCFLATMAP_COMPARE(a, b)` |
 | `cclist` | none needed | none |
 
 When a macro is defined, the matching `init()` parameter is suppressed with `(void)arg`.
@@ -121,7 +123,7 @@ Containers that allocate memory internally expose replaceable macros:
 | `CCXXX_REALLOC` | Reallocate | `realloc` |
 | `CCXXX_FREE(ptr)` | Free | `free(ptr)` |
 
-- `cchashmap`, `ccheap`, and `ccvector` use this mechanism.
+- `cchashmap`, `ccheap`, `ccvector`, and `ccflatmap` use this mechanism.
 - `ccmap`, `cclink`, and `cclist` have zero internal allocation → no allocator macros.
 
 ---
@@ -165,6 +167,8 @@ for (ccmap_node_t *n = ccmap_begin(&m); n != ccmap_end(&m); n = ccmap_next(n)) {
 ```
 
 `ccmap` maintains a `first` pointer for O(1) `ccmap_begin()` / `ccmap_first()`, with an insert fast-path when the new key is smaller than `first`.
+
+**Exception**: `ccflatmap_next(m, p)` and `ccflatmap_prev(m, p)` take the container pointer as the first argument — arrays need bounds checking via `m->len`.
 
 ### 6.4 List-Specific Operations
 
@@ -236,6 +240,12 @@ All public functions guard with `if (!m)` or `if (!m || !node)` at the top.  Pas
 | `CCVECTOR_MALLOC` | ccvector | Alloc | `realloc(NULL, sz)` |
 | `CCVECTOR_FREE` | ccvector | Free | `free` |
 | `CCVECTOR_DEFAULT_CAP` | ccvector | Initial capacity | `8` |
+| `CCFLATMAP_COMPARE(a,b)` | ccflatmap | Inline compare | none (use fn ptr) |
+| `CCFLATMAP_NODE_T` | ccflatmap | Override default node type | `ccflatmap_node_t` |
+| `CCFLATMAP_REALLOC` | ccflatmap | Realloc | `realloc` |
+| `CCFLATMAP_MALLOC` | ccflatmap | Alloc | `realloc(NULL, sz)` |
+| `CCFLATMAP_FREE` | ccflatmap | Free | `free` |
+| `CCFLATMAP_DEFAULT_CAP` | ccflatmap | Initial capacity | `8` |
 
 ### Internal Constants
 
@@ -246,6 +256,7 @@ All public functions guard with `if (!m)` or `if (!m || !node)` at the top.  Pas
 | `CCHASHMAP_DEFAULT_SLOT` | `64` | Hashmap initial bucket count |
 | `CCHEAP_DEFAULT_CAP` | `32` | Heap initial capacity |
 | `CCVECTOR_DEFAULT_CAP` | `8` | Vector initial capacity |
+| `CCFLATMAP_DEFAULT_CAP` | `8` | Flatmap initial capacity |
 
 ---
 
@@ -303,7 +314,52 @@ Child comparison loops are unrolled at compile time based on `CCHEAP_ARITY` (2/4
 
 ---
 
-## 14. Per-Container Macros (No Cross-Container Sharing)
+## 14. Flat Map Details (ccflatmap)
+
+### 14.1 Overview
+
+Sorted-array map — elements stored by value in contiguous memory, maintained in sorted order.  Analogous to C++23 `std::flat_map`.
+
+- **Find**: binary search, O(log n)
+- **Insert**: binary search + memmove, O(n)
+- **Erase**: binary search + memmove, O(n)
+- **Iterate**: pointer arithmetic, O(1) per step, cache-friendly
+
+### 14.2 Bulk Insert (`push_back` + `sort`)
+
+For bulk loading, use unsorted append + sort to achieve O(n log n) total instead of O(n²):
+
+```c
+ccflatmap_reserve(&m, N);
+for (int i = 0; i < N; i++)
+    ccflatmap_push_back(&m, elements[i]);  // O(1) unsorted append
+ccflatmap_sort(&m);                        // O(N log N) in-place quicksort
+```
+
+After `sort`, `find` / `erase` work correctly.  `push_back` does NOT check duplicates — `sort` does not remove them.  Use `ccflatmap_insert` if duplicate detection is required during loading.
+
+### 14.3 Internal Sort
+
+`ccflatmap_sort` uses an in-place quicksort (Hoare partition, median-of-three pivot, insertion sort for ≤16-element partitions).  The comparison is the same `CCFLATMAP_CMP` dispatch used by `find`/`insert`/`erase`.
+
+### 14.4 Default Node Type
+
+```c
+typedef struct ccflatmap_node {
+    int64_t  key;
+    uint64_t value;
+} ccflatmap_node_t;
+```
+
+Override via `#define CCFLATMAP_NODE_T struct my_pair` before `#include`.
+
+### 14.5 Iteration Note
+
+`ccflatmap_next(m, p)` and `ccflatmap_prev(m, p)` take the container pointer — unlike intrusive containers where `next(node)` suffices, array bounds require `m->len`.
+
+---
+
+## 15. Per-Container Macros (No Cross-Container Sharing)
 
 | Macro | Source | Consumer |
 | --- | --- | --- |
@@ -320,7 +376,7 @@ Child comparison loops are unrolled at compile time based on `CCHEAP_ARITY` (2/4
 
 ---
 
-## 15. New-Container Checklist
+## 16. New-Container Checklist
 
 When adding a new data structure:
 
@@ -341,9 +397,9 @@ When adding a new data structure:
 
 ---
 
-## 16. Build, Test & Benchmark
+## 17. Build, Test & Benchmark
 
-### 15.1 CMake (Recommended)
+### 17.1 CMake (Recommended)
 
 ```bash
 # Configure — all artifacts in build/
@@ -366,7 +422,7 @@ cmake --install build --prefix /usr/local
 # → /usr/local/include/cclag/*.h
 ```
 
-### 15.2 Premake5 (Alternative)
+### 17.2 Premake5 (Alternative)
 
 ```bash
 premake5 gmake2                   # Generate Makefile
@@ -383,7 +439,7 @@ make -C build config=release test_cclink   # build singly-linked list test only
 PREFIX=/usr/local sh scripts/install.sh
 ```
 
-### 15.3 Manual Compilation
+### 17.3 Manual Compilation
 
 No build system required:
 
@@ -396,7 +452,7 @@ gcc -std=c99 -Wall -Wextra -Wno-missing-field-initializers \
 g++ -std=c++11 -O2 -Wall -o bench_ccmap bench/bench_ccmap.cpp && ./bench_ccmap
 ```
 
-### 15.4 Test Coverage
+### 17.4 Test Coverage
 
 | Test File | Container | Assertions |
 | --- | --- | --- |
@@ -406,8 +462,9 @@ g++ -std=c++11 -O2 -Wall -o bench_ccmap bench/bench_ccmap.cpp && ./bench_ccmap
 | `tests/test_cclist.c` | cclist doubly-linked list | 78 |
 | `tests/test_ccheap.c` | ccheap D-ary heap | 1255 |
 | `tests/test_ccvector.c` | ccvector dynamic array | 548 |
+| `tests/test_ccflatmap.c` | ccflatmap sorted-array map | — |
 
-### 15.5 Benchmark Comparisons
+### 17.5 Benchmark Comparisons
 
 | Benchmark | Comparison | Scale |
 | --- | --- | --- |
@@ -417,12 +474,13 @@ g++ -std=c++11 -O2 -Wall -o bench_ccmap bench/bench_ccmap.cpp && ./bench_ccmap
 | `bench/bench_cclink.cpp` | cclink vs `std::forward_list` | 200K |
 | `bench/bench_ccheap.cpp` | ccheap vs `std::priority_queue` | 200K |
 | `bench/bench_ccvector.cpp` | ccvector vs `std::vector` | 500K |
+| `bench/bench_ccflatmap.cpp` | ccflatmap vs ccmap vs `std::map` | 50K |
 
 ---
 
-## 17. Change Propagation
+## 18. Change Propagation
 
-### 16.1 Cascade
+### 18.1 Cascade
 
 Any change to core headers (`include/*.h`) must sync downstream:
 
@@ -437,7 +495,7 @@ include/*.h change
 
 A header change is not complete until gh-pages is deployed.
 
-### 16.2 Full Workflow
+### 18.2 Full Workflow
 
 ```
 1. Modify code         include/*.h / tests/ / bench/ / docs/
@@ -450,7 +508,7 @@ A header change is not complete until gh-pages is deployed.
 7. Deploy GitHub Pages sh scripts/deploy-gh-pages.sh
 ```
 
-### 16.3 Post-Install Include Path
+### 18.3 Post-Install Include Path
 
 Install commands:
 
@@ -468,7 +526,7 @@ After installation:
 
 When using the repo directly, include paths are `<name>.h>` (requires `-I include`).
 
-### 16.4 Pre-Push Checklist
+### 18.4 Pre-Push Checklist
 
 ```bash
 git pull --rebase origin master   # pull + rebase

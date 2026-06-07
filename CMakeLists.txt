@@ -41,6 +41,7 @@ add_cclag_test(test_cclist)
 add_cclag_test(test_cclink)
 add_cclag_test(test_ccheap)
 add_cclag_test(test_ccvector)
+add_cclag_test(test_ccflatmap)
 
 # ── benchmark targets (C++) ──────────────────────────────────────────────
 macro(add_cclag_bench name)
@@ -55,13 +56,14 @@ add_cclag_bench(bench_cclist)
 add_cclag_bench(bench_cclink)
 add_cclag_bench(bench_ccheap)
 add_cclag_bench(bench_ccvector)
+add_cclag_bench(bench_ccflatmap)
 
 # ── convenience targets ──────────────────────────────────────────────────
 
 # `cmake --build build --target check` — build + run all tests
 add_custom_target(check
   COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -L unit
-  DEPENDS test_ccmap test_cchashmap test_cclink test_cclist test_ccheap test_ccvector
+  DEPENDS test_ccmap test_cchashmap test_cclink test_cclist test_ccheap test_ccvector test_ccflatmap
   USES_TERMINAL
   COMMENT "Running all unit tests"
 )
@@ -85,7 +87,10 @@ add_custom_target(bench
   COMMAND ${CMAKE_COMMAND} -E echo ""
   COMMAND ${CMAKE_COMMAND} -E echo "=== ccvector vs std::vector ==="
   COMMAND $<TARGET_FILE:bench_ccvector>
-  DEPENDS bench_ccmap bench_cchashmap bench_cclink bench_cclist bench_ccheap bench_ccvector
+  COMMAND ${CMAKE_COMMAND} -E echo ""
+  COMMAND ${CMAKE_COMMAND} -E echo "=== ccflatmap vs std::map ==="
+  COMMAND $<TARGET_FILE:bench_ccflatmap>
+  DEPENDS bench_ccmap bench_cchashmap bench_cclink bench_cclist bench_ccheap bench_ccvector bench_ccflatmap
   USES_TERMINAL
   COMMENT "Running all benchmarks"
 )

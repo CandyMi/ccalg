@@ -76,25 +76,13 @@ typedef struct ccmap_node {
 #define CCMAP_NODE_T
 #endif
 
-/* accessors: _rb_p=parent, _rb_c=color, _rb_sp=set-parent, _rb_sc=set-color */
-CCMAP_INLINE ccmap_node_t *_rb_p(const ccmap_node_t *n) {
-  return (ccmap_node_t *)(n->pc & ~(uintptr_t)1);
-}
-CCMAP_INLINE int _rb_c(const ccmap_node_t *n) {
-  return (int)(n->pc & 1);
-}
-CCMAP_INLINE int _rb_red(const ccmap_node_t *n) {
-  return n && _rb_c(n) == CCMAP_RED;
-}
-CCMAP_INLINE void _rb_sp(ccmap_node_t *n, ccmap_node_t *p) {
-  n->pc = (n->pc & 1) | (uintptr_t)p;
-}
-CCMAP_INLINE void _rb_sc(ccmap_node_t *n, int c) {
-  n->pc = (n->pc & ~(uintptr_t)1) | (uintptr_t)c;
-}
-CCMAP_INLINE void _rb_spc(ccmap_node_t *n, ccmap_node_t *p, int c) {
-  n->pc = (uintptr_t)p | (uintptr_t)c;
-}
+/* accessors as macros — zero-overhead, compiler sees through to pc field */
+#define _rb_p(n)      ((ccmap_node_t *)((n)->pc & ~(uintptr_t)1))
+#define _rb_c(n)      ((int)((n)->pc & 1))
+#define _rb_red(n)    ((n) && _rb_c(n) == CCMAP_RED)
+#define _rb_sp(n, p)  ((n)->pc = ((n)->pc & 1) | (uintptr_t)(p))
+#define _rb_sc(n, c)  ((n)->pc = ((n)->pc & ~(uintptr_t)1) | (uintptr_t)(c))
+#define _rb_spc(n, p, c) ((n)->pc = (uintptr_t)(p) | (uintptr_t)(c))
 
 CCMAP_INLINE ccmap_node_t *_rb_min(ccmap_node_t *x) { while (x->child[CCMAP_LEFT]) x = x->child[CCMAP_LEFT]; return x; }
 
@@ -114,47 +102,54 @@ typedef struct map {
 /* ── rotations ────────────────────────────────────────────────────────── */
 
 CCMAP_INLINE void _rb_rot_left(ccmap_t *m, ccmap_node_t *x) {
-  ccmap_node_t *y = x->child[CCMAP_RIGHT];
+  ccmap_node_t *y  = x->child[CCMAP_RIGHT];
+  ccmap_node_t *xp = _rb_p(x);
   x->child[CCMAP_RIGHT] = y->child[CCMAP_LEFT];
   if (y->child[CCMAP_LEFT]) _rb_sp(y->child[CCMAP_LEFT], x);
-  _rb_sp(y, _rb_p(x));
-  if (!_rb_p(x))      m->root = y;
-  else if (x == _rb_p(x)->child[CCMAP_LEFT]) _rb_p(x)->child[CCMAP_LEFT] = y;
-  else                              _rb_p(x)->child[CCMAP_RIGHT] = y;
+  _rb_sp(y, xp);
+  if (!xp)      m->root = y;
+  else if (x == xp->child[CCMAP_LEFT]) xp->child[CCMAP_LEFT] = y;
+  else                                 xp->child[CCMAP_RIGHT] = y;
   y->child[CCMAP_LEFT] = x; _rb_sp(x, y);
 }
 
 CCMAP_INLINE void _rb_rot_right(ccmap_t *m, ccmap_node_t *x) {
-  ccmap_node_t *y = x->child[CCMAP_LEFT];
+  ccmap_node_t *y  = x->child[CCMAP_LEFT];
+  ccmap_node_t *xp = _rb_p(x);
   x->child[CCMAP_LEFT] = y->child[CCMAP_RIGHT];
   if (y->child[CCMAP_RIGHT]) _rb_sp(y->child[CCMAP_RIGHT], x);
-  _rb_sp(y, _rb_p(x));
-  if (!_rb_p(x))      m->root = y;
-  else if (x == _rb_p(x)->child[CCMAP_RIGHT]) _rb_p(x)->child[CCMAP_RIGHT] = y;
-  else                              _rb_p(x)->child[CCMAP_LEFT] = y;
+  _rb_sp(y, xp);
+  if (!xp)      m->root = y;
+  else if (x == xp->child[CCMAP_RIGHT]) xp->child[CCMAP_RIGHT] = y;
+  else                                  xp->child[CCMAP_LEFT] = y;
   y->child[CCMAP_RIGHT] = x; _rb_sp(x, y);
 }
 
 /* ── insert fixup ─────────────────────────────────────────────────────── */
 
 CCMAP_INLINE void _rb_ins_fix(ccmap_t *m, ccmap_node_t *z) {
-  while (_rb_red(_rb_p(z))) {
-    ccmap_node_t *p = _rb_p(z), *g = _rb_p(p);
+  ccmap_node_t *p = _rb_p(z);
+  while (_rb_red(p)) {
+    ccmap_node_t *g = _rb_p(p);
     if (p == g->child[CCMAP_LEFT]) {
       ccmap_node_t *u = g->child[CCMAP_RIGHT];
       if (_rb_red(u)) {
-        _rb_sc(p, CCMAP_BLACK); _rb_sc(u, CCMAP_BLACK); _rb_sc(g, CCMAP_RED); z = g;
+        _rb_sc(p, CCMAP_BLACK); _rb_sc(u, CCMAP_BLACK); _rb_sc(g, CCMAP_RED);
+        z = g; p = _rb_p(g);
       } else {
         if (z == p->child[CCMAP_RIGHT]) { _rb_rot_left(m, p); z = p; p = _rb_p(z); }
         _rb_sc(p, CCMAP_BLACK); _rb_sc(g, CCMAP_RED); _rb_rot_right(m, g);
+        break;
       }
     } else {
       ccmap_node_t *u = g->child[CCMAP_LEFT];
       if (_rb_red(u)) {
-        _rb_sc(p, CCMAP_BLACK); _rb_sc(u, CCMAP_BLACK); _rb_sc(g, CCMAP_RED); z = g;
+        _rb_sc(p, CCMAP_BLACK); _rb_sc(u, CCMAP_BLACK); _rb_sc(g, CCMAP_RED);
+        z = g; p = _rb_p(g);
       } else {
         if (z == p->child[CCMAP_LEFT]) { _rb_rot_right(m, p); z = p; p = _rb_p(z); }
         _rb_sc(p, CCMAP_BLACK); _rb_sc(g, CCMAP_RED); _rb_rot_left(m, g);
+        break;
       }
     }
   }

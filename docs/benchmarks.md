@@ -97,6 +97,26 @@
 >
 > **find**：branchless 二分搜索（cmov）5.70 ms，三家最快。**iterate**：连续内存指针递增 0.09 ms，比 ccmap 快 8×。
 
+### 删除策略对比：`erase` vs `erase_unordered` + `sort`
+
+| 删除数 | sorted erase | unordered+sort | 倍率 | 推荐 |
+| ---: | ---: | ---: | ---: | --- |
+| 1 | 0.035 ms | 0.779 ms | 22× | `erase` |
+| 5 | 0.239 ms | 0.838 ms | 3.5× | `erase` |
+| 10 | 0.312 ms | 0.646 ms | 2.1× | `erase` |
+| 20 | 0.311 ms | 0.975 ms | 3.1× | `erase` |
+| 50 | 0.924 ms | 1.192 ms | 1.3× | 交叉点 |
+| 100 | 1.943 ms | 0.964 ms | 0.5× | `erase_unordered` |
+| 200 | 3.391 ms | 0.930 ms | 0.3× | `erase_unordered` |
+| 500 | 8.718 ms | 1.096 ms | 0.1× | `erase_unordered` |
+| 1,000 | 27.91 ms | 1.080 ms | 0.04× | `erase_unordered` |
+| 5,000 | 89.65 ms | 2.619 ms | 0.03× | `erase_unordered` |
+| 50,000 | 420.1 ms | 5.756 ms | 0.01× | `erase_unordered` |
+
+> **规则**：删除 ≤50 个元素用 `ccflatmap_erase`，超过 50 个用 `ccflatmap_erase_unordered` + `ccflatmap_sort`。
+> `erase_unordered` 的 sort 是固定入场费（≈0.8ms），与删除数量无关。`erase` 成本随删除数 K 线性增长（O(Kn) memmove）。
+> 交叉点约在 K = 2·log₂(n) ≈ 32（理论值），实测 ≈50（含常数因子）。
+
 ## 构建与运行
 
 ```bash

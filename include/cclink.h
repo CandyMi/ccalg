@@ -213,4 +213,26 @@ CCLINK_INLINE cclink_ecode_t cclink_verify(const cclink_t *l) {
   return CLINK_NOERROR;
 }
 
+/* ── error → string ──────────────────────────────────────────────────── */
+
+typedef struct cclink_error {
+  cclink_ecode_t code;
+  const char    *err;
+} cclink_error_t;
+
+static const cclink_error_t cclink_errors[] = {
+  {CLINK_UNKNOWN,   "Unknown error."},
+  {CLINK_NOERROR,   "No error."},
+  {CLINK_ISNULL,    "is nullptr."},
+  {CLINK_HASCYCLE,  "cycle detected."},
+  {CLINK_SIZEERROR, "size != actual count."},
+};
+
+CCLINK_INLINE const cclink_error_t *cclink_get_error(cclink_ecode_t code) {
+  int idx = (int)code + 1;  /* CLINK_UNKNOWN = -1 → index 0 */
+  if (idx < 0 || (size_t)idx >= sizeof(cclink_errors) / sizeof(cclink_errors[0]))
+    return NULL;
+  return &cclink_errors[idx];
+}
+
 #endif /* CCLINK_H */

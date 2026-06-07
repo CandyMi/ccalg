@@ -144,6 +144,28 @@ TEST(verify_valid) {
   ASSERT(cclink_verify(&l) == CLINK_NOERROR);
 }
 
+TEST(error_strings) {
+  const cclink_error_t *err;
+
+  err = cclink_get_error(CLINK_NOERROR);
+  ASSERT(err != NULL && err->code == CLINK_NOERROR);
+
+  err = cclink_get_error(CLINK_ISNULL);
+  ASSERT(err != NULL && err->code == CLINK_ISNULL);
+
+  err = cclink_get_error(CLINK_HASCYCLE);
+  ASSERT(err != NULL && err->code == CLINK_HASCYCLE);
+
+  err = cclink_get_error(CLINK_SIZEERROR);
+  ASSERT(err != NULL && err->code == CLINK_SIZEERROR);
+
+  /* out of range */
+  err = cclink_get_error((cclink_ecode_t)999);
+  ASSERT(err == NULL);
+  err = cclink_get_error((cclink_ecode_t)-2);
+  ASSERT(err == NULL);
+}
+
 TEST(has_cycle) {
   cclink_t l; cclink_init(&l);
   ASSERT(!cclink_has_cycle(&l));
@@ -208,6 +230,7 @@ int main(void) {
   RUN(remove_absent);
   RUN(clear);
   RUN(verify_valid);
+  RUN(error_strings);
   RUN(has_cycle);
   RUN(front_and_next);
   RUN(null_safety);

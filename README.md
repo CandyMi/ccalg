@@ -14,8 +14,9 @@ Compatible with C89 / C99 / C++ / MSVC.  BSD 3-Clause.
 | `cclist` | [`include/cclist.h`](include/cclist.h) | Intrusive doubly-linked list | No |
 | `ccheap` | [`include/ccheap.h`](include/ccheap.h) | D-ary heap (priority queue) | Array (value mode) |
 | `ccvector` | [`include/ccvector.h`](include/ccvector.h) | Dynamic array | Yes |
+| `ccflatmap` | [`include/ccflatmap.h`](include/ccflatmap.h) | Sorted-array map (flat map) | Yes |
 
-All containers are **intrusive** — nodes are embedded in user structs, no hidden allocations.
+Most containers are **intrusive** — nodes are embedded in user structs, no hidden allocations. `ccvector` and `ccflatmap` store elements by **value**.
 
 ## Quick start
 

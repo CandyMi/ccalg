@@ -59,6 +59,7 @@ PAGES = [
     ("api-reference",     "接口参考"),
     ("building",          "构建指南"),
     ("benchmarks",        "性能基准"),
+    ("thread-safety",     "线程安全"),
 ]
 
 

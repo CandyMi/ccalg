@@ -266,7 +266,9 @@ All public functions guard with `if (!m)` or `if (!m || !node)` at the top.  Pas
 - **Color encoding**: stored in the low bit of the parent pointer (`parent pointer | color`).  Saves `sizeof(uint32_t)` per node.
 - **Node size**: `ccmap_node_t` is 16 bytes (64-bit): `child[2]` (16B) + `pc` (8B).
 - **`first` pointer**: additionally tracks the minimum node, making `ccmap_first()` / `ccmap_begin()` O(1) and providing an insert fast-path when the new key is smaller than `first`.
-- **Internal helpers**: prefixed `_rb_` (`_rb_p`, `_rb_c`, `_rb_red`, `_rb_sp`, `_rb_sc`, `_rb_spc`, `_rb_min`, `_rb_rot_left`, `_rb_rot_right`, `_rb_ins_fix`, `_rb_del_fix`).
+- **Internal helpers**: prefixed `_rb_` (`_rb_p`, `_rb_c`, `_rb_red`, `_rb_sp`, `_rb_sc`, `_rb_spc`, `_rb_min`, `_rb_transplant`, `_rb_rot_left`, `_rb_rot_right`, `_rb_ins_fix`, `_rb_del_fix`).
+- **`_rb_transplant`**: replaces node `z` with `c` (may be NULL) — updates parent's child link and root.  Uses `setne`-based array index for the left-vs-right child link, eliminating one branch.
+- **Accessor macros**: `_rb_p`/`_rb_c`/`_rb_red`/`_rb_sp`/`_rb_sc`/`_rb_spc` are macros (not `static inline`), guaranteeing zero-overhead pc field access.
 - **Post-erase `first` update**: `ccmap_erase` takes O(log n) to find the new minimum.
 
 ---

@@ -174,8 +174,7 @@ CCHASHMAP_INLINE void _cchashmap_resize(cchashmap_t *m) {
 
   /* new bucket vector, pre-filled with NULL */
   ccvector_t nb;
-  ccvector_init(&nb);
-  ccvector_reserve(&nb, nc);
+  ccvector_init_cap(&nb, nc);
   for (size_t i = 0; i < nc; i++)
     ccvector_push_back(&nb, NULL);
 
@@ -201,7 +200,7 @@ CCHASHMAP_INLINE void _cchashmap_resize(cchashmap_t *m) {
 CCHASHMAP_INLINE void cchashmap_init(cchashmap_t *m, cchashmap_hash_t hfn,
                                      cchashmap_equal_t efn) {
   if (cchashmap_unlikely(!m)) return;
-  ccvector_init(&m->buckets);
+  ccvector_init_cap(&m->buckets, CCHASHMAP_DEFAULT_SLOT);
   m->size = 0;
   m->seed = (size_t)(uintptr_t)m;
 #ifndef CCHASHMAP_HASH

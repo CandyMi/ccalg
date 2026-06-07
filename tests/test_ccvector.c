@@ -117,8 +117,39 @@ TEST(reserve) {
   ccvector_destroy(&v);
 }
 
+TEST(init_cap) {
+  ccvector_t v;
+
+  /* explicit capacity */
+  ASSERT(ccvector_init_cap(&v, 64) == 0);
+  ASSERT(ccvector_size(&v) == 0);
+  ASSERT(ccvector_capacity(&v) == 64);
+  ccvector_destroy(&v);
+
+  /* cap=0 falls back to default */
+  ASSERT(ccvector_init_cap(&v, 0) == 0);
+  ASSERT(ccvector_capacity(&v) == CCVECTOR_DEFAULT_CAP);
+  ccvector_destroy(&v);
+
+  /* large capacity */
+  ASSERT(ccvector_init_cap(&v, 10000) == 0);
+  ASSERT(ccvector_capacity(&v) == 10000);
+  /* fill without resize */
+  for (int i = 0; i < 10000; i++) {
+    ccvector_node_t e = {.value = (uint32_t)i};
+    ASSERT(ccvector_push_back(&v, e) == 0);
+  }
+  ASSERT(ccvector_size(&v) == 10000);
+  ASSERT(ccvector_capacity(&v) == 10000);
+  ccvector_destroy(&v);
+
+  /* NULL safety */
+  ASSERT(ccvector_init_cap(NULL, 10) == -1);
+}
+
 TEST(null_safety) {
   ASSERT(ccvector_init(NULL) == -1);
+  ASSERT(ccvector_init_cap(NULL, 10) == -1);
   ASSERT(ccvector_push_back(NULL, (ccvector_node_t){0}) == -1);
   ASSERT(ccvector_pop_back(NULL) == -1);
   ASSERT(ccvector_at(NULL, 0) == NULL);
@@ -140,6 +171,7 @@ int main(void) {
   RUN(clear);
   RUN(auto_grow);
   RUN(reserve);
+  RUN(init_cap);
   RUN(null_safety);
   printf("\n  %d passed, %d failed\n", passed, failed);
   return failed ? 1 : 0;

@@ -98,6 +98,20 @@ ccvector_init(ccvector_t *v) {
   return 0;
 }
 
+/* Init with explicit capacity — avoids changing CCVECTOR_DEFAULT_CAP
+** for one-off use cases.  cap=0 falls back to CCVECTOR_DEFAULT_CAP. */
+CCVECTOR_INLINE int
+ccvector_init_cap(ccvector_t *v, size_t cap) {
+  if (!v) return -1;
+  size_t c = cap > 0 ? cap : CCVECTOR_DEFAULT_CAP;
+  v->buckets = (CCVECTOR_NODE_T *)CCVECTOR_MALLOC(
+      sizeof(CCVECTOR_NODE_T) * c);
+  if (!v->buckets) return -1;
+  v->len = 0;
+  v->cap = c;
+  return 0;
+}
+
 CCVECTOR_INLINE void
 ccvector_destroy(ccvector_t *v) {
   if (!v) return;

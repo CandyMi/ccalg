@@ -519,3 +519,96 @@ int    ccvector_empty(ccvector_t *v);
 int  ccvector_reserve(ccvector_t *v, size_t new_cap);
 // 预分配容量。new_cap > 当前 cap 时扩容。
 ```
+
+---
+
+## ccflatmap — 排序数组映射
+
+头文件: [`include/ccflatmap.h`](../include/ccflatmap.h)
+
+值存储的排序数组映射——连续内存 + 二分查找。类似 C++23 `std::flat_map`。
+
+### 类型
+
+```c
+typedef struct ccflatmap_node {
+    int64_t  key;
+    uint64_t value;
+} ccflatmap_node_t;
+
+typedef int64_t (*ccflatmap_cmp_t)(const CCFLATMAP_NODE_T *a,
+                                   const CCFLATMAP_NODE_T *b);
+
+typedef struct ccflatmap {
+    CCFLATMAP_NODE_T *buckets;
+    size_t            len;
+    size_t            cap;
+#ifndef CCFLATMAP_COMPARE
+    ccflatmap_cmp_t   cmp;
+#endif
+} ccflatmap_t;
+```
+
+### 编译期配置
+
+| 宏 | 作用 | 默认 |
+| --- | --- | --- |
+| `CCFLATMAP_COMPARE(a, b)` | 内联比较 | 未定义 |
+| `CCFLATMAP_NODE_T` | 元素类型 | `ccflatmap_node_t` |
+| `CCFLATMAP_REALLOC` / `MALLOC` / `FREE` | 分配器 | `realloc` / `free` |
+| `CCFLATMAP_DEFAULT_CAP` | 初始容量 | `8` |
+
+### 生命周期
+
+```c
+int  ccflatmap_init(ccflatmap_t *m, ccflatmap_cmp_t cmp);
+void ccflatmap_destroy(ccflatmap_t *m);
+void ccflatmap_clear(ccflatmap_t *m);
+```
+
+### 增删查
+
+```c
+int ccflatmap_insert(ccflatmap_t *m, CCFLATMAP_NODE_T elem,
+                     CCFLATMAP_NODE_T **out);
+// 排序插入。O(n)。0 成功，-1 重复。
+
+CCFLATMAP_NODE_T *ccflatmap_find(ccflatmap_t *m,
+                                  const CCFLATMAP_NODE_T *probe);
+// 二分查找。O(log n)。
+
+void ccflatmap_erase(ccflatmap_t *m, const CCFLATMAP_NODE_T *probe);
+// 二分查找 + memmove 删除。O(n)。
+```
+
+### 批量插入
+
+```c
+int  ccflatmap_push_back(ccflatmap_t *m, CCFLATMAP_NODE_T elem);
+// 无序尾部追加，O(1)。不检测重复。
+
+void ccflatmap_sort(ccflatmap_t *m);
+// 原地快速排序，O(n log n)。
+```
+
+推荐：`reserve(N)` → `push_back` 循环 → `sort()`。
+
+### 迭代器
+
+```c
+CCFLATMAP_NODE_T *ccflatmap_begin(ccflatmap_t *m);
+CCFLATMAP_NODE_T *ccflatmap_end(ccflatmap_t *m);      // 总是 NULL
+CCFLATMAP_NODE_T *ccflatmap_rbegin(ccflatmap_t *m);
+CCFLATMAP_NODE_T *ccflatmap_next(ccflatmap_t *m, CCFLATMAP_NODE_T *p);
+CCFLATMAP_NODE_T *ccflatmap_prev(ccflatmap_t *m, CCFLATMAP_NODE_T *p);
+CCFLATMAP_NODE_T *ccflatmap_at(ccflatmap_t *m, size_t i);
+```
+
+### 工具
+
+```c
+size_t ccflatmap_size(ccflatmap_t *m);
+int    ccflatmap_empty(ccflatmap_t *m);
+size_t ccflatmap_capacity(ccflatmap_t *m);
+int    ccflatmap_reserve(ccflatmap_t *m, size_t new_cap);
+```

@@ -579,6 +579,21 @@ CCFLATMAP_NODE_T *ccflatmap_find(ccflatmap_t *m,
 
 void ccflatmap_erase(ccflatmap_t *m, const CCFLATMAP_NODE_T *probe);
 // 二分查找 + memmove 删除。O(n)。
+
+void ccflatmap_erase_at(ccflatmap_t *m, size_t pos);
+// 按索引删除。O(n)。pos >= len 无操作。
+
+void ccflatmap_erase_unordered(ccflatmap_t *m,
+                                const CCFLATMAP_NODE_T *probe);
+// swap-with-last 删除，O(log n) + O(1)。破坏排序——用 sort() 恢复。
+```
+
+批量删除推荐：
+
+```c
+for (int i = 0; i < n; i++)
+    ccflatmap_erase_unordered(&m, &probes[i]);
+ccflatmap_sort(&m);  // 一次性 O(n log n) 恢复排序
 ```
 
 ### 批量插入

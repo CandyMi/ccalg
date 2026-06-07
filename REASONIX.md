@@ -325,9 +325,28 @@ Sorted-array map — elements stored by value in contiguous memory, maintained i
 - **Erase**: binary search + memmove, O(n)
 - **Iterate**: pointer arithmetic, O(1) per step, cache-friendly
 
-### 14.2 Bulk Insert (`push_back` + `sort`)
+### 14.2 Bulk Insert / Bulk Erase
 
 For bulk loading, use unsorted append + sort to achieve O(n log n) total instead of O(n²):
+
+**Bulk insert:**
+```c
+ccflatmap_reserve(&m, N);
+for (int i = 0; i < N; i++)
+    ccflatmap_push_back(&m, elements[i]);  // O(1) unsorted append
+ccflatmap_sort(&m);                        // O(N log N) in-place quicksort
+```
+
+**Bulk erase:**
+```c
+for (int i = 0; i < N; i++)
+    ccflatmap_erase_unordered(&m, &probes[i]);  // O(log n) + O(1) swap-pop
+ccflatmap_sort(&m);                              // O(N log N) restore order
+```
+
+After `sort`, `find` / `iterate` work correctly.  `push_back` and `erase_unordered` do NOT maintain sorted order — the final `sort` restores it.  `erase_unordered` swaps the target with the last element before popping (O(1) removal); the array becomes unsorted after the first call.
+
+### 14.3 `erase_at` — Index-Based Erase
 
 ```c
 ccflatmap_reserve(&m, N);
@@ -338,11 +357,13 @@ ccflatmap_sort(&m);                        // O(N log N) in-place quicksort
 
 After `sort`, `find` / `erase` work correctly.  `push_back` does NOT check duplicates — `sort` does not remove them.  Use `ccflatmap_insert` if duplicate detection is required during loading.
 
-### 14.3 Internal Sort
+`ccflatmap_erase_at(m, pos)` erases by index — skips the binary search when the position is already known (e.g. from a prior `find`).  O(n) memmove, same as erase-by-key.
+
+### 14.4 Internal Sort
 
 `ccflatmap_sort` uses an in-place quicksort (Hoare partition, median-of-three pivot, insertion sort for ≤16-element partitions).  The comparison is the same `CCFLATMAP_CMP` dispatch used by `find`/`insert`/`erase`.
 
-### 14.4 Default Node Type
+### 14.5 Default Node Type
 
 ```c
 typedef struct ccflatmap_node {
@@ -353,7 +374,7 @@ typedef struct ccflatmap_node {
 
 Override via `#define CCFLATMAP_NODE_T struct my_pair` before `#include`.
 
-### 14.5 Iteration Note
+### 14.6 Iteration Note
 
 `ccflatmap_next(m, p)` and `ccflatmap_prev(m, p)` take the container pointer — unlike intrusive containers where `next(node)` suffices, array bounds require `m->len`.
 

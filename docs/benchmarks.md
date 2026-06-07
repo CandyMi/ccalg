@@ -83,14 +83,19 @@
 
 | 操作 | ccflatmap | flat+sort | ccmap | `std::map` |
 | --- | --- | --- | --- | --- |
-| insert | 457.50 ms | **2.99 ms** | 11.13 ms | 13.46 ms |
-| find | **9.94 ms** | — | 7.56 ms | 6.20 ms |
-| iterate | **0.09 ms** | — | 0.57 ms | 0.60 ms |
-| erase | 420.48 ms | — | **2.35 ms** | 12.22 ms |
+| insert | 460.72 ms | **3.48 ms** | 19.26 ms | 11.54 ms |
+| find | **5.70 ms** | — | 7.46 ms | 9.01 ms |
+| iterate | **0.09 ms** | — | 0.69 ms | 0.76 ms |
+| erase | 485.02 ms | — | **6.55 ms** | 23.90 ms |
+| ers+sort | **5.84 ms** | — | — | — |
 
-> **逐个插入**（`ccflatmap_insert`）：insert/erase 因 O(n) memmove 较慢。**批量插入**（`push_back` + `sort`）：2.99 ms 比 ccmap 快 3.7×，比 `std::map` 快 4.5×——追加 O(1) + 快速排序 O(n log n)。
+> **逐个插入/删除**（`ccflatmap_insert`/`ccflatmap_erase`）：因 O(n) memmove 较慢，适合低频修改场景。
 >
-> **强项**：find 二分搜索（连续内存，缓存友好），iterate 指针递增（0.09 ms，比 ccmap 快 6×）。适合高频查找/遍历 + 低频修改的场景。
+> **批量插入**（`push_back` + `sort`）：3.48 ms 比 ccmap 快 5.5×——追加 O(1) + 快速排序 O(n log n)。
+>
+> **批量删除**（`erase_unordered` + `sort`）：5.84 ms 比 ccmap 快，比逐个删除快 83×——swap-with-last O(1) + 最后一次性重排。
+>
+> **find**：branchless 二分搜索（cmov）5.70 ms，三家最快。**iterate**：连续内存指针递增 0.09 ms，比 ccmap 快 8×。
 
 ## 构建与运行
 

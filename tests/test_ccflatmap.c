@@ -112,6 +112,62 @@ TEST(erase) {
   ccflatmap_destroy(&m);
 }
 
+TEST(erase_at) {
+  ccflatmap_t m; ccflatmap_init(&m, cmp_fn);
+  for (int i = 0; i < 10; i++) {
+    ccflatmap_node_t n = {i, (uint64_t)i};
+    ccflatmap_insert(&m, n, NULL);
+  }
+  /* erase middle by index */
+  ccflatmap_erase_at(&m, 5);
+  ASSERT(ccflatmap_size(&m) == 9);
+  ASSERT(ccflatmap_at(&m, 5)->key == 6); /* shifted */
+
+  /* erase first */
+  ccflatmap_erase_at(&m, 0);
+  ASSERT(ccflatmap_at(&m, 0)->key == 1);
+
+  /* erase last */
+  ccflatmap_erase_at(&m, ccflatmap_size(&m) - 1);
+  ASSERT(ccflatmap_size(&m) == 7);
+
+  /* out of bounds */
+  ccflatmap_erase_at(&m, 999);
+  ASSERT(ccflatmap_size(&m) == 7);
+  ccflatmap_destroy(&m);
+}
+
+TEST(erase_unordered) {
+  ccflatmap_t m; ccflatmap_init(&m, cmp_fn);
+  for (int i = 0; i < 20; i++) {
+    ccflatmap_node_t n = {i, (uint64_t)i};
+    ccflatmap_insert(&m, n, NULL);
+  }
+  ASSERT(ccflatmap_size(&m) == 20);
+
+  /* unordered erase a few — breaks sorted order */
+  ccflatmap_node_t probe = {5, 0};
+  ccflatmap_erase_unordered(&m, &probe);
+  ASSERT(ccflatmap_size(&m) == 19);
+
+  probe.key = 12;
+  ccflatmap_erase_unordered(&m, &probe);
+  ASSERT(ccflatmap_size(&m) == 18);
+
+  /* after unordered erasures, re-sort to restore find */
+  ccflatmap_sort(&m);
+
+  /* all remaining keys findable */
+  for (int i = 0; i < 20; i++) {
+    if (i == 5 || i == 12) continue;
+    probe.key = i;
+    ASSERT(ccflatmap_find(&m, &probe) != NULL);
+  }
+  ASSERT(ccflatmap_find(&m, &(ccflatmap_node_t){5, 0}) == NULL);
+  ASSERT(ccflatmap_find(&m, &(ccflatmap_node_t){12, 0}) == NULL);
+  ccflatmap_destroy(&m);
+}
+
 TEST(clear) {
   ccflatmap_t m; ccflatmap_init(&m, cmp_fn);
   for (int i = 0; i < 10; i++) {
@@ -183,6 +239,8 @@ TEST(null_safety) {
   ccflatmap_destroy(NULL);
   ccflatmap_clear(NULL);
   ccflatmap_erase(NULL, &(ccflatmap_node_t){0});
+  ccflatmap_erase_at(NULL, 0);
+  ccflatmap_erase_unordered(NULL, &(ccflatmap_node_t){0});
   ccflatmap_reserve(NULL, 100);
 }
 
@@ -277,6 +335,8 @@ int main(void) {
   RUN(insert_duplicate);
   RUN(find);
   RUN(erase);
+  RUN(erase_at);
+  RUN(erase_unordered);
   RUN(clear);
   RUN(iterate_forward);
   RUN(iterate_reverse);

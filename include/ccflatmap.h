@@ -114,20 +114,23 @@ typedef struct ccflatmap {
 
 /* Returns the first index where buckets[pos] >= probe.
 ** Caller checks for exact match with CMP(probe, &buckets[pos]) == 0. */
+/* Branchless binary search — compiler emits cmov instead of unpredictable
+** branches.  The ternary `gt ? x : y` pattern is recognized by clang/gcc
+** at -O2 and converted to conditional-move instructions. */
 CCFLATMAP_INLINE size_t
 _ccflatmap_lower_bound(const ccflatmap_t *m,
                        const CCFLATMAP_NODE_T *probe) {
   CCFLATMAP_NODE_T *b = m->buckets;
-  size_t lo = 0, hi = m->len;
+  size_t lo = 0, n = m->len;
 #ifndef CCFLATMAP_COMPARE
   ccflatmap_cmp_t cmp_fn = m->cmp;
 #endif
-  while (lo < hi) {
-    size_t mid = lo + (hi - lo) / 2;
-    if (CCFLATMAP_CMP(probe, &b[mid]) > 0)
-      lo = mid + 1;
-    else
-      hi = mid;
+  while (n > 0) {
+    size_t half = n / 2;
+    size_t mid = lo + half;
+    int gt = CCFLATMAP_CMP(probe, &b[mid]) > 0;
+    lo = gt ? (mid + 1) : lo;
+    n  = gt ? (n - half - 1) : half;
   }
   return lo;
 }
@@ -240,6 +243,40 @@ ccflatmap_erase(ccflatmap_t *m, const CCFLATMAP_NODE_T *probe) {
   if (pos < m->len - 1)
     memmove(&b[pos], &b[pos + 1],
             (m->len - pos - 1) * sizeof(CCFLATMAP_NODE_T));
+  m->len--;
+}
+
+/* Erase by index — skips binary search when position is already known
+** (e.g. from a prior find).  O(n) memmove, same as erase-by-key. */
+CCFLATMAP_INLINE void
+ccflatmap_erase_at(ccflatmap_t *m, size_t pos) {
+  if (ccflatmap_unlikely(!m || pos >= m->len)) return;
+  CCFLATMAP_NODE_T *b = m->buckets;
+  if (pos < m->len - 1)
+    memmove(&b[pos], &b[pos + 1],
+            (m->len - pos - 1) * sizeof(CCFLATMAP_NODE_T));
+  m->len--;
+}
+
+/* Unordered erase — swaps target with last element, then pops.
+** O(log n) find + O(1) swap.  Breaks sorted order — call sort() after
+** a batch of unordered erases to restore ordering.
+**
+** Pattern:
+**   for (...) ccflatmap_erase_unordered(&m, &probes[i]);
+**   ccflatmap_sort(&m);   // restore order, O(n log n) once   */
+CCFLATMAP_INLINE void
+ccflatmap_erase_unordered(ccflatmap_t *m,
+                          const CCFLATMAP_NODE_T *probe) {
+  if (ccflatmap_unlikely(!m || !probe || !m->len)) return;
+#ifndef CCFLATMAP_COMPARE
+  ccflatmap_cmp_t cmp_fn = m->cmp;
+#endif
+  CCFLATMAP_NODE_T *b = m->buckets;
+  size_t pos = _ccflatmap_lower_bound(m, probe);
+  if (pos >= m->len || CCFLATMAP_CMP(probe, &b[pos]) != 0) return;
+  if (pos < m->len - 1)
+    b[pos] = b[m->len - 1];
   m->len--;
 }
 

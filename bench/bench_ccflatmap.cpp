@@ -193,7 +193,7 @@ int main() {
   }
 
   /* ═══════════════════════════════════════════════════════════════════
-  **  ERASE
+  **  ERASE (sorted, random order — O(n) memmove each)
   ** ═══════════════════════════════════════════════════════════════════ */
   std::shuffle(keys.begin(), keys.end(), rng);
 
@@ -222,6 +222,25 @@ int main() {
     double sm_t = ms(t0, t1);
 
     print_4("erase:", fm_t, 0, cm_t, sm_t);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+  **  ERASE (unordered — swap+pop O(1) each, then sort O(n log n))
+  ** ═══════════════════════════════════════════════════════════════════ */
+  std::shuffle(keys.begin(), keys.end(), rng);
+
+  {
+    ccflatmap_t fm; ccflatmap_init(&fm, NULL);
+    for (int i = 0; i < N; i++) ccflatmap_insert(&fm, fm_entries[i], NULL);
+    auto t0 = clk::now();
+    for (int i = 0; i < N; i++)
+      ccflatmap_erase_unordered(&fm, &fm_entries[keys[i]]);
+    ccflatmap_sort(&fm);   /* restore order — once for the batch */
+    auto t1 = clk::now();
+    double fm_t = ms(t0, t1);
+    ccflatmap_destroy(&fm);
+
+    print_4("ers+sort:", fm_t, 0, 0, 0);
   }
 
   delete[] fm_entries;

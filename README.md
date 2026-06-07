@@ -73,6 +73,14 @@ See [docs/building.md](docs/building.md) for details and manual compilation.
 
 ## Documents
 
+| Document | Description |
+|---|---|
+| [Getting Started](docs/getting-started.md) | 5-minute quick start (中文) |
+| [API Reference](docs/api-reference.md) | Full API manual for all containers (中文) |
+| [Building](docs/building.md) | CMake / Premake5 / manual compilation (中文) |
+| [Benchmarks](docs/benchmarks.md) | Performance vs STL (中文) |
+| [Thread Safety](docs/thread-safety.md) | Lock-type classification & parallelism analysis (中文) |
+
 Online documentation → <a href="https://ccalg.dev" target="_blank"><b>ccalg.dev</b></a>
 
 ## License

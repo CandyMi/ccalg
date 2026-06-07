@@ -71,6 +71,7 @@ cmake --build build --target bench    # 构建 + 基准
 | [API 参考](api-reference.md) | 所有容器的完整 API 手册 |
 | [构建指南](building.md) | CMake / Premake5 / 手动编译 |
 | [性能基准](benchmarks.md) | ccmap / cchashmap / cclink / cclist / ccheap / ccvector vs STL |
+| [线程安全](thread-safety.md) | 外部读写锁下的操作分类与并行度分析 |
 
 ## 设计
 

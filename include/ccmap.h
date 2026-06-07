@@ -99,6 +99,15 @@ typedef struct map {
 #endif
 } ccmap_t;
 
+/* transplant: replace `z` with `c` in the tree (c may be NULL) */
+CCMAP_INLINE void _rb_transplant(ccmap_t *m, ccmap_node_t *z, ccmap_node_t *c) {
+  ccmap_node_t *zp = _rb_p(z);
+  if (c) _rb_sp(c, zp);
+  if (!zp) m->root = c;
+  else if (zp->child[CCMAP_LEFT] == z) zp->child[CCMAP_LEFT] = c;
+  else                                  zp->child[CCMAP_RIGHT] = c;
+}
+
 /* ── rotations ────────────────────────────────────────────────────────── */
 
 CCMAP_INLINE void _rb_rot_left(ccmap_t *m, ccmap_node_t *x) {
@@ -273,20 +282,17 @@ CCMAP_INLINE void ccmap_erase(ccmap_t *m, ccmap_node_t *z) {
 
   if (!z->child[CCMAP_LEFT]) {
     x = z->child[CCMAP_RIGHT]; xp = _rb_p(z);
-    if (x) _rb_sp(x, xp);
-    if (!xp) m->root = x; else if (xp->child[CCMAP_LEFT] == z) xp->child[CCMAP_LEFT] = x; else xp->child[CCMAP_RIGHT] = x;
+    _rb_transplant(m, z, x);
   } else if (!z->child[CCMAP_RIGHT]) {
     x = z->child[CCMAP_LEFT]; xp = _rb_p(z);
-    if (x) _rb_sp(x, xp);
-    if (!xp) m->root = x; else if (xp->child[CCMAP_LEFT] == z) xp->child[CCMAP_LEFT] = x; else xp->child[CCMAP_RIGHT] = x;
+    _rb_transplant(m, z, x);
   } else {
     y = _rb_min(z->child[CCMAP_RIGHT]); yc = _rb_c(y); x = y->child[CCMAP_RIGHT];
     if (_rb_p(y) == z) { xp = y; if (x) _rb_sp(x, y); }
     else { xp = _rb_p(y); if (x) _rb_sp(x, xp); xp->child[CCMAP_LEFT] = x;
            y->child[CCMAP_RIGHT] = z->child[CCMAP_RIGHT]; _rb_sp(z->child[CCMAP_RIGHT], y); }
-    if (!_rb_p(z)) m->root = y;
-    else if (_rb_p(z)->child[CCMAP_LEFT] == z) _rb_p(z)->child[CCMAP_LEFT] = y; else _rb_p(z)->child[CCMAP_RIGHT] = y;
-    _rb_sp(y, _rb_p(z)); y->child[CCMAP_LEFT] = z->child[CCMAP_LEFT]; _rb_sp(z->child[CCMAP_LEFT], y); _rb_sc(y, _rb_c(z));
+    _rb_transplant(m, z, y);
+    y->child[CCMAP_LEFT] = z->child[CCMAP_LEFT]; _rb_sp(z->child[CCMAP_LEFT], y); _rb_sc(y, _rb_c(z));
   }
   if (z == m->first) {
     if (z->child[CCMAP_RIGHT]) { m->first = z->child[CCMAP_RIGHT]; while (m->first->child[CCMAP_LEFT]) m->first = m->first->child[CCMAP_LEFT]; }

@@ -99,13 +99,15 @@ typedef struct map {
 #endif
 } ccmap_t;
 
-/* transplant: replace `z` with `c` in the tree (c may be NULL) */
+/* transplant: replace `z` with `c` in the tree (c may be NULL).
+** Branch 1 (c==NULL) and branch 2 (zp==NULL / z is root) are cold.
+** Branch 3 (left vs right child) is 50/50 — replaced with setne-based
+** index: zp->child[RIGHT]==z is 0 or 1, used directly as array index. */
 CCMAP_INLINE void _rb_transplant(ccmap_t *m, ccmap_node_t *z, ccmap_node_t *c) {
   ccmap_node_t *zp = _rb_p(z);
   if (c) _rb_sp(c, zp);
-  if (!zp) m->root = c;
-  else if (zp->child[CCMAP_LEFT] == z) zp->child[CCMAP_LEFT] = c;
-  else                                  zp->child[CCMAP_RIGHT] = c;
+  if (!zp) { m->root = c; return; }
+  zp->child[zp->child[CCMAP_RIGHT] == z] = c;
 }
 
 /* ── rotations ────────────────────────────────────────────────────────── */

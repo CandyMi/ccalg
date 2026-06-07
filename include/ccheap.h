@@ -3,6 +3,7 @@
 **  Author: CandyMi[https://github.com/candymi]
 **
 **  A generic D-ary heap with an optional inlined comparator macro.
+**  Internal pointer array backed by ccvector.
 **
 **  ccheap_node_t is an 8-byte union — the heap never accesses its
 **  members.  The comparison callback defines what the field means:
@@ -16,7 +17,7 @@
 **      f(a, b) > 0  →  a has higher priority (closer to root)
 **      f(a, b) < 0  →  b has higher priority
 **
-**    Default:                heap_compare_t function pointer via heap_init().
+**    Default:                ccheap_compare_t function pointer via heap_init().
 **    CCHEAP_COMPARE(a, b):   macro, inlined at every comparison site —
 **                            eliminates indirect call overhead.  heap_init()'s
 **                            second argument is ignored when this is defined.
@@ -46,16 +47,6 @@
 **    for (int i = 0; i < 3; i++) heap_push(&h, &jobs[i]);
 **    while (heap_size(&h)) printf("%lu\n", heap_pop(&h)->priority); // 1,3,5
 **
-**  ── Quick start: timer ──
-**
-**    #define CCHEAP_COMPARE(a, b) \
-**        ((int64_t)(b)->timeout - (int64_t)(a)->timeout)
-**    #include "ccheap.h"
-**
-**    ccheap_t h;  heap_init(&h, NULL);
-**    ccheap_node_t ev = {.timeout = now() + 5000};
-**    heap_push(&h, &ev);
-**
 **  ── Embedding for extra payload (container_of) ──
 **
 **    struct task {
@@ -75,11 +66,6 @@
 **    heap_push(&h, &t.node);
 **    struct task *done = CCHEAP_CONTAINER(heap_pop(&h), struct task, node);
 **    done->cb(done->arg);
-**
-**  The comparison defines priority order:
-**    f(a, b) > 0  →  a has higher priority than b (closer to root)
-**    f(a, b) < 0  →  b has higher priority than a
-**    f(a, b) == 0 →  equal priority
 */
 #ifndef CCHEAP_H
 #define CCHEAP_H
@@ -151,36 +137,51 @@
   #define CCHEAP_DEFAULT_CAP 32
 #endif
 
+/* ── forward allocators to ccvector ───────────────────────────────────── */
+
+#ifndef CCVECTOR_REALLOC
+  #define CCVECTOR_REALLOC  CCHEAP_REALLOC
+#endif
+#ifndef CCVECTOR_MALLOC
+  #define CCVECTOR_MALLOC(sz) CCHEAP_MALLOC(sz)
+#endif
+#ifndef CCVECTOR_FREE
+  #define CCVECTOR_FREE(ptr)  CCHEAP_FREE(ptr)
+#endif
+#ifndef CCVECTOR_DEFAULT_CAP
+  #define CCVECTOR_DEFAULT_CAP CCHEAP_DEFAULT_CAP
+#endif
+
 /* ── comparison dispatch ──────────────────────────────────────────────── */
 
 #ifdef CCHEAP_COMPARE
-  /* Macro-based, inlined at every call site — no function-pointer overhead */
   #define CCHEAP_CMP(h, a, b) CCHEAP_COMPARE((a), (b))
 #else
-  /* Function-pointer based (default) */
   #define CCHEAP_CMP(h, a, b) ((h)->f((a), (b)))
 #endif
 
 /* ── types ────────────────────────────────────────────────────────────── */
 
-/* define the default node before the function-pointer typedef so the
-** types are fully visible (silences -Wvisibility warnings) */
 #define CCHEAP_NODE_T ccheap_node_t
 typedef struct ccheap_node {
   union {
-    uint64_t  priority; // maybe priority queue.
-    uint64_t  timeout;  // maybe timer.
+    uint64_t  priority;
+    uint64_t  timeout;
   };
 } ccheap_node_t;
 
 typedef int64_t (*ccheap_compare_t)(const CCHEAP_NODE_T *, const CCHEAP_NODE_T *);
 
+/* ccvector stores ccheap_node_t* by value */
+#ifndef CCVECTOR_NODE_T
+  #define CCVECTOR_NODE_T ccheap_node_t *
+#endif
+#include "ccvector.h"
+
 typedef struct ccheap {
-  CCHEAP_NODE_T   **data;
-  size_t          size;
-  size_t          cap;
+  ccvector_t       data;   /* ccvector<ccheap_node_t *>  */
 #ifndef CCHEAP_COMPARE
-  ccheap_compare_t  f;
+  ccheap_compare_t f;
 #endif
 } ccheap_t;
 
@@ -189,15 +190,18 @@ typedef struct ccheap {
 #define CCHEAP_CONTAINER(ptr, type, member) \
     ((type *)((char *)(ptr) - offsetof(type, member)))
 
-/* ── element helpers ──────────────────────────────────────────────────── */
+/* ── internal: direct array access (no bounds check, for hot path) ───── */
 
-#define CCHEAP_SWAP(h, a, b)  do {              \
-    CCHEAP_NODE_T *_tmp = (h)->data[a];         \
-    (h)->data[a] = (h)->data[b];                \
-    (h)->data[b] = _tmp;                        \
-} while(0)
-#define CCHEAP_PEEK(h)  ((h)->data[0])
-#define CCHEAP_AT(h, i) ((h)->data[i])
+#define _HDATA(h)  (((ccheap_node_t **)(h)->data.buckets)[0])
+
+#define CCHEAP_AT(h, i)  (((ccheap_node_t **)(h)->data.buckets)[i])
+#define CCHEAP_PEEK(h)   CCHEAP_AT(h, 0)
+
+CCHEAP_INLINE void _hswap(ccheap_t *h, size_t a, size_t b) {
+  ccheap_node_t *tmp = CCHEAP_AT(h, a);
+  CCHEAP_AT(h, a) = CCHEAP_AT(h, b);
+  CCHEAP_AT(h, b) = tmp;
+}
 
 /* ── public API ───────────────────────────────────────────────────────── */
 
@@ -205,12 +209,9 @@ CCHEAP_INLINE int
 heap_init(ccheap_t *heap, ccheap_compare_t f)
 {
   if (ccheap_unlikely(!heap)) return -1;
-  heap->data = (CCHEAP_NODE_T **)CCHEAP_MALLOC(sizeof(CCHEAP_NODE_T *) * CCHEAP_DEFAULT_CAP);
-  if (!heap->data) return -1;
-  heap->size = 0;
-  heap->cap  = CCHEAP_DEFAULT_CAP;
+  ccvector_init_cap(&heap->data, CCHEAP_DEFAULT_CAP);
 #ifndef CCHEAP_COMPARE
-  heap->f    = f;
+  heap->f = f;
 #else
   (void)f;
 #endif
@@ -221,25 +222,16 @@ heap_init(ccheap_t *heap, ccheap_compare_t f)
 CCHEAP_INLINE int
 heap_insert(ccheap_t *heap, CCHEAP_NODE_T *n)
 {
-  if (ccheap_unlikely(!heap || !heap->data || !n)) return -1;
+  if (ccheap_unlikely(!heap || !n)) return -1;
 
-  if (heap->size == heap->cap) {
-    if (heap->cap > SIZE_MAX / 2 / sizeof(CCHEAP_NODE_T *)) return -1;
-    size_t new_cap = heap->cap * 2;
-    CCHEAP_NODE_T **nd = (CCHEAP_NODE_T **)CCHEAP_REALLOC(heap->data, sizeof(CCHEAP_NODE_T *) * new_cap);
-    if (!nd) return -1;
-    heap->data = nd;
-    heap->cap  = new_cap;
-  }
-
-  size_t i = heap->size++;
-  heap->data[i] = n;
+  ccvector_push_back(&heap->data, n);
+  size_t i = ccvector_size(&heap->data) - 1;
 
   while (i > 0) {
     size_t p = CCHEAP_PARENT(i);
     if (CCHEAP_CMP(heap, CCHEAP_AT(heap, p), CCHEAP_AT(heap, i)) >= 0)
       break;
-    CCHEAP_SWAP(heap, p, i);
+    _hswap(heap, p, i);
     i = p;
   }
 
@@ -249,23 +241,26 @@ heap_insert(ccheap_t *heap, CCHEAP_NODE_T *n)
 CCHEAP_INLINE CCHEAP_NODE_T *
 heap_pop(ccheap_t *heap)
 {
-  if (ccheap_unlikely(!heap || !heap->data || heap->size == 0)) return NULL;
+  size_t sz = ccvector_size(&heap->data);
+  if (ccheap_unlikely(!heap || sz == 0)) return NULL;
 
-  CCHEAP_NODE_T *result = heap->data[0];
+  CCHEAP_NODE_T *result = CCHEAP_AT(heap, 0);
 
-  heap->size--;
-  if (heap->size == 0) return result;
+  if (sz == 1) {
+    ccvector_pop_back(&heap->data);
+    return result;
+  }
 
-  /* move last to root */
-  heap->data[0] = heap->data[heap->size];
+  /* move last to root, then pop */
+  CCHEAP_AT(heap, 0) = CCHEAP_AT(heap, sz - 1);
+  ccvector_pop_back(&heap->data);
+  sz--;
 
-  const size_t sz = heap->size;
   size_t i = 0;
   for (;;) {
     size_t best  = i;
-    size_t child = CCHEAP_CHILD(i, 0);    /* leftmost child */
+    size_t child = CCHEAP_CHILD(i, 0);
 
-    /* unrolled D-child comparison — compile-time constant */
 #if CCHEAP_ARITY_N > 0
     if (child + 0 < sz && CCHEAP_CMP(heap, CCHEAP_AT(heap, best), CCHEAP_AT(heap, child + 0)) < 0) best = child + 0;
 #endif
@@ -292,7 +287,7 @@ heap_pop(ccheap_t *heap)
 #endif
 
     if (best == i) break;
-    CCHEAP_SWAP(heap, i, best);
+    _hswap(heap, i, best);
     i = best;
   }
 
@@ -302,25 +297,22 @@ heap_pop(ccheap_t *heap)
 CCHEAP_INLINE CCHEAP_NODE_T *
 heap_peek(ccheap_t *heap)
 {
-  if (ccheap_unlikely(!heap || !heap->data || heap->size == 0)) return NULL;
+  if (ccheap_unlikely(!heap || ccvector_empty(&heap->data))) return NULL;
   return CCHEAP_PEEK(heap);
 }
 
 CCHEAP_INLINE size_t
 heap_size(ccheap_t *heap)
 {
-  if (!heap || !heap->data) return 0;
-  return heap->size;
+  if (!heap) return 0;
+  return ccvector_size(&heap->data);
 }
 
 CCHEAP_INLINE void
 heap_destroy(ccheap_t *heap)
 {
   if (!heap) return;
-  (void)CCHEAP_FREE(heap->data);
-  heap->data = NULL;
-  heap->size = 0;
-  heap->cap  = 0;
+  ccvector_destroy(&heap->data);
 #ifndef CCHEAP_COMPARE
   heap->f = NULL;
 #endif

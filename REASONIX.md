@@ -239,6 +239,7 @@ All public functions guard with `if (!m)` or `if (!m || !node)` at the top.  Pas
 | `CCVECTOR_REALLOC` | ccvector | Realloc | `realloc` |
 | `CCVECTOR_MALLOC` | ccvector | Alloc | `realloc(NULL, sz)` |
 | `CCVECTOR_FREE` | ccvector | Free | `free` |
+| `CCVECTOR_INIT_CAP(v,c)` | ccvector | Init with explicit capacity (alias `ccvector_init_cap`) | none |
 | `CCVECTOR_DEFAULT_CAP` | ccvector | Initial capacity | `8` |
 | `CCFLATMAP_COMPARE(a,b)` | ccflatmap | Inline compare | none (use fn ptr) |
 | `CCFLATMAP_NODE_T` | ccflatmap | Override default node type | `ccflatmap_node_t` |
@@ -273,6 +274,7 @@ All public functions guard with `if (!m)` or `if (!m || !node)` at the top.  Pas
 ## 10. Hash Map Details (cchashmap)
 
 - **Chained hashing**: array + singly-linked list.  `cchashmap_node_t` caches the hash value in a `hash` field.
+- **Bucket array**: backed by `ccvector_t` storing `cchashmap_node_t *` pointers (since v2).  Allocator hooks forward from `CCHASHMAP_` to `CCVECTOR_`.
 - **Load factor**: default `CCHASHMAP_MAX_LOAD = 1.25`.  Auto-resize (2×) when exceeded.
 - **Seed**: container address `(size_t)(uintptr_t)m` is used as the hash seed during init.
 - **Power-of-two capacity**: bucket index via `hash & (cap - 1)` bitmask.

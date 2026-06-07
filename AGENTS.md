@@ -39,7 +39,7 @@ cclag/
 
 Every container manages **user-embedded nodes**, not allocated elements. The user embeds `xxx_node_t` in their struct; the container operates on node pointers. No `malloc`/`free` on user data — exceptions:
 
-- `cchashmap` internally manages a bucket array.
+- `cchashmap` internally manages a bucket array (backed by `ccvector` since v2).
 - `ccvector` and `ccflatmap` store elements by value — they own element memory.
 
 ### Container-of idiom

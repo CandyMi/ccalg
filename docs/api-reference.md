@@ -108,9 +108,8 @@ typedef uint64_t (*cchashmap_hash_t)(const cchashmap_node_t *n, size_t seed);
 typedef bool     (*cchashmap_equal_t)(const cchashmap_node_t *a, const cchashmap_node_t *b);
 
 typedef struct cchashmap {
-    cchashmap_node_t **buckets;
+    ccvector_t         buckets;  // ccvector<cchashmap_node_t *>
     size_t             size;
-    size_t             cap;
     size_t             seed;
 #ifndef CCHASHMAP_HASH
     cchashmap_hash_t   hash_fn;
@@ -468,6 +467,10 @@ typedef struct ccvector {
 ```c
 int  ccvector_init(ccvector_t *v);
 // 返回 0 成功，-1 失败（v NULL 或分配失败）。初始容量 8。
+
+int  ccvector_init_cap(ccvector_t *v, size_t cap);
+// 以指定容量初始化。cap=0 回退到 CCVECTOR_DEFAULT_CAP。
+// 无需修改宏即可控制初始容量。
 
 void ccvector_destroy(ccvector_t *v);
 // 释放内部数组。NULL 安全。

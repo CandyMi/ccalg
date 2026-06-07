@@ -301,7 +301,11 @@ All public functions guard with `if (!m)` or `if (!m || !node)` at the top.  Pas
 
 Child comparison loops are unrolled at compile time based on `CCHEAP_ARITY` (2/4/8) via `#if CCHEAP_ARITY_N > N` conditional compilation.  Index macros: `CCHEAP_PARENT(i)`, `CCHEAP_CHILD(i, k)`.
 
-### 12.2 Default Node Structure
+### 12.2 Pointer Array (ccvector-backed)
+
+Internal pointer array is backed by `ccvector_t` storing `ccheap_node_t *` (since v2).  Allocator hooks forward from `CCHEAP_` to `CCVECTOR_`.  Direct internal access via `heap->data.buckets` in hot-path macros (`CCHEAP_AT`, `CCHEAP_PEEK`) avoids bounds-check overhead.  `ccvector_push_back` / `ccvector_pop_back` handle grow and shrink atomically.
+
+### 12.3 Default Node Structure
 
 `ccheap_node_t` is an 8-byte anonymous union of `uint64_t priority` and `uint64_t timeout`.  Heap never accesses either member — the comparison callback defines the meaning.  The type is fixed; users embed it in their own structs and recover the parent with `CCHEAP_CONTAINER`.
 

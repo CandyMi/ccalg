@@ -361,9 +361,7 @@ typedef struct ccheap_node {
 typedef int64_t (*ccheap_compare_t)(const ccheap_node_t *, const ccheap_node_t *);
 
 typedef struct ccheap {
-    ccheap_node_t **data;     // 指针数组
-    size_t      size;
-    size_t      cap;
+    ccvector_t       data;   // ccvector<ccheap_node_t *>
 #ifndef CCHEAP_COMPARE
     ccheap_compare_t f;
 #endif

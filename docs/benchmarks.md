@@ -5,13 +5,26 @@
 
 ## ccmap vs `std::map` — 100K 顺序操作
 
+### 函数指针模式（默认）
+
 | 操作 | ccmap | `std::map` | 倍率 |
 | --- | --- | --- | --- |
-| insert | 20.48 ms | 13.61 ms | 1.50× |
-| find | 9.12 ms | 6.55 ms | 1.39× |
-| erase | **1.56 ms** | 13.24 ms | **0.12×** |
+| insert | 22.55 ms | 14.38 ms | 1.57× |
+| find | 9.11 ms | 8.61 ms | 1.06× |
+| erase | **2.15 ms** | 24.46 ms | **0.09×** |
 
-> ccmap 擦除比 `std::map` 快 8.5×——侵入式设计无需释放节点内存。
+### `CCMAP_COMPARE` 宏模式（零开销内联比较）
+
+| 操作 | ccmap | `std::map` | 倍率 |
+| --- | --- | --- | --- |
+| insert | 19.60 ms | 13.54 ms | 1.45× |
+| find | **6.84 ms** | 8.27 ms | **0.83×** |
+| erase | **1.94 ms** | 15.96 ms | **0.12×** |
+
+> **erase 始终快 8-11×**：侵入式设计不释放节点内存，只修改指针。`std::map` 需释放内部树节点 + 析构 `pair`。
+>
+> **宏模式**：insert 接近持平（1.45×），find 反超（0.83×）——比较完全内联，与 `std::map` 模板 functor 相同零开销。
+> 定义 `CCMAP_COMPARE(a,b)` 宏即可切换，无需修改业务代码。
 
 ## cchashmap vs `std::unordered_map` vs uthash — 200K 随机操作
 

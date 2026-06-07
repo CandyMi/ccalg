@@ -20,7 +20,8 @@ cclag/
 │   ├── cclink.h      # Intrusive singly-linked list
 │   ├── cclist.h      # Intrusive doubly-linked list
 │   ├── ccheap.h      # D-ary heap (priority queue)
-│   └── ccvector.h    # Dynamic array (value-based)
+│   ├── ccvector.h    # Dynamic array (value-based)
+│   └── ccflatmap.h   # Sorted-array map (value-based)
 ├── REASONIX.md       # Auto-generated design spec & API reference
 ├── README.md
 ├── LICENSE
@@ -39,6 +40,7 @@ cclag/
 Every container manages **user-embedded nodes**, not allocated elements. The user embeds `xxx_node_t` in their struct; the container operates on node pointers. No `malloc`/`free` on user data — exceptions:
 
 - `cchashmap` internally manages a bucket array.
+- `ccvector` and `ccflatmap` store elements by value — they own element memory.
 
 ### Container-of idiom
 
@@ -67,6 +69,7 @@ Every container **owns its namespace**: prefix is always the container abbreviat
 | `cclist` | `CCLIST_` | `CCLIST_INLINE`, `CCLIST_CONTAINER` |
 | `ccheap` | `CCHEAP_` | `CCHEAP_INLINE`, `CCHEAP_COMPARE`, `CCHEAP_REALLOC`, `CCHEAP_NODE_T` |
 | `ccvector` | `CCVECTOR_` | `CCVECTOR_INLINE`, `CCVECTOR_REALLOC`, `CCVECTOR_NODE_T` |
+| `ccflatmap` | `CCFLATMAP_` | `CCFLATMAP_INLINE`, `CCFLATMAP_COMPARE`, `CCFLATMAP_REALLOC`, `CCFLATMAP_NODE_T` |
 
 **No macro is shared across containers.** Each header defines its own `CCXXX_INLINE` and `CCXXX_CONTAINER` independently.
 
@@ -80,7 +83,7 @@ Containers that allocate memory internally expose replaceable allocator macros:
 #define CCXXX_FREE(ptr)  CCXXX_REALLOC(ptr, 0)   // or free(ptr) for ccheap
 ```
 
-- `cchashmap`, `ccheap`, and `ccvector` provide these.
+- `cchashmap`, `ccheap`, `ccvector`, and `ccflatmap` provide these.
 - `ccmap`, `cclink`, and `cclist` have no internal allocation → no allocator macros.
 
 ### API naming conventions
@@ -96,7 +99,9 @@ Containers that allocate memory internally expose replaceable allocator macros:
 | Size | `xxx_size(m)` | |
 | Iterator begin | `xxx_begin(m)` / `xxx_first(m)` | |
 | Iterator end | `xxx_end(m)` | Always returns `NULL` |
-| Next / Prev | `xxx_next(n)` / `xxx_prev(n)` | |
+| Next / Prev | `xxx_next(n)` / `xxx_prev(n)` | `ccflatmap_next(m, p)` takes container for bounds |
+
+**Exception**: `ccflatmap_next(m, p)` and `ccflatmap_prev(m, p)` take the container pointer — arrays need `m->len` for bounds checking.
 
 **`out` parameter:** `ccmap_insert` and `cchashmap_set` accept `xxx_node_t **out`. On duplicate key, `*out` is the existing node; on success, `*out` is the inserted node (or `NULL`).
 
@@ -184,6 +189,7 @@ make -C build                 # Build
 | `tests/test_cclist.c` | Doubly-linked list | 78 |
 | `tests/test_ccheap.c` | D-ary heap | 1255 |
 | `tests/test_ccvector.c` | Dynamic array | 548 |
+| `tests/test_ccflatmap.c` | Sorted-array map | — |
 
 ### Benchmarks (C++ vs STL)
 
@@ -195,6 +201,7 @@ make -C build                 # Build
 | `bench/bench_cclist.cpp` | `cclist` vs `std::list` | 200K ops |
 | `bench/bench_ccheap.cpp` | `ccheap` vs `std::priority_queue` | 200K ops |
 | `bench/bench_ccvector.cpp` | `ccvector` vs `std::vector` | 500K ops |
+| `bench/bench_ccflatmap.cpp` | `ccflatmap` vs `ccmap` vs `std::map` | 50K ops |
 
 ## Git commit conventions
 
@@ -221,7 +228,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ### Scopes
 
-Use the container name where applicable: `ccmap`, `cchashmap`, `cclink`, `cclist`, `ccheap`.  
+Use the container name where applicable: `ccmap`, `cchashmap`, `cclink`, `cclist`, `ccheap`, `ccflatmap`.  
 Use `all` for cross-container changes, `ci` for CI/build, `docs` for documentation.
 
 ### Examples

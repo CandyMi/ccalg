@@ -20,9 +20,9 @@ python3 scripts/md2html.py docs "$TMP"
 echo "==> Deploying to $BRANCH"
 git checkout --orphan "$BRANCH-tmp" 2>/dev/null || true
 git rm -rfq --cached . 2>/dev/null || true
-cp "$TMP"/*.html .
+cp "$TMP"/*.html "$TMP"/sitemap.xml .
 echo "ccalg.dev" > CNAME
-git add CNAME *.html
+git add CNAME *.html sitemap.xml
 git commit -m "docs: deploy $(date +%Y-%m-%d)"
 
 echo "==> Pushing $BRANCH"

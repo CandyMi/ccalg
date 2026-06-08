@@ -116,6 +116,31 @@ def main():
             f.write(html)
         print(f"  {src} → {dst}")
 
+    # --- sitemap.xml ---
+    BASE = "https://ccalg.dev"
+    now = __import__("datetime").datetime.now().strftime("%Y-%m-%d")
+    urls = [f"""  <url>
+    <loc>{BASE}/</loc>
+    <lastmod>{now}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>"""]
+    for slug, _title in PAGES:
+        prio = "1.0" if slug == "index" else "0.8"
+        urls.append(f"""  <url>
+    <loc>{BASE}/{slug}.html</loc>
+    <lastmod>{now}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>{prio}</priority>
+  </url>""")
+    sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n' \
+              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + \
+              "\n".join(urls) + '\n</urlset>\n'
+    sitemap_path = os.path.join(out_dir, "sitemap.xml")
+    with open(sitemap_path, "w", encoding="utf-8") as f:
+        f.write(sitemap)
+    print(f"  sitemap → {sitemap_path}")
+
     print(f"\nDone. Open {out_dir}/index.html in a browser.")
 
 

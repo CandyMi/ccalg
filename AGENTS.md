@@ -187,6 +187,15 @@ Containers that allocate memory internally expose replaceable allocator macros:
 
 `ccmap` and `cctreap` maintain `first` and `last` pointers for O(1) `begin()` / `first()` and `rbegin()` / `last()`.  Insert fast-paths exist when the new key is smaller than `first` or larger than `last`.  Erase recomputes both pointers when the boundary node is removed.
 
+**Erase pointer recomputation strategy:**
+
+| Container | Strategy | Why |
+| --- | --- | --- |
+| `ccmap` | Uses original `z`'s `child[]` and `_rb_p(z)` to find successor/predecessor | Tree structure intact after `_rb_transplant` |
+| `cctreap` | Walks from `m->root` after `_tp_transplant` | Bubble-down rotations have altered tree topology; original `z`'s links are stale |
+
+Both capture `is_first` / `is_last` flags **before** any structural modification to avoid local-variable aliasing bugs (z mutated by while-loop climbs in ccmap; topology altered by bubble-down in cctreap).
+
 `cctreap` additionally stores a `size` field in each node (subtree node count), enabling O(log n) `cctreap_kth(m, k)` (k-th smallest, 0-indexed) and `cctreap_rank(m, probe)` (rank of key, returns -1 if not found).  Priority is external — user embeds a priority field in their struct and provides `CCTREAP_PRIORITY` (or `cctreap_prio_cmp_t`).
 
 **Exception**: `ccflatmap_next(m, p)` and `ccflatmap_prev(m, p)` take the container pointer as the first argument — arrays need bounds checking via `m->len`.

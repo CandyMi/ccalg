@@ -2,7 +2,7 @@
 **  LICENSE: BSD
 **  Author: CandyMi[https://github.com/candymi]
 **
-**  Intrusive chained hash map.  Internal bucket array backed by ccvector.
+**  Intrusive chained hash map with inline bucket array.
 **
 **  ── Required (one of) ──
 **
@@ -93,22 +93,7 @@
   #define CCHASHMAP_DEFAULT_SLOT 64
 #endif
 
-/* ── forward allocators to ccvector ───────────────────────────────────── */
-
-#ifndef CCVECTOR_REALLOC
-  #define CCVECTOR_REALLOC  CCHASHMAP_REALLOC
-#endif
-#ifndef CCVECTOR_MALLOC
-  #define CCVECTOR_MALLOC(sz) CCHASHMAP_MALLOC(sz)
-#endif
-#ifndef CCVECTOR_FREE
-  #define CCVECTOR_FREE(ptr)  CCHASHMAP_FREE(ptr)
-#endif
-#ifndef CCVECTOR_DEFAULT_CAP
-  #define CCVECTOR_DEFAULT_CAP CCHASHMAP_DEFAULT_SLOT
-#endif
-
-/* ── types (nodes defined first — ccvector needs them) ────────────────── */
+/* ── types ────────────────────────────────────────────────────────────── */
 
 #ifndef CCHASHMAP_NODE_T
 typedef struct cchashmap_node {
@@ -118,12 +103,6 @@ typedef struct cchashmap_node {
 #define CCHASHMAP_NODE_T
 #endif
 
-/* ccvector stores bucket pointers by value */
-#ifndef CCVECTOR_NODE_T
-  #define CCVECTOR_NODE_T cchashmap_node_t *
-#endif
-#include "ccvector.h"
-
 /* ── comparison dispatch ──────────────────────────────────────────────── */
 
 #ifdef CCHASHMAP_HASH
@@ -131,7 +110,7 @@ typedef struct cchashmap_node {
   #define CCHASHMAP_EQUAL_CALL(a,b)       CCHASHMAP_EQUAL((a),(b))
 #else
   #define CCHASHMAP_HASH_CALL(n, seed)    (hash_fn((n), (seed)))
-  #define CCHASHMAP_EQUAL_CALL(a,b) (equal_fn((a),(b)))
+  #define CCHASHMAP_EQUAL_CALL(a,b)       (equal_fn((a), (b)))
 #endif
 
 /* ── callback types ───────────────────────────────────────────────────── */
@@ -142,9 +121,10 @@ typedef bool     (*cchashmap_equal_t)(const cchashmap_node_t *a, const cchashmap
 /* ── container ────────────────────────────────────────────────────────── */
 
 typedef struct cchashmap {
-  ccvector_t buckets;   /* ccvector<cchashmap_node_t *>  */
-  size_t     size;      /* total node count               */
-  size_t     seed;      /* hash seed                      */
+  cchashmap_node_t **buckets;   /* bucket pointer array            */
+  size_t              cap;      /* bucket count (power of two)     */
+  size_t              size;     /* total node count                */
+  size_t              seed;     /* hash seed                       */
 #ifndef CCHASHMAP_HASH
   cchashmap_hash_t   hash_fn;
   cchashmap_equal_t  equal_fn;
@@ -153,46 +133,38 @@ typedef struct cchashmap {
 
 /* ── bucket access helpers ────────────────────────────────────────────── */
 
-/* ccvector stores cchashmap_node_t* by value.
-** ccvector_at returns a pointer to the stored element (cchashmap_node_t **).
-** Dereference to get/set the bucket head pointer. */
-CCHASHMAP_INLINE cchashmap_node_t *_bget(ccvector_t *v, size_t i) {
-  cchashmap_node_t **p = (cchashmap_node_t **)ccvector_at(v, i);
-  return p ? *p : NULL;
-}
-CCHASHMAP_INLINE void _bset(ccvector_t *v, size_t i, cchashmap_node_t *n) {
-  cchashmap_node_t **p = (cchashmap_node_t **)ccvector_at(v, i);
-  if (p) *p = n;
-}
+/* direct array access — no bounds check (hot path, bounds guaranteed) */
+#define _bget(m, i)   ((m)->buckets[i])
+#define _bset(m, i, n) ((m)->buckets[i] = (n))
 
 /* ── internal: resize ─────────────────────────────────────────────────── */
 
 CCHASHMAP_INLINE void _cchashmap_resize(cchashmap_t *m) {
-  size_t nc = ccvector_empty(&m->buckets)
-                ? CCHASHMAP_DEFAULT_SLOT
-                : ccvector_capacity(&m->buckets) * 2;
+  size_t nc = m->buckets ? m->cap * 2 : CCHASHMAP_DEFAULT_SLOT;
 
-  /* new bucket vector, pre-filled with NULL */
-  ccvector_t nb;
-  ccvector_init_cap(&nb, nc);
-  for (size_t i = 0; i < nc; i++)
-    ccvector_push_back(&nb, NULL);
+  /* new bucket array, zero-filled */
+  cchashmap_node_t **nb = (cchashmap_node_t **)CCHASHMAP_MALLOC(
+      sizeof(cchashmap_node_t *) * nc);
+  if (!nb) return;
+  memset(nb, 0, sizeof(cchashmap_node_t *) * nc);
 
   /* rehash old chains into new buckets */
-  size_t old_len = ccvector_size(&m->buckets);
-  for (size_t i = 0; i < old_len; i++) {
-    cchashmap_node_t *n = _bget(&m->buckets, i);
-    while (n) {
-      cchashmap_node_t *nx = n->next;
-      size_t idx = n->hash & (nc - 1);
-      n->next = _bget(&nb, idx);
-      _bset(&nb, idx, n);
-      n = nx;
+  if (m->buckets) {
+    for (size_t i = 0; i < m->cap; i++) {
+      cchashmap_node_t *n = m->buckets[i];
+      while (n) {
+        cchashmap_node_t *nx = n->next;
+        size_t idx = n->hash & (nc - 1);
+        n->next = nb[idx];
+        nb[idx] = n;
+        n = nx;
+      }
     }
+    CCHASHMAP_FREE(m->buckets);
   }
 
-  ccvector_destroy(&m->buckets);
   m->buckets = nb;
+  m->cap = nc;
 }
 
 /* ── lifecycle ────────────────────────────────────────────────────────── */
@@ -200,7 +172,8 @@ CCHASHMAP_INLINE void _cchashmap_resize(cchashmap_t *m) {
 CCHASHMAP_INLINE void cchashmap_init(cchashmap_t *m, cchashmap_hash_t hfn,
                                      cchashmap_equal_t efn) {
   if (cchashmap_unlikely(!m)) return;
-  ccvector_init_cap(&m->buckets, CCHASHMAP_DEFAULT_SLOT);
+  m->buckets = NULL;
+  m->cap = 0;
   m->size = 0;
   m->seed = (size_t)(uintptr_t)m;
 #ifndef CCHASHMAP_HASH
@@ -213,15 +186,16 @@ CCHASHMAP_INLINE void cchashmap_init(cchashmap_t *m, cchashmap_hash_t hfn,
 
 CCHASHMAP_INLINE void cchashmap_destroy(cchashmap_t *m) {
   if (cchashmap_unlikely(!m)) return;
-  ccvector_destroy(&m->buckets);
+  if (m->buckets) CCHASHMAP_FREE(m->buckets);
+  m->buckets = NULL;
+  m->cap = 0;
   m->size = 0;
 }
 
 CCHASHMAP_INLINE void cchashmap_clear(cchashmap_t *m) {
-  if (!m) return;
-  size_t len = ccvector_size(&m->buckets);
-  for (size_t i = 0; i < len; i++)
-    _bset(&m->buckets, i, NULL);
+  if (!m || !m->buckets) return;
+  for (size_t i = 0; i < m->cap; i++)
+    m->buckets[i] = NULL;
   m->size = 0;
 }
 
@@ -231,14 +205,14 @@ CCHASHMAP_INLINE void cchashmap_clear(cchashmap_t *m) {
 CCHASHMAP_INLINE bool cchashmap_set(cchashmap_t *m, cchashmap_node_t *node,
                                     cchashmap_node_t **old) {
   if (cchashmap_unlikely(!m || !node)) return false;
-  if (ccvector_empty(&m->buckets)) _cchashmap_resize(m);
+  if (!m->buckets) _cchashmap_resize(m);
 #ifndef CCHASHMAP_HASH
   cchashmap_hash_t   hash_fn  = m->hash_fn;
   cchashmap_equal_t  equal_fn = m->equal_fn;
 #endif
   node->hash = CCHASHMAP_HASH_CALL(node, m->seed);
-  size_t idx  = node->hash & (ccvector_capacity(&m->buckets) - 1);
-  cchashmap_node_t *cur = _bget(&m->buckets, idx);
+  size_t idx  = node->hash & (m->cap - 1);
+  cchashmap_node_t *cur = m->buckets[idx];
   while (cur) {
     if (node->hash == cur->hash && CCHASHMAP_EQUAL_CALL(node, cur)) {
       if (old) *old = cur;
@@ -246,10 +220,10 @@ CCHASHMAP_INLINE bool cchashmap_set(cchashmap_t *m, cchashmap_node_t *node,
     }
     cur = cur->next;
   }
-  node->next = _bget(&m->buckets, idx);
-  _bset(&m->buckets, idx, node);
+  node->next = m->buckets[idx];
+  m->buckets[idx] = node;
   m->size++;
-  if ((double)m->size / ccvector_capacity(&m->buckets) >= CCHASHMAP_MAX_LOAD)
+  if ((double)m->size / m->cap >= CCHASHMAP_MAX_LOAD)
     _cchashmap_resize(m);
   if (old) *old = NULL;
   return true;
@@ -260,15 +234,15 @@ CCHASHMAP_INLINE bool cchashmap_set(cchashmap_t *m, cchashmap_node_t *node,
 #define cchashmap_find(m, n) cchashmap_get((m), (n))
 CCHASHMAP_INLINE cchashmap_node_t *cchashmap_get(cchashmap_t *m,
                                                   cchashmap_node_t *probe) {
-  if (cchashmap_unlikely(!m || !probe || ccvector_empty(&m->buckets)))
+  if (cchashmap_unlikely(!m || !probe || !m->buckets))
     return NULL;
 #ifndef CCHASHMAP_HASH
   cchashmap_hash_t   hash_fn  = m->hash_fn;
   cchashmap_equal_t  equal_fn = m->equal_fn;
 #endif
   probe->hash = CCHASHMAP_HASH_CALL(probe, m->seed);
-  size_t idx = probe->hash & (ccvector_capacity(&m->buckets) - 1);
-  cchashmap_node_t *cur = _bget(&m->buckets, idx);
+  size_t idx = probe->hash & (m->cap - 1);
+  cchashmap_node_t *cur = m->buckets[idx];
   while (cur) {
     if (probe->hash == cur->hash && CCHASHMAP_EQUAL_CALL(probe, cur))
       return cur;
@@ -281,11 +255,10 @@ CCHASHMAP_INLINE cchashmap_node_t *cchashmap_get(cchashmap_t *m,
 
 #define cchashmap_erase(m, n) cchashmap_del((m), (n))
 CCHASHMAP_INLINE void cchashmap_del(cchashmap_t *m, cchashmap_node_t *node) {
-  if (cchashmap_unlikely(!m || !node || ccvector_empty(&m->buckets)))
+  if (cchashmap_unlikely(!m || !node || !m->buckets))
     return;
-  size_t idx = node->hash & (ccvector_capacity(&m->buckets) - 1);
-  cchashmap_node_t **pp = (cchashmap_node_t **)ccvector_at(&m->buckets, idx);
-  if (!pp) return;
+  size_t idx = node->hash & (m->cap - 1);
+  cchashmap_node_t **pp = &m->buckets[idx];
   while (*pp) {
     if (*pp == node) { *pp = node->next; m->size--; return; }
     pp = &(*pp)->next;

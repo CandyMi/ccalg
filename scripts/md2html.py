@@ -57,6 +57,7 @@ PAGES = [
     ("index",             "基本介绍"),
     ("getting-started",   "快速开始"),
     ("api-reference",     "接口参考"),
+    ("algorithms",        "算法原理"),
     ("building",          "构建指南"),
     ("benchmarks",        "性能基准"),
     ("thread-safety",     "线程安全"),
@@ -111,6 +112,8 @@ def main():
 </main>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
 <script>hljs.highlightAll();</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({{ startOnLoad: true, theme: 'default' }});</script>
 </body>
 </html>"""
         with open(dst, "w", encoding="utf-8") as f:

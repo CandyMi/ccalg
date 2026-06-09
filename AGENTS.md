@@ -70,7 +70,7 @@ struct my_entry {
 
 The container **never allocates or frees user struct memory**.  Exceptions:
 
-- `cchashmap` internally manages a bucket array (backed by `ccvector` since v2).
+- `cchashmap` internally manages an inline bucket array (since v3).
 - `ccvector` and `ccflatmap` store elements by **value** (not pointers) — they own element memory and copy on push/insert.
 
 ### Container-of idiom
@@ -265,7 +265,7 @@ Each container guards its `typedef` with `#ifndef CCXXX_NODE_T`. Users can pre-d
 ### Hash Map (`cchashmap`)
 
 - **Chained hashing**: array + singly-linked list.  `cchashmap_node_t` caches the hash value in a `hash` field.
-- **Bucket array**: backed by `ccvector_t` storing `cchashmap_node_t *` pointers (since v2).  Allocator hooks forward from `CCHASHMAP_` to `CCVECTOR_`.
+- **Bucket array**: inline `cchashmap_node_t **` pointer array (since v3).  Lazy-allocated on first insert; resize doubles capacity, rehashing all chains.
 - **Load factor**: default `CCHASHMAP_MAX_LOAD = 1.25`.  Auto-resize (2×) when exceeded.
 - **Seed**: container address `(size_t)(uintptr_t)m` is used as the hash seed during init.
 - **Power-of-two capacity**: bucket index via `hash & (cap - 1)` bitmask.
@@ -288,9 +288,9 @@ Each container guards its `typedef` with `#ifndef CCXXX_NODE_T`. Users can pre-d
 
 Child comparison loops are unrolled at compile time based on `CCHEAP_ARITY` (2/4/8) via `#if CCHEAP_ARITY_N > N` conditional compilation.  Index macros: `CCHEAP_PARENT(i)`, `CCHEAP_CHILD(i, k)`.
 
-#### Pointer array (ccvector-backed)
+#### Pointer array (inline)
 
-Internal pointer array is backed by `ccvector_t` storing `ccheap_node_t *` (since v2).  Allocator hooks forward from `CCHEAP_` to `CCVECTOR_`.  Direct internal access via `heap->data.buckets` in hot-path macros (`CCHEAP_AT`, `CCHEAP_PEEK`) avoids bounds-check overhead.  `ccvector_push_back` / `ccvector_pop_back` handle grow and shrink atomically.
+Internal pointer array is an inline `ccheap_node_t **` (since v3).  Grows 2× via `CCHEAP_REALLOC` on push; `heap->len` tracks element count.  Hot-path macros (`CCHEAP_AT`, `CCHEAP_PEEK`) index directly into `heap->data`.
 
 #### Default node structure
 

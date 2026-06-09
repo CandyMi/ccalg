@@ -2,8 +2,8 @@
 **  LICENSE: BSD
 **  Author: CandyMi[https://github.com/candymi]
 **
-**  A generic D-ary heap with an optional inlined comparator macro.
-**  Internal pointer array backed by ccvector.
+**  A generic D-ary heap with an optional inlined comparator macro
+**  and inline pointer array.
 **
 **  ccheap_node_t is an 8-byte union — the heap never accesses its
 **  members.  The comparison callback defines what the field means:
@@ -137,21 +137,6 @@
   #define CCHEAP_DEFAULT_CAP 32
 #endif
 
-/* ── forward allocators to ccvector ───────────────────────────────────── */
-
-#ifndef CCVECTOR_REALLOC
-  #define CCVECTOR_REALLOC  CCHEAP_REALLOC
-#endif
-#ifndef CCVECTOR_MALLOC
-  #define CCVECTOR_MALLOC(sz) CCHEAP_MALLOC(sz)
-#endif
-#ifndef CCVECTOR_FREE
-  #define CCVECTOR_FREE(ptr)  CCHEAP_FREE(ptr)
-#endif
-#ifndef CCVECTOR_DEFAULT_CAP
-  #define CCVECTOR_DEFAULT_CAP CCHEAP_DEFAULT_CAP
-#endif
-
 /* ── comparison dispatch ──────────────────────────────────────────────── */
 
 #ifdef CCHEAP_COMPARE
@@ -172,14 +157,10 @@ typedef struct ccheap_node {
 
 typedef int64_t (*ccheap_compare_t)(const CCHEAP_NODE_T *, const CCHEAP_NODE_T *);
 
-/* ccvector stores ccheap_node_t* by value */
-#ifndef CCVECTOR_NODE_T
-  #define CCVECTOR_NODE_T ccheap_node_t *
-#endif
-#include "ccvector.h"
-
 typedef struct ccheap {
-  ccvector_t       data;   /* ccvector<ccheap_node_t *>  */
+  ccheap_node_t   **data;   /* pointer array     */
+  size_t            len;    /* element count     */
+  size_t            cap;    /* capacity          */
 #ifndef CCHEAP_COMPARE
   ccheap_compare_t f;
 #endif
@@ -192,9 +173,8 @@ typedef struct ccheap {
 
 /* ── internal: direct array access (no bounds check, for hot path) ───── */
 
-#define _HDATA(h)  (((ccheap_node_t **)(h)->data.buckets)[0])
-
-#define CCHEAP_AT(h, i)  (((ccheap_node_t **)(h)->data.buckets)[i])
+#define _HDATA(h)      ((h)->data[0])
+#define CCHEAP_AT(h, i) ((h)->data[i])
 #define CCHEAP_PEEK(h)   CCHEAP_AT(h, 0)
 
 CCHEAP_INLINE void _hswap(ccheap_t *h, size_t a, size_t b) {
@@ -209,7 +189,11 @@ CCHEAP_INLINE int
 heap_init(ccheap_t *heap, ccheap_compare_t f)
 {
   if (ccheap_unlikely(!heap)) return -1;
-  ccvector_init_cap(&heap->data, CCHEAP_DEFAULT_CAP);
+  heap->data = (ccheap_node_t **)CCHEAP_MALLOC(
+      sizeof(ccheap_node_t *) * CCHEAP_DEFAULT_CAP);
+  if (!heap->data) return -1;
+  heap->len = 0;
+  heap->cap = CCHEAP_DEFAULT_CAP;
 #ifndef CCHEAP_COMPARE
   heap->f = f;
 #else
@@ -224,8 +208,19 @@ heap_insert(ccheap_t *heap, CCHEAP_NODE_T *n)
 {
   if (ccheap_unlikely(!heap || !n)) return -1;
 
-  ccvector_push_back(&heap->data, n);
-  size_t i = ccvector_size(&heap->data) - 1;
+  /* grow if needed */
+  if (heap->len == heap->cap) {
+    if (heap->cap > SIZE_MAX / 2 / sizeof(ccheap_node_t *)) return -1;
+    size_t new_cap = heap->cap * 2;
+    ccheap_node_t **nd = (ccheap_node_t **)CCHEAP_REALLOC(
+        heap->data, sizeof(ccheap_node_t *) * new_cap);
+    if (!nd) return -1;
+    heap->data = nd;
+    heap->cap = new_cap;
+  }
+
+  heap->data[heap->len++] = n;
+  size_t i = heap->len - 1;
 
   while (i > 0) {
     size_t p = CCHEAP_PARENT(i);
@@ -241,20 +236,19 @@ heap_insert(ccheap_t *heap, CCHEAP_NODE_T *n)
 CCHEAP_INLINE CCHEAP_NODE_T *
 heap_pop(ccheap_t *heap)
 {
-  size_t sz = ccvector_size(&heap->data);
-  if (ccheap_unlikely(!heap || sz == 0)) return NULL;
+  if (ccheap_unlikely(!heap || heap->len == 0)) return NULL;
 
   CCHEAP_NODE_T *result = CCHEAP_AT(heap, 0);
 
-  if (sz == 1) {
-    ccvector_pop_back(&heap->data);
+  if (heap->len == 1) {
+    heap->len--;
     return result;
   }
 
   /* move last to root, then pop */
-  CCHEAP_AT(heap, 0) = CCHEAP_AT(heap, sz - 1);
-  ccvector_pop_back(&heap->data);
-  sz--;
+  CCHEAP_AT(heap, 0) = CCHEAP_AT(heap, heap->len - 1);
+  heap->len--;
+  size_t sz = heap->len;
 
   size_t i = 0;
   for (;;) {
@@ -297,7 +291,7 @@ heap_pop(ccheap_t *heap)
 CCHEAP_INLINE CCHEAP_NODE_T *
 heap_peek(ccheap_t *heap)
 {
-  if (ccheap_unlikely(!heap || ccvector_empty(&heap->data))) return NULL;
+  if (ccheap_unlikely(!heap || heap->len == 0)) return NULL;
   return CCHEAP_PEEK(heap);
 }
 
@@ -305,14 +299,16 @@ CCHEAP_INLINE size_t
 heap_size(ccheap_t *heap)
 {
   if (!heap) return 0;
-  return ccvector_size(&heap->data);
+  return heap->len;
 }
 
 CCHEAP_INLINE void
 heap_destroy(ccheap_t *heap)
 {
   if (!heap) return;
-  ccvector_destroy(&heap->data);
+  if (heap->data) CCHEAP_FREE(heap->data);
+  heap->data = NULL;
+  heap->len = heap->cap = 0;
 #ifndef CCHEAP_COMPARE
   heap->f = NULL;
 #endif

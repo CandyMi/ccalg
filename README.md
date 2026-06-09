@@ -12,7 +12,7 @@ Compatible with C89 / C99 / C++ / MSVC.  BSD 3-Clause.
 | `cchashmap` | [`include/cchashmap.h`](include/cchashmap.h) | Intrusive chained hash map | Buckets |
 | `cclink` | [`include/cclink.h`](include/cclink.h) | Intrusive singly-linked list | No |
 | `cclist` | [`include/cclist.h`](include/cclist.h) | Intrusive doubly-linked list | No |
-| `ccheap` | [`include/ccheap.h`](include/ccheap.h) | D-ary heap (priority queue) | Array (value mode) |
+| `ccheap` | [`include/ccheap.h`](include/ccheap.h) | D-ary heap (priority queue) | Pointer array |
 | `ccvector` | [`include/ccvector.h`](include/ccvector.h) | Dynamic array | Yes |
 | `ccflatmap` | [`include/ccflatmap.h`](include/ccflatmap.h) | Sorted-array map (flat map) | Yes |
 

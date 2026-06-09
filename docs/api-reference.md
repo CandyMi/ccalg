@@ -108,9 +108,10 @@ typedef uint64_t (*cchashmap_hash_t)(const cchashmap_node_t *n, size_t seed);
 typedef bool     (*cchashmap_equal_t)(const cchashmap_node_t *a, const cchashmap_node_t *b);
 
 typedef struct cchashmap {
-    ccvector_t         buckets;  // ccvector<cchashmap_node_t *>
-    size_t             size;
-    size_t             seed;
+    cchashmap_node_t **buckets;  // bucket 指针数组
+    size_t              cap;
+    size_t              size;
+    size_t              seed;
 #ifndef CCHASHMAP_HASH
     cchashmap_hash_t   hash_fn;
     cchashmap_equal_t  equal_fn;
@@ -361,7 +362,9 @@ typedef struct ccheap_node {
 typedef int64_t (*ccheap_compare_t)(const ccheap_node_t *, const ccheap_node_t *);
 
 typedef struct ccheap {
-    ccvector_t       data;   // ccvector<ccheap_node_t *>
+    ccheap_node_t   **data;   // 指针数组
+    size_t            len;
+    size_t            cap;
 #ifndef CCHEAP_COMPARE
     ccheap_compare_t f;
 #endif

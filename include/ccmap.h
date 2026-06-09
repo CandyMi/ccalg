@@ -138,6 +138,7 @@ typedef int64_t (*ccmap_cmp_t)(const ccmap_node_t *a, const ccmap_node_t *b);
 typedef struct map {
   ccmap_node_t    *root;
   ccmap_node_t    *first;
+  ccmap_node_t    *last;
   size_t           size;
 #ifndef CCMAP_COMPARE
   ccmap_cmp_t      cmp;
@@ -160,24 +161,24 @@ CCMAP_INLINE void _rb_transplant(ccmap_t *m, ccmap_node_t *z, ccmap_node_t *c) {
 CCMAP_INLINE void _rb_rot_left(ccmap_t *m, ccmap_node_t *x) {
   ccmap_node_t *y  = x->child[CCMAP_RIGHT];
   ccmap_node_t *xp = _rb_p(x);
-  x->child[CCMAP_RIGHT] = y->child[CCMAP_LEFT];
-  if (y->child[CCMAP_LEFT]) _rb_sp(y->child[CCMAP_LEFT], x);
+  ccmap_node_t *yl = y->child[CCMAP_LEFT];
+  x->child[CCMAP_RIGHT] = yl;
+  if (yl) _rb_sp(yl, x);
   _rb_sp(y, xp);
-  if (!xp)      m->root = y;
-  else if (x == xp->child[CCMAP_LEFT]) xp->child[CCMAP_LEFT] = y;
-  else                                 xp->child[CCMAP_RIGHT] = y;
+  if (!xp) m->root = y;
+  else     xp->child[xp->child[CCMAP_RIGHT] == x] = y;
   y->child[CCMAP_LEFT] = x; _rb_sp(x, y);
 }
 
 CCMAP_INLINE void _rb_rot_right(ccmap_t *m, ccmap_node_t *x) {
   ccmap_node_t *y  = x->child[CCMAP_LEFT];
   ccmap_node_t *xp = _rb_p(x);
-  x->child[CCMAP_LEFT] = y->child[CCMAP_RIGHT];
-  if (y->child[CCMAP_RIGHT]) _rb_sp(y->child[CCMAP_RIGHT], x);
+  ccmap_node_t *yr = y->child[CCMAP_RIGHT];
+  x->child[CCMAP_LEFT] = yr;
+  if (yr) _rb_sp(yr, x);
   _rb_sp(y, xp);
-  if (!xp)      m->root = y;
-  else if (x == xp->child[CCMAP_RIGHT]) xp->child[CCMAP_RIGHT] = y;
-  else                                  xp->child[CCMAP_LEFT] = y;
+  if (!xp) m->root = y;
+  else     xp->child[xp->child[CCMAP_RIGHT] == x] = y;
   y->child[CCMAP_RIGHT] = x; _rb_sp(x, y);
 }
 
@@ -259,6 +260,7 @@ CCMAP_INLINE void ccmap_init(ccmap_t *m, ccmap_cmp_t cmp) {
   if (ccmap_unlikely(!m)) return;
   m->root  = NULL;
   m->first = NULL;
+  m->last  = NULL;
   m->size  = 0;
 #ifndef CCMAP_COMPARE
   m->cmp = cmp;
@@ -284,6 +286,16 @@ CCMAP_INLINE int ccmap_insert(ccmap_t *m, ccmap_node_t *node, ccmap_node_t **out
     if (out) *out = node;
     return 0;
   }
+  /* fast path: larger than current maximum → insert as new last */
+  if (m->last && CCMAP_CMP(node, m->last) > 0) {
+    m->last->child[CCMAP_RIGHT] = node;
+    _rb_sp(node, m->last);
+    _rb_ins_fix(m, node);
+    m->last = node;
+    m->size++;
+    if (out) *out = node;
+    return 0;
+  }
 
   /* normal BST insert from root */
   ccmap_node_t *y = NULL, *x = m->root;
@@ -296,7 +308,7 @@ CCMAP_INLINE int ccmap_insert(ccmap_t *m, ccmap_node_t *node, ccmap_node_t **out
     x = x->child[c > 0];
   }
   _rb_sp(node, y);
-  if (!y) m->root = node;
+  if (!y) { m->root = m->first = m->last = node; }
   else {
     int64_t c = CCMAP_CMP(node, y);
     y->child[c > 0] = node;
@@ -306,6 +318,8 @@ CCMAP_INLINE int ccmap_insert(ccmap_t *m, ccmap_node_t *node, ccmap_node_t **out
   m->size++;
   if (!m->first || CCMAP_CMP(node, m->first) < 0)
     m->first = node;
+  if (!m->last || CCMAP_CMP(node, m->last) > 0)
+    m->last = node;
   if (out) *out = node;
   return 0;
 }
@@ -330,6 +344,8 @@ CCMAP_INLINE void ccmap_erase(ccmap_t *m, ccmap_node_t *z) {
   if (ccmap_unlikely(!m || !z)) return;
   ccmap_node_t *y = z, *x = NULL, *xp = NULL;
   int yc = _rb_c(y);
+  int is_first = (z == m->first);
+  int is_last  = (z == m->last);
 
   if (!z->child[CCMAP_LEFT]) {
     x = z->child[CCMAP_RIGHT]; xp = _rb_p(z);
@@ -345,9 +361,13 @@ CCMAP_INLINE void ccmap_erase(ccmap_t *m, ccmap_node_t *z) {
     _rb_transplant(m, z, y);
     y->child[CCMAP_LEFT] = z->child[CCMAP_LEFT]; _rb_sp(z->child[CCMAP_LEFT], y); _rb_sc(y, _rb_c(z));
   }
-  if (z == m->first) {
+  if (is_first) {
     if (z->child[CCMAP_RIGHT]) { m->first = z->child[CCMAP_RIGHT]; while (m->first->child[CCMAP_LEFT]) m->first = m->first->child[CCMAP_LEFT]; }
     else { ccmap_node_t *p = _rb_p(z); while (p && z == p->child[CCMAP_RIGHT]) { z = p; p = _rb_p(p); } m->first = p; }
+  }
+  if (is_last) {
+    if (z->child[CCMAP_LEFT]) { m->last = z->child[CCMAP_LEFT]; while (m->last->child[CCMAP_RIGHT]) m->last = m->last->child[CCMAP_RIGHT]; }
+    else { ccmap_node_t *p = _rb_p(z); while (p && z == p->child[CCMAP_LEFT]) { z = p; p = _rb_p(p); } m->last = p; }
   }
   m->size--;
   if (yc == CCMAP_BLACK) _rb_del_fix(m, x, xp);
@@ -356,7 +376,7 @@ CCMAP_INLINE void ccmap_erase(ccmap_t *m, ccmap_node_t *z) {
 CCMAP_INLINE ccmap_node_t *ccmap_first(ccmap_t *m)  { return m ? m->first : NULL; }
 CCMAP_INLINE ccmap_node_t *ccmap_begin(ccmap_t *m)   { return m ? m->first : NULL; }
 CCMAP_INLINE ccmap_node_t *ccmap_end(ccmap_t *m)     { (void)m; return NULL; }
-CCMAP_INLINE ccmap_node_t *ccmap_rbegin(ccmap_t *m)  { if (!m || !m->root) return NULL; ccmap_node_t *x = m->root; while (x->child[CCMAP_RIGHT]) x = x->child[CCMAP_RIGHT]; return x; }
+CCMAP_INLINE ccmap_node_t *ccmap_rbegin(ccmap_t *m)  { return m ? m->last : NULL; }
 
 CCMAP_INLINE ccmap_node_t *ccmap_next(ccmap_node_t *x) {
   if (!x) return NULL;
@@ -380,6 +400,18 @@ CCMAP_INLINE ccmap_node_t *ccmap_prev(ccmap_node_t *x) {
 }
 
 CCMAP_INLINE size_t ccmap_size(ccmap_t *m) { return m ? m->size : 0; }
-CCMAP_INLINE void   ccmap_clear(ccmap_t *m) { if (m) { m->root = NULL; m->first = NULL; m->size = 0; } }
+CCMAP_INLINE void   ccmap_clear(ccmap_t *m) { if (m) { m->root = NULL; m->first = NULL; m->last = NULL; m->size = 0; } }
+
+/* ── diagnostic ───────────────────────────────────────────────────────── */
+
+/* Red-black tree worst-case height bound: ≤ 2·⌊log₂(n+1)⌋.
+** Compute an O(1) estimate from size — no tree traversal. */
+CCMAP_INLINE int ccmap_height(const ccmap_t *m) {
+  if (!m || !m->size) return 0;
+  size_t n = m->size;
+  int h = 0;
+  do { h++; } while (n >>= 1);
+  return h * 2;
+}
 
 #endif /* CCMAP_H */

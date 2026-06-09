@@ -180,7 +180,7 @@ Containers that allocate memory internally expose replaceable allocator macros:
 | Successor | `xxx_next(n)` | Node → next |
 | Predecessor | `xxx_prev(n)` | Node → previous |
 
-`ccmap` maintains a `first` pointer for O(1) `ccmap_begin()` / `ccmap_first()`, with an insert fast-path when the new key is smaller than `first`.
+`ccmap` maintains `first` and `last` pointers for O(1) `ccmap_begin()` / `ccmap_first()` and `ccmap_rbegin()`.  Insert fast-paths exist when the new key is smaller than `first` or larger than `last`.  Erase recomputes both pointers when the boundary node is removed.
 
 **Exception**: `ccflatmap_next(m, p)` and `ccflatmap_prev(m, p)` take the container pointer as the first argument — arrays need bounds checking via `m->len`.
 
@@ -195,12 +195,15 @@ Containers that allocate memory internally expose replaceable allocator macros:
 | Splice | `splice_back` (move src → dst tail) |
 | Move | `move(to, from)` — splice with error code |
 
-#### Size / empty
+#### Size / empty / diagnostic
 
 | Operation | Naming |
 | --- | --- |
 | Size | `xxx_size(m)` |
+| Height | `ccmap_height(m)` |
 | Empty | `xxx_empty(m)` (cclist only) |
+
+`ccmap_height()` computes a worst-case tree-height estimate from `size` in O(1) — no tree traversal.  Red-black tree bound: `≤ 2·⌊log₂(n+1)⌋`.
 
 ### Error handling
 

@@ -41,15 +41,41 @@ flowchart TD
 
 ### 旋转操作
 
+> 参数 `x` 为旋转轴心节点，`y` 为其子节点。旋转保持 BST 性质，仅改变局部指针。
+
 ```mermaid
 flowchart LR
-    subgraph 右旋["右旋 (Right Rotate)"]
+    subgraph 右旋["右旋 _rb_rot_right(m, x)"]
         direction TB
-        R1_before["   Y\n  / \\\n X   γ\n/ \\\nα β"] --> R1_after["  X\n / \\\nα  Y\n   / \\\n  β  γ"]
+        subgraph Rbefore["Before"]
+            Xr("x") --> Yr("y")
+            Xr --> Gr("γ")
+            Yr --> Ar("α")
+            Yr --> Br("β")
+        end
+        subgraph Rafter["After"]
+            Yr2("y") --> Ar2("α")
+            Yr2 --> Xr2("x")
+            Xr2 --> Br2("β")
+            Xr2 --> Gr2("γ")
+        end
+        Rbefore --> Rafter
     end
-    subgraph 左旋["左旋 (Left Rotate)"]
+    subgraph 左旋["左旋 _rb_rot_left(m, x)"]
         direction TB
-        R2_before["  X\n / \\\nα  Y\n   / \\\n  β  γ"] --> R2_after["   Y\n  / \\\n X   γ\n/ \\\nα β"]
+        subgraph Lbefore["Before"]
+            Xl("x") --> Al("α")
+            Xl --> Yl("y")
+            Yl --> Bl("β")
+            Yl --> Gl("γ")
+        end
+        subgraph Lafter["After"]
+            Yl2("y") --> Xl2("x")
+            Yl2 --> Gl2("γ")
+            Xl2 --> Al2("α")
+            Xl2 --> Bl2("β")
+        end
+        Lbefore --> Lafter
     end
 ```
 

@@ -110,10 +110,18 @@ def main():
     alg — header-only C data-structure library · BSD 3-Clause · <a href="https://github.com/CandyMi/alg">GitHub</a>
   </footer>
 </main>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
-<script>hljs.highlightAll();</script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-<script>mermaid.initialize({{ startOnLoad: true, theme: 'default' }});</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+mermaid.initialize({{ startOnLoad: false, theme: 'default' }});
+// protect mermaid blocks from highlight.js — convert before hljs runs
+document.querySelectorAll('pre code.language-mermaid').forEach(function(el) {{
+  el.parentElement.classList.add('mermaid');
+  el.parentElement.innerHTML = el.textContent;
+}});
+hljs.highlightAll();
+mermaid.run();
+</script>
 </body>
 </html>"""
         with open(dst, "w", encoding="utf-8") as f:

@@ -20,6 +20,7 @@ typedef int64_t (*ccmap_cmp_t)(const ccmap_node_t *a, const ccmap_node_t *b);
 typedef struct ccmap {
     ccmap_node_t *root;
     ccmap_node_t *first;        // 最小节点 (O(1) begin)
+    ccmap_node_t *last;         // 最大节点 (O(1) rbegin)
     size_t        size;
 #ifndef CCMAP_COMPARE
     ccmap_cmp_t   cmp;
@@ -58,7 +59,7 @@ ccmap_node_t *ccmap_find(ccmap_t *m, const ccmap_node_t *probe);
 // 按 key 查找。返回节点指针或 NULL。
 
 void ccmap_erase(ccmap_t *m, ccmap_node_t *z);
-// 删除节点。O(log n)。自动更新 first 指针。
+// 删除节点。O(log n)。自动更新 first/last 指针。
 // NULL 安全。
 ```
 
@@ -68,7 +69,7 @@ void ccmap_erase(ccmap_t *m, ccmap_node_t *z);
 ccmap_node_t *ccmap_begin(ccmap_t *m);   // → 最小节点
 ccmap_node_t *ccmap_first(ccmap_t *m);   // begin 的同义词
 ccmap_node_t *ccmap_end(ccmap_t *m);     // 总是返回 NULL
-ccmap_node_t *ccmap_rbegin(ccmap_t *m);  // → 最大节点
+ccmap_node_t *ccmap_rbegin(ccmap_t *m);  // → 最大节点 (O(1) via last 指针)
 ccmap_node_t *ccmap_next(ccmap_node_t *n); // 后继，末尾返回 NULL
 ccmap_node_t *ccmap_prev(ccmap_node_t *n); // 前驱，首元素返回 NULL
 ```
@@ -86,6 +87,10 @@ for (ccmap_node_t *n = ccmap_begin(&m); n != ccmap_end(&m); n = ccmap_next(n)) {
 ```c
 size_t ccmap_size(ccmap_t *m);
 // 元素数量。NULL 返回 0。
+
+int ccmap_height(const ccmap_t *m);
+// 树高估值。红黑树上界 ≤ 2·⌊log₂(n+1)⌋，由 size 推算 O(1)。
+// 空树返回 0。
 ```
 
 ---

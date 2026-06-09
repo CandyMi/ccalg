@@ -1,5 +1,7 @@
 # 快速开始
 
+> 每个容器 5 分钟上手，完整可编译示例。按 ccmap → cctreap 顺序排列。
+
 ## 1. 引入头文件
 
 cclag 是 header-only 库，无需编译链接。两种引入方式：
@@ -108,7 +110,37 @@ int main() {
 }
 ```
 
-## 4. cclist — 双向链表
+## 4. cclink — 单向链表
+
+```c
+#include <stdio.h>
+#include "cclink.h"
+
+struct entry { int val; cclink_node_t node; };
+
+int main() {
+    cclink_t l; cclink_init(&l);
+
+    struct entry e1 = {1}, e2 = {2}, e3 = {3};
+    cclink_push_back(&l, &e1.node);
+    cclink_push_back(&l, &e2.node);
+    cclink_push_back(&l, &e3.node);
+
+    /* 正向遍历: 1, 2, 3 */
+    for (cclink_node_t *n = cclink_begin(&l); n != cclink_end(&l); n = cclink_next(n))
+        printf("%d\n", CCLINK_CONTAINER(n, struct entry, node)->val);
+
+    /* pop_front: 取出头部 */
+    while (!cclink_empty(&l)) {
+        cclink_node_t *n = cclink_pop_front(&l);
+        printf("popped: %d\n", CCLINK_CONTAINER(n, struct entry, node)->val);
+    }
+
+    return 0;
+}
+```
+
+## 5. cclist — 双向链表
 
 ```c
 #include <stdio.h>
@@ -138,36 +170,6 @@ int main() {
     /* 验证双向不变量 */
     if (cclist_verify(&l) == NOERROR)
         printf("list is valid\n");
-
-    return 0;
-}
-```
-
-## 5. cclink — 单向链表
-
-```c
-#include <stdio.h>
-#include "cclink.h"
-
-struct entry { int val; cclink_node_t node; };
-
-int main() {
-    cclink_t l; cclink_init(&l);
-
-    struct entry e1 = {1}, e2 = {2}, e3 = {3};
-    cclink_push_back(&l, &e1.node);
-    cclink_push_back(&l, &e2.node);
-    cclink_push_back(&l, &e3.node);
-
-    /* 正向遍历: 1, 2, 3 */
-    for (cclink_node_t *n = cclink_begin(&l); n != cclink_end(&l); n = cclink_next(n))
-        printf("%d\n", CCLINK_CONTAINER(n, struct entry, node)->val);
-
-    /* pop_front: 取出头部 */
-    while (!cclink_empty(&l)) {
-        cclink_node_t *n = cclink_pop_front(&l);
-        printf("popped: %d\n", CCLINK_CONTAINER(n, struct entry, node)->val);
-    }
 
     return 0;
 }
@@ -230,7 +232,77 @@ static int64_t cmp(const ccheap_node_t *a, const ccheap_node_t *b) {
 /* heap_init(&h, NULL) — 第二个参数被忽略 */
 ```
 
-## 7. ccvector — 动态数组
+## 7. ccflatmap — 排序数组映射
+
+```c
+#include <stdio.h>
+#include "ccflatmap.h"
+
+int main() {
+    ccflatmap_t m; ccflatmap_init(&m, NULL);
+
+    /* 批量插入：push_back + sort（推荐） */
+    ccflatmap_reserve(&m, 3);
+    ccflatmap_node_t n1 = {.key = 42, .value = 100};
+    ccflatmap_node_t n2 = {.key = 7,  .value = 200};
+    ccflatmap_node_t n3 = {.key = 99, .value = 300};
+    ccflatmap_push_back(&m, n1);
+    ccflatmap_push_back(&m, n2);
+    ccflatmap_push_back(&m, n3);
+    ccflatmap_sort(&m);
+
+    /* 二分查找 */
+    ccflatmap_node_t probe = {.key = 7};
+    ccflatmap_node_t *f = ccflatmap_find(&m, &probe);
+    if (f) printf("found: %lld\n", (long long)f->value);
+
+    ccflatmap_destroy(&m);
+    return 0;
+}
+```
+
+## 8. cctreap — Treap（排行树）
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include "cctreap.h"
+
+struct entry { int key; uint64_t prio; cctreap_node_t node; };
+
+static int64_t key_cmp(const cctreap_node_t *a, const cctreap_node_t *b) {
+    return CCTREAP_CONTAINER(a, struct entry, node)->key
+         - CCTREAP_CONTAINER(b, struct entry, node)->key;
+}
+static int64_t prio_cmp(const cctreap_node_t *a, const cctreap_node_t *b) {
+    uint64_t pa = CCTREAP_CONTAINER(a, struct entry, node)->prio;
+    uint64_t pb = CCTREAP_CONTAINER(b, struct entry, node)->prio;
+    return (pa > pb) ? 1 : (pa < pb) ? -1 : 0;
+}
+
+int main() {
+    cctreap_t t; cctreap_init(&t, key_cmp, prio_cmp);
+
+    struct entry e[5];
+    for (int i = 0; i < 5; i++) {
+        e[i].key  = i * 10;
+        e[i].prio = (uint64_t)rand() << 32 | rand();
+        cctreap_insert(&t, &e[i].node, NULL);
+    }
+
+    /* 第 k 小（0-indexed） */
+    cctreap_node_t *k2 = cctreap_kth(&t, 2);
+    printf("kth(2) = %d\n", CCTREAP_CONTAINER(k2, struct entry, node)->key); // 20
+
+    /* 排名 */
+    int64_t r = cctreap_rank(&t, &e[4].node);
+    printf("rank(40) = %lld\n", (long long)r); // 4
+
+    return 0;
+}
+```
+
+## 9. ccvector — 动态数组
 
 ```c
 #include <stdio.h>
@@ -263,7 +335,7 @@ struct point { float x, y; };
 /* 现在 ccvector 存储 struct point 值 */
 ```
 
-## 8. 构建与测试
+## 10. 构建与测试
 
 ```bash
 # CMake 一键构建 + 测试

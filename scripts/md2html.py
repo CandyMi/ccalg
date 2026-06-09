@@ -5,7 +5,7 @@ Requires: pip install markdown
 Usage:    python3 scripts/md2html.py docs/ build/docs-html/
           cmake --build build --target docs-html
 """
-import sys, os
+import sys, os, re
 from markdown import markdown
 
 CSS = """
@@ -18,6 +18,7 @@ CSS = """
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
        background: var(--bg); color: var(--fg); display: flex; min-height: 100vh; }
+html { scroll-behavior: smooth; }
 .sidebar { width: var(--sidebar-w); flex-shrink: 0; background: var(--accent);
            border-right: 1px solid var(--border); padding: 2rem 1.2rem;
            position: sticky; top: 0; height: 100vh; overflow-y: auto; }
@@ -27,6 +28,34 @@ body { font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
              font-size: 0.95em; border-radius: 4px; padding-left: .5em; }
 .sidebar a:hover, .sidebar a.active { background: var(--link); color: #fff; }
 .main { flex: 1; padding: 2rem 2.5rem; max-width: 900px; }
+/* ── floating TOC ─────────────────────────────────────────────────── */
+.toc { position: fixed; right: 12px; top: 80px; width: 210px; max-height: calc(100vh - 120px);
+       overflow-y: auto; padding: 1rem .8rem; font-size: 0.82em; z-index: 100;
+       background: var(--bg); border: 1px solid var(--border);
+       border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,.08);
+       opacity: 0.92; transition: opacity .2s;
+       scrollbar-width: none; }
+.toc::-webkit-scrollbar { display: none; }
+.toc:hover { opacity: 1; }
+.toc-title { display: flex; justify-content: space-between; align-items: center;
+             font-weight: 600; margin-bottom: .6rem; color: var(--fg);
+             font-size: 0.9em; padding-bottom: .4em;
+             border-bottom: 1px solid var(--border); }
+.toc a { display: block; padding: .25em 0 .25em .6em; color: #666;
+         text-decoration: none; border-left: 2px solid transparent;
+         line-height: 1.35; transition: color .15s, border-color .15s; }
+.toc a:hover { color: var(--link); }
+.toc a.active { color: var(--link); border-left-color: var(--link); font-weight: 500; }
+.toc .toc-h3 { padding-left: 1.2em; font-size: 0.95em; }
+.toc-top { color: #999; font-size: 1.1em; font-weight: 400; padding: 0 .3em; }
+.toc-top:hover { color: var(--link); text-decoration: none; }
+@media (prefers-color-scheme: dark) {
+  .toc { box-shadow: 0 4px 20px rgba(0,0,0,.35); }
+  .toc a { color: #8b949e; }
+}
+@media (max-width: 1100px) {
+  .toc { display: none; }
+}
 h1 { border-bottom: 1px solid var(--border); padding-bottom: .3em; margin-bottom: 1em; }
 h2 { margin-top: 1.8em; margin-bottom: .5em; }
 h3 { margin-top: 1.4em; }
@@ -38,7 +67,7 @@ code { font: 13px SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
        background: var(--code-bg); padding: .2em .4em; border-radius: 3px; }
 pre code { background: none; padding: 0; }
 table { border-collapse: collapse; width: 100%; margin: 1em 0; }
-th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: center; }
 th { background: var(--accent); font-weight: 600; }
 blockquote { border-left: 3px solid var(--link); padding: .5em 1em; margin: 1em 0;
              background: var(--accent); border-radius: 0 6px 6px 0; }
@@ -54,22 +83,34 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border
 """
 
 PAGES = [
-    ("index",             "基本介绍"),
-    ("getting-started",   "快速开始"),
-    ("api-reference",     "接口参考"),
-    ("algorithms",        "算法原理"),
-    ("building",          "构建指南"),
-    ("benchmarks",        "性能基准"),
-    ("thread-safety",     "线程安全"),
+    ("index",             "基本介绍", "ccalg - 高性能数据结构与算法实现"),
+    ("getting-started",   "快速开始", "ccalg - "),
+    ("api-reference",     "接口参考", "ccalg - "),
+    ("algorithms",        "算法原理", "ccalg - "),
+    ("building",          "构建指南", "ccalg - "),
+    ("benchmarks",        "性能基准", "ccalg - "),
+    ("thread-safety",     "线程安全", "ccalg - "),
 ]
 
 
 def nav_html(active_slug):
     links = []
-    for slug, title in PAGES:
+    for slug, name, title  in PAGES:
         cls = ' class="active"' if slug == active_slug else ""
-        links.append(f'      <a href="{slug}.html"{cls}>{title}</a>')
+        links.append(f'      <a href="{slug}.html"{cls}>{name}</a>')
     return "\n".join(links)
+
+
+def toc_html(body_html):
+    """Generate TOC links from rendered HTML h2/h3 elements."""
+    items = []
+    for m in re.finditer(r'<(h[23])(?:\s+id="([^"]*)")?[^>]*>(.+?)</\1>', body_html):
+        tag, aid, title = m.group(1), m.group(2), m.group(3).strip()
+        if not aid or title.lower() == 'alg docs':
+            continue
+        cls = 'toc-h3' if tag == 'h3' else 'toc-h2'
+        items.append(f'<a href="#{aid}" class="{cls}" data-target="{aid}">{title}</a>')
+    return '\n'.join(items)
 
 
 def main():
@@ -77,15 +118,17 @@ def main():
     out_dir = sys.argv[2] if len(sys.argv) > 2 else "build/docs-html"
     os.makedirs(out_dir, exist_ok=True)
 
-    for slug, title in PAGES:
+    for slug, name, title in PAGES:
         src = os.path.join(src_dir, slug + ".md")
         dst = os.path.join(out_dir, slug + ".html")
         if not os.path.isfile(src):
             print(f"  skip {src} (not found)")
             continue
 
-        body = markdown(open(src, encoding="utf-8").read(),
-                        extensions=["fenced_code", "tables"])
+        raw = open(src, encoding="utf-8").read()
+        body = markdown(raw, extensions=["fenced_code", "tables", "toc"],
+                        extension_configs={"toc": {"permalink": False, "baselevel": 1}})
+        toc = toc_html(body)
         nav = nav_html(slug)
 
         baidu = '<meta name="baidu-site-verification" content="codeva-IOubXz4IUX" />\n' if slug == "index" else ""
@@ -94,9 +137,9 @@ def main():
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-{baidu}<title>{title}</title>
-<link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
-<link rel="stylesheet" media="(prefers-color-scheme: dark)"  href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
+{baidu}<title>{title + name}</title>
+<link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/monokai.min.css">
+<link rel="stylesheet" media="(prefers-color-scheme: dark)"  href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/monokai-sublime.min.css">
 <style>{CSS}</style>
 </head>
 <body>
@@ -110,10 +153,14 @@ def main():
     alg — header-only C data-structure library · BSD 3-Clause · <a href="https://github.com/CandyMi/alg">GitHub</a>
   </footer>
 </main>
+<nav class="toc" id="toc">
+  <div class="toc-title"><span>本页目录</span><a href="#" class="toc-top" title="回到顶部">↑</a></div>
+{toc}
+</nav>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
 <script>
-mermaid.initialize({{ startOnLoad: false, theme: 'default' }});
+mermaid.initialize({{ startOnLoad: false, theme: 'base' }});
 // protect mermaid blocks from highlight.js — convert before hljs runs
 document.querySelectorAll('pre code.language-mermaid').forEach(function(el) {{
   el.parentElement.classList.add('mermaid');
@@ -121,6 +168,30 @@ document.querySelectorAll('pre code.language-mermaid').forEach(function(el) {{
 }});
 hljs.highlightAll();
 mermaid.run();
+
+// ── TOC scroll-spy ──────────────────────────────────────────────────
+(function() {{
+  var toc = document.getElementById('toc');
+  if (!toc) return;
+  var links = toc.querySelectorAll('a');
+  if (!links.length) {{ toc.style.display = 'none'; return; }}
+
+  var observer = new IntersectionObserver(function(entries) {{
+    entries.forEach(function(e) {{
+      if (e.isIntersecting) {{
+        var id = e.target.id;
+        links.forEach(function(a) {{
+          a.classList.toggle('active', a.getAttribute('data-target') === id);
+        }});
+      }}
+    }});
+  }}, {{ rootMargin: '-80px 0px -70% 0px' }});
+
+  links.forEach(function(a) {{
+    var target = document.getElementById(a.getAttribute('data-target'));
+    if (target) observer.observe(target);
+  }});
+}})();
 </script>
 </body>
 </html>"""
@@ -137,7 +208,7 @@ mermaid.run();
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>"""]
-    for slug, _title in PAGES:
+    for slug, name, _title in PAGES:
         prio = "1.0" if slug == "index" else "0.8"
         urls.append(f"""  <url>
     <loc>{BASE}/{slug}.html</loc>

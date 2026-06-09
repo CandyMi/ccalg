@@ -44,9 +44,8 @@ flowchart TD
 > 参数 `x` 为旋转轴心节点，`y` 为其子节点。旋转保持 BST 性质，仅改变局部指针。
 
 ```mermaid
-flowchart LR
+graph TD
     subgraph 右旋["右旋 _rb_rot_right(m, x)"]
-        direction TB
         subgraph Rbefore["Before"]
             Xr("x") --> Yr("y")
             Xr --> Gr("γ")
@@ -62,7 +61,6 @@ flowchart LR
         Rbefore --> Rafter
     end
     subgraph 左旋["左旋 _rb_rot_left(m, x)"]
-        direction TB
         subgraph Lbefore["Before"]
             Xl("x") --> Al("α")
             Xl --> Yl("y")
@@ -83,7 +81,7 @@ flowchart LR
 
 - 最小：沿左子树走到叶子 → O(log n)
 - 最大：沿右子树走到叶子 → O(log n)
-- ccmap 维护 `first` 指针，O(1) 获取最小节点
+- ccmap 维护 `first`/`last` 指针，可以在 O(1) 时间获取对应节点
 
 ---
 

@@ -2,11 +2,13 @@
 
 **header-only · 侵入式 · 零开销回调 · C89 兼容**
 
-C/C++ 高性能数据结构库。每个容器都是单头文件，`#include` 即用。
+```
+纯C语言编写的 C/C++ 高性能数据结构库。每个容器都是直接 `#include` 开箱即用。
+```
 
-## 选择
+## 1. 选择
 
-  为什么 选择 cclag
+  为什么选择 cclag ?
 
 | 特性 | 说明 |
 | --- | --- |
@@ -16,7 +18,9 @@ C/C++ 高性能数据结构库。每个容器都是单头文件，`#include` 即
 | **读写天然分离** | 纯读操作不修改内部状态，外部 rwlock 即可 N 路读并发，无线程竞争 |
 | **NULL 安全 · BSD 协议** | 所有 API 守卫 NULL 参数，宽松许可商用/闭源均可 |
 
-## 容器
+## 2. 容器
+
+  当前支持的容器如下:
 
 | 容器 | 结构 | 插入 | 查找 | 删除 | 迭代 |
 | --- | --- | --- | --- | --- | --- |
@@ -31,7 +35,7 @@ C/C++ 高性能数据结构库。每个容器都是单头文件，`#include` 即
 
 > `cctreap` 额外支持 O(log n) 的 `kth`（第 k 小）和 `rank`（排名查询）操作。均摊复杂度基于默认配置（ccmap 红黑树保证最坏 O(log n)，cchashmap 负载因子 ≤1.25 保证均摊 O(1)）。
 
-## 上手
+## 3. 上手
 
   现在给您一分钟阅读代码, 然后我们立刻快速上手使用高性能容器.
 
@@ -57,7 +61,11 @@ int main() {
 }
 ```
 
-## 构建
+  是的, 就是这么快上手! 
+
+## 4. 构建
+
+  你问: "既然是 header-only 为什么还要构建?" , 还不是因为让你也能和我一样跑用例测试它 👍🏻 
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -65,16 +73,8 @@ cmake --build build --target check    # 构建 + 测试
 cmake --build build --target bench    # 构建 + 基准
 ```
 
-## 文档
+## 5. 最后
 
-| 文档 | 说明 |
-| --- | --- |
-| [快速开始](getting-started.md) | 5 分钟上手，完整示例 |
-| [API 参考](api-reference.md) | 所有容器的完整 API 手册 |
-| [算法原理](algorithms.md) | 核心算法图解（红黑树、哈希、堆…） |
-| [构建指南](building.md) | CMake / Premake5 / 手动编译 |
-| [性能基准](benchmarks.md) | ccmap / cchashmap / cclink / cclist / ccheap / ccvector vs STL |
-| [线程安全](thread-safety.md) | 外部读写锁下的操作分类与并行度分析 |
-| treap 压测 | [性能基准](benchmarks.md) — cctreap vs std::map, rank 快 141× |
+  希望你能喜欢上它! 😃😃😃😃😃
 
-[ccalg.dev](https://ccalg.dev) · BSD 3-Clause
+[ccalg.dev](https://ccalg.dev) · author - [CandyMi](https://github.com/CandyMi) · BSD 3-Clause

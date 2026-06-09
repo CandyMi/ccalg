@@ -93,12 +93,25 @@ PAGES = [
     ("thread-safety",     "线程安全", "ccalg - "),
 ]
 
+items = [
+  '一、',
+  '二、',
+  '三、',
+  '四、',
+  '五、',
+  '六、',
+  '七、',
+  '八、',
+  '九、',
+]
 
 def nav_html(active_slug):
     links = []
+    i = 0
     for slug, name, title  in PAGES:
         cls = ' class="active"' if slug == active_slug else ""
-        links.append(f'      <a href="{slug}.html"{cls}>{name}</a>')
+        links.append(f'      <a href="{slug}.html"{cls}>{items[i] + name}</a>')
+        i = i + 1
     return "\n".join(links)
 
 

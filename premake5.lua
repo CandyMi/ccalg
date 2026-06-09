@@ -48,5 +48,20 @@ workspace "cclag"
       filter {}
   end
 
+  -- prefetch benchmark — needs two compilations (with / without CCMAP_PREFETCH)
+  for _, suffix in ipairs({ "", "_on" }) do
+    local defines = (suffix == "_on") and { "CCMAP_PREFETCH" } or {}
+    project("bench_ccmap_prefetch" .. suffix)
+      kind "ConsoleApp"
+      language "C++"
+      cppdialect "C++11"
+      targetdir "build/bin/%{cfg.buildcfg}"
+      files { "bench/bench_ccmap_prefetch.cpp" }
+      defines(defines)
+      filter "toolset:gcc or toolset:clang"
+        buildoptions { "-Wall", "-O2" }
+      filter {}
+  end
+
   -- ── install (via script) ──────────────────────────────────────────────
   --  PREFIX=/usr/local sh scripts/install.sh

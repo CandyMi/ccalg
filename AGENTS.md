@@ -324,7 +324,7 @@ cmake --install build --prefix /usr/local
 | `test_cclist.c` | Doubly-linked list | 78 |
 | `test_ccheap.c` | D-ary heap | 1255 |
 | `test_ccvector.c` | Dynamic array | 548 |
-| `test_ccflatmap.c` | Sorted-array map | — |
+| `test_ccflatmap.c` | Sorted-array map | 15936 |
 | `test_cctreap.c` | Treap | 10396 |
 
 ### Benchmarks (C++ vs STL)

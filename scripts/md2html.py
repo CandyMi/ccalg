@@ -30,17 +30,18 @@ html { scroll-behavior: smooth; }
 .main { flex: 1; padding: 2rem 2.5rem; max-width: 900px; }
 /* ── floating TOC ─────────────────────────────────────────────────── */
 .toc { position: fixed; right: 12px; top: 80px; width: 210px; max-height: calc(100vh - 120px);
-       overflow-y: auto; padding: 1rem .8rem; font-size: 0.82em; z-index: 100;
+       display: flex; flex-direction: column; font-size: 0.82em; z-index: 100;
        background: var(--bg); border: 1px solid var(--border);
        border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,.08);
-       opacity: 0.92; transition: opacity .2s;
-       scrollbar-width: none; }
-.toc::-webkit-scrollbar { display: none; }
+       opacity: 0.92; transition: opacity .2s; }
 .toc:hover { opacity: 1; }
 .toc-title { display: flex; justify-content: space-between; align-items: center;
-             font-weight: 600; margin-bottom: .6rem; color: var(--fg);
-             font-size: 0.9em; padding-bottom: .4em;
+             flex-shrink: 0; font-weight: 600; color: var(--fg);
+             font-size: 0.9em; padding: .6rem .8rem .4em;
              border-bottom: 1px solid var(--border); }
+.toc-links { overflow-y: auto; flex: 1; padding: .4rem .8rem .8rem;
+             scrollbar-width: none; }
+.toc-links::-webkit-scrollbar { display: none; }
 .toc a { display: block; padding: .25em 0 .25em .6em; color: #666;
          text-decoration: none; border-left: 2px solid transparent;
          line-height: 1.35; transition: color .15s, border-color .15s; }
@@ -137,7 +138,7 @@ def main():
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-{baidu}<title>{title + name}</title>
+{baidu}<title>{ slug == 'index' and title or (title + name)}</title>
 <link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/monokai.min.css">
 <link rel="stylesheet" media="(prefers-color-scheme: dark)"  href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/monokai-sublime.min.css">
 <style>{CSS}</style>
@@ -155,7 +156,7 @@ def main():
 </main>
 <nav class="toc" id="toc">
   <div class="toc-title"><span>本页目录</span><a href="#" class="toc-top" title="回到顶部">↑</a></div>
-{toc}
+  <div class="toc-links">{toc}</div>
 </nav>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
@@ -173,15 +174,20 @@ mermaid.run();
 (function() {{
   var toc = document.getElementById('toc');
   if (!toc) return;
-  var links = toc.querySelectorAll('a');
+  var links = toc.querySelectorAll('.toc-links a');
   if (!links.length) {{ toc.style.display = 'none'; return; }}
+
+  // activate first link on load
+  if (links[0]) links[0].classList.add('active');
 
   var observer = new IntersectionObserver(function(entries) {{
     entries.forEach(function(e) {{
       if (e.isIntersecting) {{
         var id = e.target.id;
         links.forEach(function(a) {{
-          a.classList.toggle('active', a.getAttribute('data-target') === id);
+          var match = a.getAttribute('data-target') === id;
+          a.classList.toggle('active', match);
+          if (match) a.scrollIntoView({{ block: 'nearest', behavior: 'smooth' }});
         }});
       }}
     }});

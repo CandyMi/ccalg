@@ -52,6 +52,7 @@ cclag/
 | [ccheap.h](include/ccheap.h) | `ccheap_t` / `ccheap_node_t` | D-ary heap (priority queue) |
 | [ccvector.h](include/ccvector.h) | `ccvector_t` / `ccvector_node_t` | Dynamic array (value-based) |
 | [ccflatmap.h](include/ccflatmap.h) | `ccflatmap_t` / `ccflatmap_node_t` | Sorted-array map (value-based) |
+| [cctreap.h](include/cctreap.h) | `cctreap_t` / `cctreap_node_t` | Intrusive treap (BST + max-heap, order statistics) |
 
 ---
 
@@ -109,6 +110,7 @@ Each container supports two comparison/hash dispatch modes:
 | `cchashmap` | `cchashmap_hash_t`: `uint64_t (*)(const cchashmap_node_t*, size_t seed)` <br> `cchashmap_equal_t`: `bool (*)(const cchashmap_node_t*, const cchashmap_node_t*)` | `#define CCHASHMAP_HASH(n, seed)` <br> `#define CCHASHMAP_EQUAL(a, b)` |
 | `ccheap` | `ccheap_compare_t`: `int64_t (*)(const ccheap_node_t*, const ccheap_node_t*)` | `#define CCHEAP_COMPARE(a, b)` |
 | `ccflatmap` | `ccflatmap_cmp_t`: `int64_t (*)(const CCFLATMAP_NODE_T*, const CCFLATMAP_NODE_T*)` | `#define CCFLATMAP_COMPARE(a, b)` |
+| `cctreap` | `cctreap_cmp_t`: `int64_t (*)(const cctreap_node_t*, const cctreap_node_t*)` (key) <br> `cctreap_prio_cmp_t`: `int64_t (*)(const cctreap_node_t*, const cctreap_node_t*)` (priority) | `#define CCTREAP_COMPARE(a, b)` (key) <br> `#define CCTREAP_PRIORITY(a, b)` (priority) |
 | `cclist` | none needed | none |
 
 When a macro is defined, the matching `init()` parameter is suppressed with `(void)arg`.
@@ -134,6 +136,7 @@ Every container **owns its namespace**: prefix is always the container abbreviat
 | `ccheap` | `CCHEAP_` | `CCHEAP_INLINE`, `CCHEAP_COMPARE`, `CCHEAP_REALLOC`, `CCHEAP_NODE_T` |
 | `ccvector` | `CCVECTOR_` | `CCVECTOR_INLINE`, `CCVECTOR_REALLOC`, `CCVECTOR_NODE_T` |
 | `ccflatmap` | `CCFLATMAP_` | `CCFLATMAP_INLINE`, `CCFLATMAP_COMPARE`, `CCFLATMAP_REALLOC`, `CCFLATMAP_NODE_T` |
+| `cctreap` | `CCTREAP_` | `CCTREAP_INLINE`, `CCTREAP_CONTAINER`, `CCTREAP_COMPARE`, `CCTREAP_PRIORITY` |
 
 **No macro is shared across containers.** Each header defines its own `CCXXX_INLINE` and `CCXXX_CONTAINER` independently.
 
@@ -148,7 +151,7 @@ Containers that allocate memory internally expose replaceable allocator macros:
 | `CCXXX_FREE(ptr)` | Free | `free(ptr)` |
 
 - `cchashmap`, `ccheap`, `ccvector`, and `ccflatmap` use this mechanism.
-- `ccmap`, `cclink`, and `cclist` have zero internal allocation → no allocator macros.
+- `ccmap`, `cclink`, `cclist`, and `cctreap` have zero internal allocation → no allocator macros.
 
 ### API naming conventions
 
@@ -180,7 +183,9 @@ Containers that allocate memory internally expose replaceable allocator macros:
 | Successor | `xxx_next(n)` | Node → next |
 | Predecessor | `xxx_prev(n)` | Node → previous |
 
-`ccmap` maintains `first` and `last` pointers for O(1) `ccmap_begin()` / `ccmap_first()` and `ccmap_rbegin()`.  Insert fast-paths exist when the new key is smaller than `first` or larger than `last`.  Erase recomputes both pointers when the boundary node is removed.
+`ccmap` and `cctreap` maintain `first` and `last` pointers for O(1) `begin()` / `first()` and `rbegin()` / `last()`.  Insert fast-paths exist when the new key is smaller than `first` or larger than `last`.  Erase recomputes both pointers when the boundary node is removed.
+
+`cctreap` additionally stores a `size` field in each node (subtree node count), enabling O(log n) `cctreap_kth(m, k)` (k-th smallest, 0-indexed) and `cctreap_rank(m, probe)` (rank of key, returns -1 if not found).  Priority is external — user embeds a priority field in their struct and provides `CCTREAP_PRIORITY` (or `cctreap_prio_cmp_t`).
 
 **Exception**: `ccflatmap_next(m, p)` and `ccflatmap_prev(m, p)` take the container pointer as the first argument — arrays need bounds checking via `m->len`.
 

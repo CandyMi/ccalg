@@ -31,8 +31,9 @@ C/C++ 高性能数据结构库。每个容器都是单头文件，`#include` 即
 | `ccheap` | D-ary 堆 | O(log n) | — (peek O1) | O(log n) pop | — |
 | `ccvector` | 动态数组 | O(1) 均摊 | O(1) 随机 | O(1) 尾部 | O(n) |
 | `ccflatmap` | 排序数组映射 | O(n) | O(log n) 二分 | O(n) | O(n) 有序 |
+| `cctreap` | Treap (树堆) | O(log n) 期望 | O(log n) 期望 | O(log n) 期望 | O(n) 有序 |
 
-> 均摊复杂度基于默认配置（ccmap 红黑树保证最坏 O(log n)，cchashmap 负载因子 ≤1.25 保证均摊 O(1)）。
+> `cctreap` 额外支持 O(log n) 的 `kth`（第 k 小）和 `rank`（排名查询）操作。均摊复杂度基于默认配置（ccmap 红黑树保证最坏 O(log n)，cchashmap 负载因子 ≤1.25 保证均摊 O(1)）。
 
 ## 一分钟上手
 
@@ -76,6 +77,7 @@ cmake --build build --target bench    # 构建 + 基准
 | [构建指南](building.md) | CMake / Premake5 / 手动编译 |
 | [性能基准](benchmarks.md) | ccmap / cchashmap / cclink / cclist / ccheap / ccvector vs STL |
 | [线程安全](thread-safety.md) | 外部读写锁下的操作分类与并行度分析 |
+| treap 压测 | [性能基准](benchmarks.md) — cctreap vs std::map, rank 快 141× |
 
 ## 设计
 

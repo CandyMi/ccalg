@@ -130,6 +130,30 @@
 > `erase_unordered` 的 sort 是固定入场费（≈0.8ms），与删除数量无关。`erase` 成本随删除数 K 线性增长（O(Kn) memmove）。
 > 交叉点约在 K = 2·log₂(n) ≈ 32（理论值），实测 ≈50（含常数因子）。
 
+## cctreap vs `std::map` — 100K 顺序操作
+
+### insert / find / erase / iterate
+
+| 操作 | cctreap | `std::map` | 倍率 |
+| --- | --- | --- | --- |
+| insert | **6.06 ms** | 14.54 ms | **0.42×** |
+| find | 15.13 ms | 12.09 ms | 1.25× |
+| erase | **6.28 ms** | 18.61 ms | **0.34×** |
+| iterate | 2.46 ms | 1.92 ms | 1.28× |
+
+> insert 和 erase 比 STL 快 2-3×——侵入式无节点分配开销，treap 旋转比红黑树着色更简洁。
+
+### 顺序统计（kth / rank）
+
+| 操作 | cctreap | `std::map` | 倍率 |
+| --- | --- | --- | --- |
+| kth (N=100K, 随机访问) | 7.53 ms | 1.63 ms (顺序遍历) | — |
+| **rank (N=5K)** | **0.40 ms** | **56.43 ms** | **0.007× (141× 更快)** |
+
+> **kth**：STL map 不支持随机访问，只能从头迭代 O(k)。treap 利用 `size` 字段二分，每次 O(log n)。
+>
+> **rank**：STL `std::distance(begin, it)` 每次 O(n)，N=5000 时已慢 141×。treap 下降过程中累加左子树大小，每次 O(log n)。大数据集下差距进一步拉大。
+
 ## 构建与运行
 
 ```bash

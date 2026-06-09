@@ -636,3 +636,97 @@ int    ccflatmap_empty(ccflatmap_t *m);
 size_t ccflatmap_capacity(ccflatmap_t *m);
 int    ccflatmap_reserve(ccflatmap_t *m, size_t new_cap);
 ```
+
+---
+
+## cctreap — 侵入式 Treap
+
+头文件: [`include/cctreap.h`](../include/cctreap.h)
+
+有序映射，基于 treap（BST + max-heap）。节点 24 字节（64-bit），优先级外置。
+
+### 类型
+
+```c
+typedef struct cctreap_node {
+    struct cctreap_node *child[2];  // [0]=left, [1]=right
+    uintptr_t            pc;        // parent pointer
+    size_t               size;      // subtree node count
+} cctreap_node_t;
+
+typedef int64_t (*cctreap_cmp_t)      (const cctreap_node_t *a, const cctreap_node_t *b);
+typedef int64_t (*cctreap_prio_cmp_t) (const cctreap_node_t *a, const cctreap_node_t *b);
+
+typedef struct cctreap {
+    cctreap_node_t    *root;
+    cctreap_node_t    *first;        // 最小节点 (O(1) begin)
+    cctreap_node_t    *last;         // 最大节点 (O(1) rbegin)
+    size_t             size;
+    cctreap_cmp_t       key_cmp;
+    cctreap_prio_cmp_t  prio_cmp;
+} cctreap_t;
+```
+
+### 编译期配置
+
+| 宏 | 作用 | 默认 |
+| --- | --- | --- |
+| `CCTREAP_COMPARE(a, b)` | 内联 key 比较 | 未定义 |
+| `CCTREAP_PRIORITY(a, b)` | 内联 priority 比较 | 未定义 |
+| `CCTREAP_NODE_T` | 阻止默认节点 typedef | 未定义 |
+
+### 生命周期
+
+```c
+void cctreap_init(cctreap_t *m, cctreap_cmp_t key_cmp, cctreap_prio_cmp_t prio_cmp);
+// 初始化。若定义了 CCTREAP_COMPARE / CCTREAP_PRIORITY，对应参数被忽略。
+
+void cctreap_clear(cctreap_t *m);
+// 重置为空。不释放节点内存。
+```
+
+### 增删查
+
+```c
+int cctreap_insert(cctreap_t *m, cctreap_node_t *node, cctreap_node_t **out);
+// 插入节点。返回 0 成功，-1 重复（*out = 已存在节点）。
+// 用户须提前设置 priority（通过 CCTREAP_PRIORITY 或 prio_cmp 访问）。
+
+cctreap_node_t *cctreap_find(cctreap_t *m, const cctreap_node_t *probe);
+// 按 key 查找。返回节点指针或 NULL。
+
+void cctreap_erase(cctreap_t *m, cctreap_node_t *z);
+// 删除节点。O(log n)。自动更新 first/last 指针。
+```
+
+### 顺序统计
+
+```c
+cctreap_node_t *cctreap_kth(cctreap_t *m, size_t k);
+// 第 k 小元素（0-indexed）。k >= size 返回 NULL。O(log n)。
+
+int64_t cctreap_rank(cctreap_t *m, const cctreap_node_t *probe);
+// key 的排名（0-indexed）。未找到返回 -1。O(log n)。
+```
+
+### 迭代器
+
+```c
+cctreap_node_t *cctreap_begin(cctreap_t *m);   // → 最小节点 (O(1))
+cctreap_node_t *cctreap_first(cctreap_t *m);   // begin 的同义词
+cctreap_node_t *cctreap_end(cctreap_t *m);     // 总是返回 NULL
+cctreap_node_t *cctreap_rbegin(cctreap_t *m);  // → 最大节点 (O(1))
+cctreap_node_t *cctreap_last(cctreap_t *m);    // rbegin 的同义词
+cctreap_node_t *cctreap_next(cctreap_node_t *n); // 后继
+cctreap_node_t *cctreap_prev(cctreap_node_t *n); // 前驱
+```
+
+### 工具
+
+```c
+size_t cctreap_size(cctreap_t *m);
+// 元素数量。NULL 返回 0。
+
+int cctreap_height(const cctreap_t *m);
+// 树高估值。O(1)，由 size 推算。
+```

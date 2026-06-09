@@ -308,6 +308,79 @@ flowchart TD
 
 ---
 
+## cctreap — Treap (Tree + Heap)
+
+Treap 是二叉搜索树和堆的随机化结合体。每个节点同时维护 **BST 键序**（key）和 **max-heap 堆序**（priority）。随机 priority 使树在期望下保持 O(log n) 高度。
+
+### 双性质
+
+| 性质 | 规则 | 实现 |
+| --- | --- | --- |
+| BST 性质 | 左子树 key < 当前 key < 右子树 key | `CCTREAP_COMPARE` |
+| 堆性质 | 当前 priority > 所有子节点 priority (max-heap) | `CCTREAP_PRIORITY` |
+
+> priority 由用户维护，不在 `cctreap_node_t` 内。用户嵌入 priority 字段到自己的结构体，通过宏或函数指针暴露给容器。
+
+### 插入流程
+
+BST 下降定位 → 插为叶子 → **向上旋转**恢复堆序：
+
+```mermaid
+graph TD
+    A["BST 插入（设为叶子）"] --> B{"priority > parent.priority ?"}
+    B -->|是| C["旋转上浮（左/右旋）"]
+    C --> B
+    B -->|否| D["✅ 完成，更新 size"]
+```
+
+### 删除流程
+
+将目标节点 **向下旋转至叶子** 后摘除：
+
+```mermaid
+graph TD
+    A["目标节点 z"] --> B{"z 是叶子?"}
+    B -->|是| C["摘除 z，更新 size"]
+    B -->|否| D["比较左右子 priority"]
+    D --> E["向 priority 更大的子节点旋转"]
+    E --> B
+```
+
+### 顺序统计（kth / rank）
+
+利用节点内嵌的 `size`（子树节点数）实现 O(log n) 确定查询：
+
+**kth（第 k 小）**：
+
+```mermaid
+graph TD
+    A["x = root, L = size(x.left)"] --> B{"k < L ?"}
+    B -->|是| C["x = x.left"]
+    B -->|否| D{"k == L ?"}
+    D -->|是| E["✅ 返回 x"]
+    D -->|否| F["k -= L + 1, x = x.right"]
+    C --> A
+    F --> A
+```
+
+**rank（排名）**：沿 BST 下降，每往右走一步累加左子树大小 + 1，命中时返回累加值 + size(left)。未找到返回 -1。
+
+> kth 和 rank 是确定性 O(log n)，不依赖 priority 随机性。
+
+### 与 ccmap 对比
+
+| 特性 | ccmap (红黑树) | cctreap (treap) |
+| --- | --- | --- |
+| 平衡机制 | 确定性着色+旋转 | 随机 priority + 旋转 |
+| 期望高度 | ≤ 2·log₂(n+1) 确定 | ≤ O(log n) 期望 |
+| 最坏高度 | 2·log₂(n+1) 确定 | O(n) 极低概率 |
+| 节点大小 (64-bit) | 16B | 24B (含 size) |
+| kth / rank | 不支持 | O(log n) |
+| 迭代 | O(log n) / O(1) 均摊 | O(log n) / O(1) 均摊 |
+| first/last 缓存 | ✅ O(1) | ✅ O(1) |
+
+---
+
 ## 零开销回调
 
 所有支持比较/哈希的容器均提供两种分发模式：

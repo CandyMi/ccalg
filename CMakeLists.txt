@@ -42,6 +42,7 @@ add_cclag_test(test_cclink)
 add_cclag_test(test_ccheap)
 add_cclag_test(test_ccvector)
 add_cclag_test(test_ccflatmap)
+add_cclag_test(test_cctreap)
 
 # ── benchmark targets (C++) ──────────────────────────────────────────────
 macro(add_cclag_bench name)
@@ -57,6 +58,7 @@ add_cclag_bench(bench_cclink)
 add_cclag_bench(bench_ccheap)
 add_cclag_bench(bench_ccvector)
 add_cclag_bench(bench_ccflatmap)
+add_cclag_bench(bench_cctreap)
 
 # prefetch benchmark — needs two compilations (with / without CCMAP_PREFETCH)
 add_executable(bench_ccmap_prefetch      bench/bench_ccmap_prefetch.cpp)
@@ -71,7 +73,7 @@ target_compile_options(bench_ccmap_prefetch_on PRIVATE -O2 -DCCMAP_PREFETCH)
 # `cmake --build build --target check` — build + run all tests
 add_custom_target(check
   COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -L unit
-  DEPENDS test_ccmap test_cchashmap test_cclink test_cclist test_ccheap test_ccvector test_ccflatmap
+  DEPENDS test_ccmap test_cchashmap test_cclink test_cclist test_ccheap test_ccvector test_ccflatmap test_cctreap
   USES_TERMINAL
   COMMENT "Running all unit tests"
 )
@@ -96,6 +98,9 @@ add_custom_target(bench
   COMMAND ${CMAKE_COMMAND} -E echo "=== ccvector vs std::vector ==="
   COMMAND $<TARGET_FILE:bench_ccvector>
   COMMAND ${CMAKE_COMMAND} -E echo ""
+  COMMAND ${CMAKE_COMMAND} -E echo "=== cctreap vs std::map ==="
+  COMMAND $<TARGET_FILE:bench_cctreap>
+  COMMAND ${CMAKE_COMMAND} -E echo ""
   COMMAND ${CMAKE_COMMAND} -E echo "=== ccflatmap vs std::map ==="
   COMMAND $<TARGET_FILE:bench_ccflatmap>
   COMMAND ${CMAKE_COMMAND} -E echo ""
@@ -104,7 +109,7 @@ add_custom_target(bench
   COMMAND ${CMAKE_COMMAND} -E echo ""
   COMMAND ${CMAKE_COMMAND} -E echo "=== ccmap prefetch ON  ==="
   COMMAND $<TARGET_FILE:bench_ccmap_prefetch_on>
-  DEPENDS bench_ccmap bench_cchashmap bench_cclink bench_cclist bench_ccheap bench_ccvector bench_ccflatmap bench_ccmap_prefetch bench_ccmap_prefetch_on
+  DEPENDS bench_ccmap bench_cchashmap bench_cclink bench_cclist bench_ccheap bench_ccvector bench_ccflatmap bench_cctreap bench_ccmap_prefetch bench_ccmap_prefetch_on
   USES_TERMINAL
   COMMENT "Running all benchmarks"
 )

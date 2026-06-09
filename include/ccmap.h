@@ -33,6 +33,45 @@
   #endif
 #endif
 
+/* ── prefetch (opt-in, multi-platform/arch) ───────────────────────────── */
+/* Enable: #define CCMAP_PREFETCH before #include.
+**
+** Architecture coverage:
+**   GCC/Clang (all arches):   __builtin_prefetch
+**   MSVC    x86/x64:          _mm_prefetch  (requires <xmmintrin.h>)
+**   MSVC    ARM64/ARM:        __prefetch    (requires <intrin.h>)
+**   Other / disabled:         no-op
+**
+** locality: 1 = L2/L3 (avoid L1 pollution).  0=L1+L2+L3, 3=non-temporal.
+** Use CCMAP_PREFETCH_R for read-only, CCMAP_PREFETCH_W for write. */
+#ifdef CCMAP_PREFETCH
+  #if defined(__GNUC__) || defined(__clang__)
+    #define CCMAP_PREFETCH_R(addr)  __builtin_prefetch((addr), 0, 1)
+    #define CCMAP_PREFETCH_W(addr)  __builtin_prefetch((addr), 1, 1)
+  #elif defined(_MSC_VER)
+    #if defined(_M_X64) || defined(_M_IX86)
+      #ifndef __XMMINTRIN_H
+        #include <xmmintrin.h>
+      #endif
+      #define CCMAP_PREFETCH_R(addr)  _mm_prefetch((const char *)(addr), _MM_HINT_T1)
+      #define CCMAP_PREFETCH_W(addr)  _mm_prefetch((const char *)(addr), _MM_HINT_T1)
+    #elif defined(_M_ARM64) || defined(_M_ARM)
+      #include <intrin.h>
+      #define CCMAP_PREFETCH_R(addr)  __prefetch((const void *)(addr))
+      #define CCMAP_PREFETCH_W(addr)  __prefetch((const void *)(addr))
+    #else
+      #define CCMAP_PREFETCH_R(addr)  ((void)(addr))
+      #define CCMAP_PREFETCH_W(addr)  ((void)(addr))
+    #endif
+  #else
+    #define CCMAP_PREFETCH_R(addr)  ((void)(addr))
+    #define CCMAP_PREFETCH_W(addr)  ((void)(addr))
+  #endif
+#else
+  #define CCMAP_PREFETCH_R(addr)  ((void)(addr))
+  #define CCMAP_PREFETCH_W(addr)  ((void)(addr))
+#endif
+
 #if defined(__cplusplus) || (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L)
   #define CCMAP_INLINE static inline
 #elif defined(_MSC_VER)
@@ -84,7 +123,13 @@ typedef struct ccmap_node {
 #define _rb_sc(n, c)  ((n)->pc = ((n)->pc & ~(uintptr_t)1) | (uintptr_t)(c))
 #define _rb_spc(n, p, c) ((n)->pc = (uintptr_t)(p) | (uintptr_t)(c))
 
-CCMAP_INLINE ccmap_node_t *_rb_min(ccmap_node_t *x) { while (x->child[CCMAP_LEFT]) x = x->child[CCMAP_LEFT]; return x; }
+CCMAP_INLINE ccmap_node_t *_rb_min(ccmap_node_t *x) {
+  while (x->child[CCMAP_LEFT]) {
+    CCMAP_PREFETCH_R(x->child[CCMAP_LEFT]->child[CCMAP_LEFT]);
+    x = x->child[CCMAP_LEFT];
+  }
+  return x;
+}
 
 /* ── forward-declare map_t for internal helpers ───────────────────────── */
 
@@ -246,6 +291,8 @@ CCMAP_INLINE int ccmap_insert(ccmap_t *m, ccmap_node_t *node, ccmap_node_t **out
     y = x;
     int64_t c = CCMAP_CMP(node, x);
     if (c == 0) { if (out) *out = x; return -1; }
+    CCMAP_PREFETCH_R(x->child[CCMAP_LEFT]);
+    CCMAP_PREFETCH_R(x->child[CCMAP_RIGHT]);
     x = x->child[c > 0];
   }
   _rb_sp(node, y);
@@ -272,6 +319,8 @@ CCMAP_INLINE ccmap_node_t *ccmap_find(ccmap_t *m, const ccmap_node_t *probe) {
   while (x) {
     int64_t c = CCMAP_CMP(probe, x);
     if (c == 0) return x;
+    CCMAP_PREFETCH_R(x->child[CCMAP_LEFT]);
+    CCMAP_PREFETCH_R(x->child[CCMAP_RIGHT]);
     x = x->child[c > 0];
   }
   return NULL;
@@ -312,12 +361,22 @@ CCMAP_INLINE ccmap_node_t *ccmap_rbegin(ccmap_t *m)  { if (!m || !m->root) retur
 CCMAP_INLINE ccmap_node_t *ccmap_next(ccmap_node_t *x) {
   if (!x) return NULL;
   if (x->child[CCMAP_RIGHT]) return _rb_min(x->child[CCMAP_RIGHT]);
-  ccmap_node_t *p = _rb_p(x); while (p && x == p->child[CCMAP_RIGHT]) { x = p; p = _rb_p(p); } return p;
+  ccmap_node_t *p = _rb_p(x);
+  while (p && x == p->child[CCMAP_RIGHT]) {
+    x = p; p = _rb_p(p);
+    CCMAP_PREFETCH_R(p);
+  }
+  return p;
 }
 CCMAP_INLINE ccmap_node_t *ccmap_prev(ccmap_node_t *x) {
   if (!x) return NULL;
-  if (x->child[CCMAP_LEFT]) { x = x->child[CCMAP_LEFT]; while (x->child[CCMAP_RIGHT]) x = x->child[CCMAP_RIGHT]; return x; }
-  ccmap_node_t *p = _rb_p(x); while (p && x == p->child[CCMAP_LEFT]) { x = p; p = _rb_p(p); } return p;
+  if (x->child[CCMAP_LEFT]) { x = x->child[CCMAP_LEFT]; while (x->child[CCMAP_RIGHT]) { CCMAP_PREFETCH_R(x->child[CCMAP_RIGHT]); x = x->child[CCMAP_RIGHT]; } return x; }
+  ccmap_node_t *p = _rb_p(x);
+  while (p && x == p->child[CCMAP_LEFT]) {
+    x = p; p = _rb_p(p);
+    CCMAP_PREFETCH_R(p);
+  }
+  return p;
 }
 
 CCMAP_INLINE size_t ccmap_size(ccmap_t *m) { return m ? m->size : 0; }

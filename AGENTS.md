@@ -89,8 +89,10 @@ Available macros:
 ```
 CCMAP_CONTAINER(ptr, type, member)
 CCHASHMAP_CONTAINER(ptr, type, member)
+CCLINK_CONTAINER(ptr, type, member)
 CCLIST_CONTAINER(ptr, type, member)
 CCHEAP_CONTAINER(ptr, type, member)
+CCTREAP_CONTAINER(ptr, type, member)
 ```
 
 ### Zero-overhead callbacks
@@ -205,8 +207,8 @@ Containers that allocate memory internally expose replaceable allocator macros:
 | Operation | Naming |
 | --- | --- |
 | Size | `xxx_size(m)` |
-| Height | `ccmap_height(m)` |
-| Empty | `xxx_empty(m)` (cclist only) |
+| Height | `ccmap_height(m)` / `cctreap_height(m)` |
+| Empty | `xxx_empty(m)` (cclist / cclink / ccvector / ccflatmap) |
 
 `ccmap_height()` computes a worst-case tree-height estimate from `size` in O(1) — no tree traversal.  Red-black tree bound: `≤ 2·⌊log₂(n+1)⌋`.
 
@@ -262,7 +264,7 @@ Each container guards its `typedef` with `#ifndef CCXXX_NODE_T`. Users can pre-d
 ### Red-Black Tree (`ccmap`)
 
 - **Color encoding**: stored in the low bit of the parent pointer (`parent pointer | color`).  Saves `sizeof(uint32_t)` per node.
-- **Node size**: `ccmap_node_t` is 16 bytes (64-bit): `child[2]` (16B) + `pc` (8B).
+- **Node size**: `ccmap_node_t` is 24 bytes (64-bit): `child[2]` (16B) + `pc` (8B).
 - **`first` pointer**: additionally tracks the minimum node, making `ccmap_first()` / `ccmap_begin()` O(1) and providing an insert fast-path when the new key is smaller than `first`.
 - **Internal helpers**: prefixed `_rb_` (`_rb_p`, `_rb_c`, `_rb_red`, `_rb_sp`, `_rb_sc`, `_rb_spc`, `_rb_min`, `_rb_transplant`, `_rb_rot_left`, `_rb_rot_right`, `_rb_ins_fix`, `_rb_del_fix`).
 - **`_rb_transplant`**: replaces node `z` with `c` (may be NULL) — updates parent's child link and root.  Uses `setne`-based array index for the left-vs-right child link, eliminating one branch.
@@ -390,7 +392,7 @@ Override via `#define CCFLATMAP_NODE_T struct my_pair` before `#include`.
 | `CCVECTOR_REALLOC` | ccvector | Realloc | `realloc` |
 | `CCVECTOR_MALLOC` | ccvector | Alloc | `realloc(NULL, sz)` |
 | `CCVECTOR_FREE` | ccvector | Free | `free` |
-| `CCVECTOR_INIT_CAP(v,c)` | ccvector | Init with explicit capacity (alias `ccvector_init_cap`) | none |
+| `ccvector_init_cap(v,c)` | ccvector | Init with explicit capacity | `CCVECTOR_DEFAULT_CAP` |
 | `CCVECTOR_DEFAULT_CAP` | ccvector | Initial capacity | `8` |
 | `CCFLATMAP_COMPARE(a,b)` | ccflatmap | Inline compare | none (use fn ptr) |
 | `CCFLATMAP_NODE_T` | ccflatmap | Override default node type | `ccflatmap_node_t` |

@@ -4,7 +4,7 @@
 **
 **  Intrusive red-black tree.  Embed `ccmap_node_t` in your struct.
 **  No internal allocation — caller owns all node memory.
-**  Color stored in parent pointer's low bit → 16 bytes per node (64-bit).
+**  Color stored in parent pointer's low bit → 24 bytes per node (64-bit).
 **
 **  ── Comparison (choose one) ──
 **

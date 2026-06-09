@@ -17,7 +17,7 @@ typedef struct ccmap_node {
 typedef int64_t (*ccmap_cmp_t)(const ccmap_node_t *a, const ccmap_node_t *b);
 // 返回 >0: a 序更小  <0: b 序更小  ==0: 相等
 
-typedef struct ccmap {
+typedef struct map {
     ccmap_node_t *root;
     ccmap_node_t *first;        // 最小节点 (O(1) begin)
     ccmap_node_t *last;         // 最大节点 (O(1) rbegin)
@@ -89,7 +89,7 @@ size_t ccmap_size(ccmap_t *m);
 // 元素数量。NULL 返回 0。
 
 int ccmap_height(const ccmap_t *m);
-// 树高估值。红黑树上界 ≤ 2·⌊log₂(n+1)⌋，由 size 推算 O(1)。
+// 树高估值。红黑树上界 ≤ 2·⌊log₂(n+1)⌋，由 size 推算 O(log n)。
 // 空树返回 0。
 ```
 
@@ -248,6 +248,13 @@ size_t cclist_size(const cclist_t *l);   // NULL 返回 0
 bool   cclist_empty(const cclist_t *l);  // NULL 返回 true
 ```
 
+### 错误信息
+
+```c
+const cclist_error_t *cclist_get_error(cclist_ecode_t code);
+// 将 cclist_verify() 返回的错误码转为可读描述。
+```
+
 ### 调试
 
 ```c
@@ -332,6 +339,13 @@ cclink_node_t *cclink_back(const cclink_t *l);    // → tail
 ```c
 size_t cclink_size(const cclink_t *l);   // NULL 返回 0
 bool   cclink_empty(const cclink_t *l);  // NULL 返回 true
+```
+
+### 错误信息
+
+```c
+const cclink_error_t *cclink_get_error(cclink_ecode_t code);
+// 将 cclink_verify() 返回的错误码转为可读描述。
 ```
 
 ### 调试
@@ -728,5 +742,5 @@ size_t cctreap_size(cctreap_t *m);
 // 元素数量。NULL 返回 0。
 
 int cctreap_height(const cctreap_t *m);
-// 树高估值。O(1)，由 size 推算。
+// 树高估值。O(log n)，由 size 推算。
 ```

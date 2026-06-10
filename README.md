@@ -86,6 +86,10 @@ conan create . -tf ""
 
 [Online documentation (only chinease)](https://ccalg.dev)
 
+## Contributing
+
+See [docs/contributing.md](docs/contributing.md) for vcpkg / ConanCenter submission guides.
+
 ## License
 
 BSD 3-Clause © CandyMi

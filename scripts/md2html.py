@@ -91,6 +91,7 @@ PAGES = [
     ("building",          "构建指南", "ccalg - "),
     ("benchmarks",        "性能基准", "ccalg - "),
     ("thread-safety",     "线程安全", "ccalg - "),
+    ("contributing",      "参与贡献", "ccalg - "),
 ]
 
 items = [

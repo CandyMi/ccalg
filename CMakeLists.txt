@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(ccalg LANGUAGES C CXX)
 
 # ── include directory ────────────────────────────────────────────────────
-set(CCLAG_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
+set(CCALG_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
 
 # ── common compile settings ──────────────────────────────────────────────
 set(CMAKE_C_STANDARD 99)
@@ -21,7 +21,7 @@ enable_testing()
 # ── test targets (C) ─────────────────────────────────────────────────────
 macro(add_ccalg_test name)
   add_executable(${name} tests/${name}.c)
-  target_include_directories(${name} PRIVATE ${CCLAG_INCLUDE_DIR})
+  target_include_directories(${name} PRIVATE ${CCALG_INCLUDE_DIR})
   add_test(
     NAME        ${name}
     COMMAND     $<TARGET_FILE:${name}>
@@ -47,7 +47,7 @@ add_ccalg_test(test_cctreap)
 # ── benchmark targets (C++) ──────────────────────────────────────────────
 macro(add_ccalg_bench name)
   add_executable(${name} bench/${name}.cpp)
-  target_include_directories(${name} PRIVATE ${CCLAG_INCLUDE_DIR})
+  target_include_directories(${name} PRIVATE ${CCALG_INCLUDE_DIR})
   target_compile_options(${name} PRIVATE -O2)
 endmacro()
 
@@ -63,8 +63,8 @@ add_ccalg_bench(bench_cctreap)
 # prefetch benchmark — needs two compilations (with / without CCMAP_PREFETCH)
 add_executable(bench_ccmap_prefetch      bench/bench_ccmap_prefetch.cpp)
 add_executable(bench_ccmap_prefetch_on   bench/bench_ccmap_prefetch.cpp)
-target_include_directories(bench_ccmap_prefetch    PRIVATE ${CCLAG_INCLUDE_DIR})
-target_include_directories(bench_ccmap_prefetch_on PRIVATE ${CCLAG_INCLUDE_DIR})
+target_include_directories(bench_ccmap_prefetch    PRIVATE ${CCALG_INCLUDE_DIR})
+target_include_directories(bench_ccmap_prefetch_on PRIVATE ${CCALG_INCLUDE_DIR})
 target_compile_options(bench_ccmap_prefetch    PRIVATE -O2)
 target_compile_options(bench_ccmap_prefetch_on PRIVATE -O2 -DCCMAP_PREFETCH)
 

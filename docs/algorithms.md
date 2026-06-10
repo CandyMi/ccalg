@@ -466,7 +466,7 @@ graph TD
 | 平衡机制 | 确定性着色+旋转 | 随机 priority + 旋转 |
 | 期望高度 | ≤ 2·log₂(n+1) 确定 | ≤ O(log n) 期望 |
 | 最坏高度 | 2·log₂(n+1) 确定 | O(n) 极低概率 |
-| 节点大小 (64-bit) | 24B | 24B (含 size) |
+| 节点大小 (64-bit) | 24B | 32B (含 size + priority) |
 | kth / rank | 不支持 | O(log n) |
 | 迭代 | O(log n) / O(1) 均摊 | O(log n) / O(1) 均摊 |
 | first/last 缓存 | ✅ O(1) | ✅ O(1) |

@@ -16,7 +16,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
 | 目标 | 命令 | 说明 |
 | --- | --- | --- |
-| 全量构建 | `cmake --build build` | 5 个测试 + 5 个 benchmark |
+| 全量构建 | `cmake --build build` | 8 个测试 + 10 个 benchmark |
 | 测试 | `cmake --build build --target check` | 构建 + CTest 运行全部单元测试 |
 | 基准 | `cmake --build build --target bench` | 构建 + 依次运行全部 benchmark |
 | 文档 | `cmake --build build --target docs-html` | docs/*.md → HTML（语法高亮） |
@@ -68,58 +68,98 @@ cmake --install build --prefix /usr/local
 
 ## Premake5（备选）
 
-### 生成与构建
+### 生成
 
 ```bash
-premake5 gmake2                   # 生成 Makefile
-make -C build config=release -j4  # 构建（5 测试 + 5 基准）
+premake5 gmake                      # 生成 Makefile（旧版本用 gmake2）
+make -C build                       # 默认 debug 构建
+make -C build config=release -j4    # release 构建（8 测试 + 10 基准）
 ```
 
 产物位置：
 
 | 类型 | 路径 |
 | --- | --- |
-| 测试 | `build/test_*` |
-| 基准 | `build/bench_*` |
+| 测试 | `build/bin/Release/test_*` |
+| 基准 | `build/bin/Release/bench_*` |
+
+### 目标一览
+
+| 目标 | 命令 | 说明 |
+| --- | --- | --- |
+| 全量构建 | `make -C build config=release -j4` | 8 个测试 + 10 个 benchmark |
+| 测试 | `make -C build check` | 构建 + 依次运行全部测试 |
+| 基准 | `make -C build bench` | 构建 + 依次运行全部 benchmark（带容器名分隔） |
+| 文档 | `make -C build docs-html` | docs/*.md → HTML（需 python3） |
+| 单项构建 | `make -C build config=release test_ccmap` | 只构建指定目标 |
 
 ### 构建单个目标
 
 ```bash
-make -C build config=release test_ccmap    # 只构建红黑树测试
-make -C build config=release bench_cclink  # 只构建单向链表基准
+make -C build config=release test_ccmap       # 只构建红黑树测试
+make -C build config=release bench_cclink     # 只构建单向链表基准
 ```
 
 ### 运行测试
 
 ```bash
-./build/test_ccmap
-./build/test_cchashmap
-./build/test_cclink
-./build/test_cclist
-./build/test_ccheap
+# 方式一：check 目标（推荐）
+make -C build check
+
+# 方式二：直接运行
+./build/bin/Release/test_ccmap
+./build/bin/Release/test_cchashmap
+./build/bin/Release/test_cclink
+./build/bin/Release/test_cclist
+./build/bin/Release/test_ccheap
+./build/bin/Release/test_ccvector
+./build/bin/Release/test_ccflatmap
+./build/bin/Release/test_cctreap
 ```
 
 ### 运行基准
 
 ```bash
-./build/bench_ccmap
-./build/bench_cchashmap
-./build/bench_cclink
-./build/bench_cclist
-./build/bench_ccheap
+# 方式一：bench 目标（推荐，含分隔横幅）
+make -C build bench
+
+# 方式二：直接运行
+./build/bin/Release/bench_ccmap
+./build/bin/Release/bench_cchashmap
+./build/bin/Release/bench_cclink
+./build/bin/Release/bench_cclist
+./build/bin/Release/bench_ccheap
+./build/bin/Release/bench_ccvector
+./build/bin/Release/bench_ccflatmap
+./build/bin/Release/bench_cctreap
+./build/bin/Release/bench_ccmap_prefetch
+./build/bin/Release/bench_ccmap_prefetch_on
 ```
 
 ### 安装
 
 ```bash
-PREFIX=/usr/local sh scripts/install.sh
-# → /usr/local/include/cclag/*.h
-
-# 自定义路径
-PREFIX=~/.local sh scripts/install.sh
+premake5 install                    # 默认安装到 /usr/local
+premake5 install --prefix=~/.local  # 自定义路径
 ```
 
-安装后在代码中 `#include "cclag/ccmap.h"` 等（路径前缀 `cclag/`）。
+安装后：
+
+```
+~/.local/
+├── include/cclag/         # 所有 .h 头文件
+└── share/doc/cclag/       # LICENSE, README.md
+```
+
+安装后在代码中：
+
+```c
+#include "cclag/ccmap.h"       // 而非 "ccmap.h"
+#include "cclag/cchashmap.h"
+#include "cclag/cclink.h"
+#include "cclag/cclist.h"
+#include "cclag/ccheap.h"
+```
 
 ## 手动编译
 

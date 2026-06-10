@@ -4,18 +4,20 @@
 **
 **  Intrusive treap (tree + heap).  Embed `cctreap_node_t` in your struct.
 **  No internal allocation — caller owns all node memory.
-**  Priority is external: user embeds a priority field in their struct and
-**  provides CCTREAP_PRIORITY (or cctreap_prio_cmp_t) for heap comparisons.
+**  Priority is internal: a random uint64_t is generated for each node on
+**  insert via xorshift64 (overridable via CCTREAP_RAND).  Max-heap invariant
+**  is enforced automatically — no user-facing priority API.
 **
-**  ── Comparison (choose one per axis) ──
+**  ── Comparison ──
 **
 **    Key (BST order):
 **      Default:   pass a `cctreap_cmp_t` to cctreap_init().
 **      Optional:  define CCTREAP_COMPARE(a, b) before #include.
 **
-**    Priority (max-heap):
-**      Default:   pass a `cctreap_prio_cmp_t` to cctreap_init().
-**      Optional:  define CCTREAP_PRIORITY(a, b) before #include.
+**  ── RNG override ──
+**
+**    #define CCTREAP_RAND(state)  my_rand64(state)
+**    Must return a uint64_t and update *state for the next call.
 **
 **  ── Container-of ──
 **
@@ -93,20 +95,11 @@
 #define CCTREAP_RIGHT 1
 
 /* ── comparison dispatch ──────────────────────────────────────────────── */
-/* Each function that needs CCTREAP_CMP or CCTREAP_PRIO declares a local
-** alias (key_cmp / prio_cmp).  When the corresponding macro is defined,
-** the alias declaration is suppressed — the macro expands inline. */
 
 #ifdef CCTREAP_COMPARE
   #define CCTREAP_CMP(a, b) CCTREAP_COMPARE((a), (b))
 #else
   #define CCTREAP_CMP(a, b) (key_cmp((a), (b)))
-#endif
-
-#ifdef CCTREAP_PRIORITY
-  #define CCTREAP_PRIO(a, b) CCTREAP_PRIORITY((a), (b))
-#else
-  #define CCTREAP_PRIO(a, b) (prio_cmp((a), (b)))
 #endif
 
 /* ── node ─────────────────────────────────────────────────────────────── */
@@ -116,6 +109,7 @@ typedef struct cctreap_node {
   struct cctreap_node *child[2];  /* [CCTREAP_LEFT]=left, [CCTREAP_RIGHT]=right */
   uintptr_t                pc;    /* parent pointer (low bit unused) */
   size_t                   size;  /* subtree node count */
+  uint64_t                 priority; /* internal random priority (max-heap) */
 } cctreap_node_t;
 #define CCTREAP_NODE_T
 #endif
@@ -129,8 +123,13 @@ typedef struct cctreap_node {
 CCTREAP_INLINE void _tp_upd_sz(cctreap_node_t *n) {
   n->size = 1 + _tp_sz(n->child[CCTREAP_LEFT]) + _tp_sz(n->child[CCTREAP_RIGHT]);
 }
+#define _tp_upd_path(from)                                    \
+  do { cctreap_node_t *u_ = (from);                           \
+       while (u_) { _tp_upd_sz(u_); u_ = _tp_p(u_); }        \
+  } while(0)
 
 CCTREAP_INLINE cctreap_node_t *_tp_min(cctreap_node_t *x) {
+  if (!x) return NULL;
   while (x->child[CCTREAP_LEFT]) {
     CCTREAP_PREFETCH_R(x->child[CCTREAP_LEFT]->child[CCTREAP_LEFT]);
     x = x->child[CCTREAP_LEFT];
@@ -139,6 +138,7 @@ CCTREAP_INLINE cctreap_node_t *_tp_min(cctreap_node_t *x) {
 }
 
 CCTREAP_INLINE cctreap_node_t *_tp_max(cctreap_node_t *x) {
+  if (!x) return NULL;
   while (x->child[CCTREAP_RIGHT]) {
     CCTREAP_PREFETCH_R(x->child[CCTREAP_RIGHT]->child[CCTREAP_RIGHT]);
     x = x->child[CCTREAP_RIGHT];
@@ -148,17 +148,38 @@ CCTREAP_INLINE cctreap_node_t *_tp_max(cctreap_node_t *x) {
 
 /* ── types ────────────────────────────────────────────────────────────── */
 
-typedef int64_t (*cctreap_cmp_t)      (const cctreap_node_t *a, const cctreap_node_t *b);
-typedef int64_t (*cctreap_prio_cmp_t) (const cctreap_node_t *a, const cctreap_node_t *b);
+typedef int64_t (*cctreap_cmp_t) (const cctreap_node_t *a, const cctreap_node_t *b);
 
 typedef struct cctreap {
   cctreap_node_t    *root;
   cctreap_node_t    *first;
   cctreap_node_t    *last;
   size_t             size;
-  cctreap_cmp_t       key_cmp;
-  cctreap_prio_cmp_t  prio_cmp;
+  cctreap_cmp_t      key_cmp;
+  uint64_t           state;   /* xorshift64 state, seeded from ptr */
 } cctreap_t;
+
+/* ── internal priority (max-heap, non-overridable) ──────────────────── */
+CCTREAP_INLINE int64_t _tp_prio_cmp(const cctreap_node_t *a,
+                                    const cctreap_node_t *b) {
+  if (a->priority > b->priority) return 1;
+  if (a->priority < b->priority) return -1;
+  return 0;
+}
+#define _TP_PRIO_CMP(a, b) _tp_prio_cmp((a), (b))
+
+/* ── internal xorshift64 (overridable via CCTREAP_RAND) ──────────────── */
+CCTREAP_INLINE uint64_t _tp_xorshift64(uint64_t *state) {
+  uint64_t x = *state;
+  x ^= x << 13;
+  x ^= x >> 7;
+  x ^= x << 17;
+  return *state = x;
+}
+
+#ifndef CCTREAP_RAND
+  #define CCTREAP_RAND(state) _tp_xorshift64(state)
+#endif
 
 /* ── transplant ───────────────────────────────────────────────────────── */
 
@@ -202,51 +223,48 @@ CCTREAP_INLINE void _tp_rot_right(cctreap_t *m, cctreap_node_t *x) {
 /* ── insert fixup (bubble up by priority) ─────────────────────────────── */
 
 CCTREAP_INLINE void _tp_ins_fix(cctreap_t *m, cctreap_node_t *z) {
-#ifndef CCTREAP_PRIORITY
-  cctreap_prio_cmp_t prio_cmp = m->prio_cmp;
-#endif
   cctreap_node_t *p = _tp_p(z);
-  while (p && CCTREAP_PRIO(z, p) > 0) {
+  while (p && _TP_PRIO_CMP(z, p) > 0) {
     if (z == p->child[CCTREAP_LEFT]) _tp_rot_right(m, p);
     else                             _tp_rot_left(m, p);
     p = _tp_p(z);
   }
+  (void)m;
 }
 
 /* ── delete fixup (bubble down to leaf) ───────────────────────────────── */
 
 CCTREAP_INLINE void _tp_del_fix(cctreap_t *m, cctreap_node_t *z) {
-#ifndef CCTREAP_PRIORITY
-  cctreap_prio_cmp_t prio_cmp = m->prio_cmp;
-#endif
   while (z->child[CCTREAP_LEFT] || z->child[CCTREAP_RIGHT]) {
     if (!z->child[CCTREAP_LEFT])
       _tp_rot_left(m, z);
     else if (!z->child[CCTREAP_RIGHT])
       _tp_rot_right(m, z);
-    else if (CCTREAP_PRIO(z->child[CCTREAP_LEFT], z->child[CCTREAP_RIGHT]) > 0)
+    else if (_TP_PRIO_CMP(z->child[CCTREAP_LEFT], z->child[CCTREAP_RIGHT]) > 0)
       _tp_rot_right(m, z);
     else
       _tp_rot_left(m, z);
   }
+  (void)m;
 }
 
 /* ── public API ───────────────────────────────────────────────────────── */
 
-CCTREAP_INLINE void cctreap_init(cctreap_t *m, cctreap_cmp_t key_cmp, cctreap_prio_cmp_t prio_cmp) {
+CCTREAP_INLINE void cctreap_init(cctreap_t *m, cctreap_cmp_t key_cmp) {
   if (cctreap_unlikely(!m)) return;
-  m->root    = NULL;
-  m->first   = NULL;
-  m->last    = NULL;
-  m->size    = 0;
-  m->key_cmp = key_cmp;
-  m->prio_cmp = prio_cmp;
+  m->root      = NULL;
+  m->first     = NULL;
+  m->last      = NULL;
+  m->size      = 0;
+  m->key_cmp   = key_cmp;
+  m->state     = (uint64_t)(uintptr_t)m;
 }
 
 CCTREAP_INLINE int cctreap_insert(cctreap_t *m, cctreap_node_t *node, cctreap_node_t **out) {
   if (cctreap_unlikely(!m || !node)) return -1;
   node->child[CCTREAP_LEFT] = node->child[CCTREAP_RIGHT] = NULL;
-  node->size = 1;
+  node->size     = 1;
+  node->priority = CCTREAP_RAND(&m->state);
   _tp_spc(node, NULL, 0);
 #ifndef CCTREAP_COMPARE
   cctreap_cmp_t key_cmp = m->key_cmp;
@@ -256,10 +274,7 @@ CCTREAP_INLINE int cctreap_insert(cctreap_t *m, cctreap_node_t *node, cctreap_no
   if (m->first && CCTREAP_CMP(node, m->first) < 0) {
     m->first->child[CCTREAP_LEFT] = node;
     _tp_sp(node, m->first);
-    {
-      cctreap_node_t *up = m->first;
-      while (up) { _tp_upd_sz(up); up = _tp_p(up); }
-    }
+    _tp_upd_path(m->first);
     _tp_ins_fix(m, node);
     m->first = node;
     m->size++;
@@ -270,10 +285,7 @@ CCTREAP_INLINE int cctreap_insert(cctreap_t *m, cctreap_node_t *node, cctreap_no
   if (m->last && CCTREAP_CMP(node, m->last) > 0) {
     m->last->child[CCTREAP_RIGHT] = node;
     _tp_sp(node, m->last);
-    {
-      cctreap_node_t *up = m->last;
-      while (up) { _tp_upd_sz(up); up = _tp_p(up); }
-    }
+    _tp_upd_path(m->last);
     _tp_ins_fix(m, node);
     m->last = node;
     m->size++;
@@ -296,18 +308,13 @@ CCTREAP_INLINE int cctreap_insert(cctreap_t *m, cctreap_node_t *node, cctreap_no
   else {
     int64_t c = CCTREAP_CMP(node, y);
     y->child[c > 0] = node;
-    {
-      cctreap_node_t *up = y;
-      while (up) { _tp_upd_sz(up); up = _tp_p(up); }
-    }
+    _tp_upd_path(y);
   }
 
   _tp_ins_fix(m, node);
   m->size++;
-  if (!m->first || CCTREAP_CMP(node, m->first) < 0)
-    m->first = node;
-  if (!m->last || CCTREAP_CMP(node, m->last) > 0)
-    m->last = node;
+  if (CCTREAP_CMP(node, m->first) < 0) m->first = node;
+  if (CCTREAP_CMP(node, m->last) > 0)  m->last  = node;
   if (out) *out = node;
   return 0;
 }
@@ -340,18 +347,12 @@ CCTREAP_INLINE void cctreap_erase(cctreap_t *m, cctreap_node_t *z) {
   {
     cctreap_node_t *zp = _tp_p(z);
     _tp_transplant(m, z, NULL);
-    while (zp) { _tp_upd_sz(zp); zp = _tp_p(zp); }
+    _tp_upd_path(zp);
   }
 
   /* recompute cached boundaries */
-  if (is_first) {
-    m->first = m->root;
-    if (m->first) while (m->first->child[CCTREAP_LEFT]) m->first = m->first->child[CCTREAP_LEFT];
-  }
-  if (is_last) {
-    m->last = m->root;
-    if (m->last) while (m->last->child[CCTREAP_RIGHT]) m->last = m->last->child[CCTREAP_RIGHT];
-  }
+  if (is_first) m->first = _tp_min(m->root);
+  if (is_last)  m->last  = _tp_max(m->root);
   m->size--;
 }
 
@@ -413,7 +414,9 @@ CCTREAP_INLINE cctreap_node_t *cctreap_prev(cctreap_node_t *x) {
 }
 
 CCTREAP_INLINE size_t cctreap_size(cctreap_t *m) { return m ? m->size : 0; }
-CCTREAP_INLINE void   cctreap_clear(cctreap_t *m) { if (m) { m->root = NULL; m->first = NULL; m->last = NULL; m->size = 0; } }
+CCTREAP_INLINE void cctreap_clear(cctreap_t *m) {
+  if (m) { m->root = NULL; m->first = NULL; m->last = NULL; m->size = 0; }
+}
 
 CCTREAP_INLINE int cctreap_height(const cctreap_t *m) {
   if (!m || !m->size) return 0;

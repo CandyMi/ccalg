@@ -657,7 +657,7 @@ int    ccflatmap_reserve(ccflatmap_t *m, size_t new_cap);
 
 头文件: [`include/cctreap.h`](../include/cctreap.h)
 
-有序映射，基于 treap（BST + max-heap）。节点 24 字节（64-bit），优先级外置。
+有序映射，基于 treap（BST + max-heap）。节点 32 字节（64-bit），优先级内置（插入时 xorshift64 自动生成）。
 
 ### 类型
 
@@ -666,10 +666,10 @@ typedef struct cctreap_node {
     struct cctreap_node *child[2];  // [0]=left, [1]=right
     uintptr_t            pc;        // parent pointer
     size_t               size;      // subtree node count
+    uint64_t             priority;  // internal random priority (max-heap)
 } cctreap_node_t;
 
-typedef int64_t (*cctreap_cmp_t)      (const cctreap_node_t *a, const cctreap_node_t *b);
-typedef int64_t (*cctreap_prio_cmp_t) (const cctreap_node_t *a, const cctreap_node_t *b);
+typedef int64_t (*cctreap_cmp_t) (const cctreap_node_t *a, const cctreap_node_t *b);
 
 typedef struct cctreap {
     cctreap_node_t    *root;
@@ -677,7 +677,7 @@ typedef struct cctreap {
     cctreap_node_t    *last;         // 最大节点 (O(1) rbegin)
     size_t             size;
     cctreap_cmp_t       key_cmp;
-    cctreap_prio_cmp_t  prio_cmp;
+    uint64_t            rng_state;   // xorshift64 state, seeded from ptr
 } cctreap_t;
 ```
 
@@ -686,14 +686,15 @@ typedef struct cctreap {
 | 宏 | 作用 | 默认 |
 | --- | --- | --- |
 | `CCTREAP_COMPARE(a, b)` | 内联 key 比较 | 未定义 |
-| `CCTREAP_PRIORITY(a, b)` | 内联 priority 比较 | 未定义 |
+| `CCTREAP_RAND(state)` | 替换随机数生成器（默认 xorshift64）| `_tp_xorshift64` |
 | `CCTREAP_NODE_T` | 阻止默认节点 typedef | 未定义 |
 
 ### 生命周期
 
 ```c
-void cctreap_init(cctreap_t *m, cctreap_cmp_t key_cmp, cctreap_prio_cmp_t prio_cmp);
-// 初始化。若定义了 CCTREAP_COMPARE / CCTREAP_PRIORITY，对应参数被忽略。
+void cctreap_init(cctreap_t *m, cctreap_cmp_t key_cmp);
+// 初始化。若定义了 CCTREAP_COMPARE，key_cmp 被忽略。
+// rng_state 由 m 的指针值自动播种。
 
 void cctreap_clear(cctreap_t *m);
 // 重置为空。不释放节点内存。
@@ -704,7 +705,7 @@ void cctreap_clear(cctreap_t *m);
 ```c
 int cctreap_insert(cctreap_t *m, cctreap_node_t *node, cctreap_node_t **out);
 // 插入节点。返回 0 成功，-1 重复（*out = 已存在节点）。
-// 用户须提前设置 priority（通过 CCTREAP_PRIORITY 或 prio_cmp 访问）。
+// priority 由内部 CCTREAP_RAND 自动生成，无需用户设置。
 
 cctreap_node_t *cctreap_find(cctreap_t *m, const cctreap_node_t *probe);
 // 按 key 查找。返回节点指针或 NULL。

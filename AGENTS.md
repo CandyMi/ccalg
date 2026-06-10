@@ -76,7 +76,7 @@ When a macro is defined, the matching `init()` parameter is suppressed with `(vo
 | `cchashmap` | `cchashmap_hash_t`: `uint64_t (*)(const cchashmap_node_t*, size_t)` <br> `cchashmap_equal_t`: `bool (*)(const cchashmap_node_t*, const cchashmap_node_t*)` | `#define CCHASHMAP_HASH(n, seed)` <br> `#define CCHASHMAP_EQUAL(a, b)` |
 | `ccheap` | `ccheap_compare_t`: `int64_t (*)(const ccheap_node_t*, const ccheap_node_t*)` | `#define CCHEAP_COMPARE(a, b)` |
 | `ccflatmap` | `ccflatmap_cmp_t`: `int64_t (*)(const CCFLATMAP_NODE_T*, const CCFLATMAP_NODE_T*)` | `#define CCFLATMAP_COMPARE(a, b)` |
-| `cctreap` | `cctreap_cmp_t`: `int64_t (*)(const cctreap_node_t*, const cctreap_node_t*)` (key) <br> `cctreap_prio_cmp_t`: `int64_t (*)(const cctreap_node_t*, const cctreap_node_t*)` (priority) | `#define CCTREAP_COMPARE(a, b)` (key) <br> `#define CCTREAP_PRIORITY(a, b)` (priority) |
+| `cctreap` | `cctreap_cmp_t`: `int64_t (*)(const cctreap_node_t*, const cctreap_node_t*)` (key) | `#define CCTREAP_COMPARE(a, b)` (key) <br> `#define CCTREAP_RAND(state)` (RNG) |
 | `cclist` / `cclink` | none needed | none |
 
 #### Comparison semantics
@@ -97,7 +97,7 @@ Each container owns its namespace. Prefix = container abbreviation. No macros ar
 | `ccheap` | `CCHEAP_` | `CCHEAP_INLINE`, `CCHEAP_COMPARE`, `CCHEAP_REALLOC`, `CCHEAP_NODE_T` |
 | `ccvector` | `CCVECTOR_` | `CCVECTOR_INLINE`, `CCVECTOR_REALLOC`, `CCVECTOR_NODE_T` |
 | `ccflatmap` | `CCFLATMAP_` | `CCFLATMAP_INLINE`, `CCFLATMAP_COMPARE`, `CCFLATMAP_REALLOC`, `CCFLATMAP_NODE_T` |
-| `cctreap` | `CCTREAP_` | `CCTREAP_INLINE`, `CCTREAP_CONTAINER`, `CCTREAP_COMPARE`, `CCTREAP_PRIORITY` |
+| `cctreap` | `CCTREAP_` | `CCTREAP_INLINE`, `CCTREAP_CONTAINER`, `CCTREAP_COMPARE`, `CCTREAP_RAND` |
 
 ### Allocation hooks
 
@@ -148,7 +148,7 @@ Aliases: hashmap provides `set`/`get`/`del`.  `out` parameter: on duplicate `*ou
 
 Both capture `is_first`/`is_last` flags **before** any structural modification.
 
-`cctreap` nodes carry a `size` field enabling O(log n) `cctreap_kth(m, k)` (0-indexed k-th smallest) and `cctreap_rank(m, probe)` (0-indexed rank, `-1` if not found). Priority is external — user embeds a priority field and provides `CCTREAP_PRIORITY`.
+`cctreap` nodes carry a `size` field enabling O(log n) `cctreap_kth(m, k)` (0-indexed k-th smallest) and `cctreap_rank(m, probe)` (0-indexed rank, `-1` if not found). Priority is internal — a random `uint64_t` generated on insert via xorshift64 (overridable via `CCTREAP_RAND`).
 
 **Exception**: `ccflatmap_next(m, p)` / `ccflatmap_prev(m, p)` take the container pointer — arrays need bounds via `m->len`.
 
@@ -253,8 +253,8 @@ Each header defines its own `CCXXX_INLINE`:
 
 ### cctreap — Treap
 
-- BST (key) + max-heap (priority).  Node 24B (64-bit): `child[2]` (16B) + `pc` (8B) + `size` (8B).  Priority external in user struct.
-- Two comparison axes: `CCTREAP_COMPARE` (key) + `CCTREAP_PRIORITY` (heap).  Each supports macro + fn-ptr dispatch.
+- BST (key) + max-heap (priority).  Node 32B (64-bit): `child[2]` (16B) + `pc` (8B) + `size` (8B) + `priority` (8B).  Priority internal, xorshift64-generated on insert.
+- Key comparison via `CCTREAP_COMPARE` (macro or fn-ptr). Priority is internal `uint64_t` with max-heap invariant, generated on insert via xorshift64 (overridable via `CCTREAP_RAND`).
 - **Insert**: BST descent → bubble-up by priority (rotate while `CCTREAP_PRIO(node, parent) > 0`).
 - **Erase**: bubble-down to leaf (rotate toward higher-priority child) → transplant with NULL.
 - `kth(m, k)`: 0-indexed k-th smallest; uses node `size` to binary-search.  O(log n) deterministic.
@@ -296,7 +296,7 @@ Each header defines its own `CCXXX_INLINE`:
 | `CCFLATMAP_FREE(ptr)` | ccflatmap | Free | `free` |
 | `CCFLATMAP_DEFAULT_CAP` | ccflatmap | Initial capacity | `8` |
 | `CCTREAP_COMPARE(a,b)` | cctreap | Inline key compare | none |
-| `CCTREAP_PRIORITY(a,b)` | cctreap | Inline priority compare | none |
+| `CCTREAP_RAND(state)` | cctreap | Replace RNG (default xorshift64) | `_tp_xorshift64` |
 | `CCTREAP_NODE_T` | cctreap | Override node type | none |
 
 Internal constants: `CCMAP_RED=0`/`CCMAP_BLACK=1`/`CCMAP_LEFT=0`/`CCMAP_RIGHT=1`.

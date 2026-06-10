@@ -407,9 +407,9 @@ Treap 是二叉搜索树和堆的随机化结合体。每个节点同时维护 *
 | 性质 | 规则 | 实现 |
 | --- | --- | --- |
 | BST 性质 | 左子树 key < 当前 key < 右子树 key | `CCTREAP_COMPARE` |
-| 堆性质 | 当前 priority > 所有子节点 priority (max-heap) | `CCTREAP_PRIORITY` |
+| 堆性质 | 当前 priority > 所有子节点 priority (max-heap) | `_TP_PRIO_CMP`（内部）|
 
-> priority 由用户维护，不在 `cctreap_node_t` 内。用户嵌入 priority 字段到自己的结构体，通过宏或函数指针暴露给容器。
+> priority 存储在 `cctreap_node_t::priority` 内，插入时由 xorshift64 自动生成（可通过 `CCTREAP_RAND` 宏替换）。用户无需手动管理。
 
 ### 操作流程
 

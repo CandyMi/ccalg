@@ -268,25 +268,19 @@ int main() {
 #include <stdlib.h>
 #include "cctreap.h"
 
-struct entry { int key; uint64_t prio; cctreap_node_t node; };
+struct entry { int key; cctreap_node_t node; };
 
 static int64_t key_cmp(const cctreap_node_t *a, const cctreap_node_t *b) {
     return CCTREAP_CONTAINER(a, struct entry, node)->key
          - CCTREAP_CONTAINER(b, struct entry, node)->key;
 }
-static int64_t prio_cmp(const cctreap_node_t *a, const cctreap_node_t *b) {
-    uint64_t pa = CCTREAP_CONTAINER(a, struct entry, node)->prio;
-    uint64_t pb = CCTREAP_CONTAINER(b, struct entry, node)->prio;
-    return (pa > pb) ? 1 : (pa < pb) ? -1 : 0;
-}
 
 int main() {
-    cctreap_t t; cctreap_init(&t, key_cmp, prio_cmp);
+    cctreap_t t; cctreap_init(&t, key_cmp);
 
     struct entry e[5];
     for (int i = 0; i < 5; i++) {
-        e[i].key  = i * 10;
-        e[i].prio = (uint64_t)rand() << 32 | rand();
+        e[i].key = i * 10;
         cctreap_insert(&t, &e[i].node, NULL);
     }
 

@@ -12,7 +12,6 @@
 /* ── test entry ───────────────────────────────────────────────────────── */
 struct entry {
   int             key;
-  uint64_t        priority;
   cctreap_node_t  node;
 };
 
@@ -21,15 +20,7 @@ static int64_t key_cmp(const cctreap_node_t *a, const cctreap_node_t *b) {
                    CCTREAP_CONTAINER(b, struct entry, node)->key);
 }
 
-static int64_t prio_cmp(const cctreap_node_t *a, const cctreap_node_t *b) {
-  uint64_t pa = CCTREAP_CONTAINER(a, struct entry, node)->priority;
-  uint64_t pb = CCTREAP_CONTAINER(b, struct entry, node)->priority;
-  if (pa > pb) return 1;
-  if (pa < pb) return -1;
-  return 0;
-}
-
-/* ── simple LCG for deterministic random priorities ──────────────────── */
+/* ── simple LCG kept for shuffle / deterministic _rng in stress tests ── */
 static uint64_t _rng_state = 0xCAFEBABEDEADBEEFULL;
 static uint64_t _rng(void) {
   _rng_state = _rng_state * 6364136223846793005ULL + 1442695040888963407ULL;
@@ -71,15 +62,15 @@ static int verify_bst(cctreap_node_t *x, cctreap_cmp_t cmp) {
   return 1;
 }
 
-static int verify_heap(cctreap_node_t *x, cctreap_prio_cmp_t pcmp) {
+static int verify_heap(cctreap_node_t *x) {
   if (!x) return 1;
   if (x->child[CCTREAP_LEFT]) {
-    if (pcmp(x, x->child[CCTREAP_LEFT]) <= 0) return 0;
-    if (!verify_heap(x->child[CCTREAP_LEFT], pcmp)) return 0;
+    if (_TP_PRIO_CMP(x, x->child[CCTREAP_LEFT]) <= 0) return 0;
+    if (!verify_heap(x->child[CCTREAP_LEFT])) return 0;
   }
   if (x->child[CCTREAP_RIGHT]) {
-    if (pcmp(x, x->child[CCTREAP_RIGHT]) <= 0) return 0;
-    if (!verify_heap(x->child[CCTREAP_RIGHT], pcmp)) return 0;
+    if (_TP_PRIO_CMP(x, x->child[CCTREAP_RIGHT]) <= 0) return 0;
+    if (!verify_heap(x->child[CCTREAP_RIGHT])) return 0;
   }
   return 1;
 }
@@ -103,7 +94,7 @@ static int real_height(cctreap_node_t *x) {
 
 TEST(init_empty) {
   cctreap_t m;
-  cctreap_init(&m, key_cmp, prio_cmp);
+  cctreap_init(&m, key_cmp);
   ASSERT(cctreap_size(&m) == 0);
   ASSERT(cctreap_begin(&m) == NULL);
   ASSERT(cctreap_end(&m) == NULL);
@@ -115,33 +106,33 @@ TEST(init_empty) {
 }
 
 TEST(insert_and_size) {
-  cctreap_t m; cctreap_init(&m, key_cmp, prio_cmp);
+  cctreap_t m; cctreap_init(&m, key_cmp);
   struct entry e[5];
-  for (int i = 0; i < 5; i++) { e[i].key = i * 10; e[i].priority = _rng(); cctreap_insert(&m, &e[i].node, NULL); }
+  for (int i = 0; i < 5; i++) { e[i].key = i * 10; cctreap_insert(&m, &e[i].node, NULL); }
   ASSERT(cctreap_size(&m) == 5);
   ASSERT(count_forward(&m) == 5);
   ASSERT(count_reverse(&m) == 5);
   ASSERT(verify_bst(m.root, key_cmp));
-  ASSERT(verify_heap(m.root, prio_cmp));
+  ASSERT(verify_heap(m.root));
   ASSERT(verify_sizes(m.root));
 }
 
 TEST(insert_duplicate) {
-  cctreap_t m; cctreap_init(&m, key_cmp, prio_cmp);
-  struct entry e1 = {.key = 42, .priority = _rng()}; cctreap_node_t *out = NULL;
+  cctreap_t m; cctreap_init(&m, key_cmp);
+  struct entry e1 = {.key = 42}; cctreap_node_t *out = NULL;
   ASSERT(cctreap_insert(&m, &e1.node, &out) == 0);
   ASSERT(out == &e1.node);
 
-  struct entry e2 = {.key = 42, .priority = _rng()};
+  struct entry e2 = {.key = 42};
   ASSERT(cctreap_insert(&m, &e2.node, &out) == -1);
   ASSERT(out == &e1.node); /* out → existing */
   ASSERT(cctreap_size(&m) == 1);
 }
 
 TEST(find) {
-  cctreap_t m; cctreap_init(&m, key_cmp, prio_cmp);
+  cctreap_t m; cctreap_init(&m, key_cmp);
   struct entry e[3] = {{.key=10},{.key=20},{.key=30}};
-  for (int i = 0; i < 3; i++) { e[i].priority = _rng(); cctreap_insert(&m, &e[i].node, NULL); }
+  for (int i = 0; i < 3; i++) { cctreap_insert(&m, &e[i].node, NULL); }
 
   struct entry probe;
   probe.key = 10; ASSERT(cctreap_find(&m, &probe.node) == &e[0].node);
@@ -151,35 +142,35 @@ TEST(find) {
 }
 
 TEST(erase) {
-  cctreap_t m; cctreap_init(&m, key_cmp, prio_cmp);
+  cctreap_t m; cctreap_init(&m, key_cmp);
   struct entry e[5];
-  for (int i = 0; i < 5; i++) { e[i].key = i; e[i].priority = _rng(); cctreap_insert(&m, &e[i].node, NULL); }
+  for (int i = 0; i < 5; i++) { e[i].key = i; cctreap_insert(&m, &e[i].node, NULL); }
   ASSERT(cctreap_size(&m) == 5);
 
   cctreap_erase(&m, &e[2].node); /* middle */
   ASSERT(cctreap_size(&m) == 4);
   ASSERT(count_forward(&m) == 4);
   ASSERT(verify_bst(m.root, key_cmp));
-  ASSERT(verify_heap(m.root, prio_cmp));
+  ASSERT(verify_heap(m.root));
   ASSERT(verify_sizes(m.root));
 
   cctreap_erase(&m, &e[0].node); /* first */
   ASSERT(cctreap_size(&m) == 3);
   ASSERT(verify_bst(m.root, key_cmp));
-  ASSERT(verify_heap(m.root, prio_cmp));
+  ASSERT(verify_heap(m.root));
   ASSERT(verify_sizes(m.root));
 
   cctreap_erase(&m, &e[4].node); /* last */
   ASSERT(cctreap_size(&m) == 2);
   ASSERT(verify_bst(m.root, key_cmp));
-  ASSERT(verify_heap(m.root, prio_cmp));
+  ASSERT(verify_heap(m.root));
   ASSERT(verify_sizes(m.root));
 }
 
 TEST(erase_update_first_last) {
-  cctreap_t m; cctreap_init(&m, key_cmp, prio_cmp);
+  cctreap_t m; cctreap_init(&m, key_cmp);
   struct entry e[3] = {{.key=30},{.key=10},{.key=20}};
-  for (int i = 0; i < 3; i++) { e[i].priority = _rng(); cctreap_insert(&m, &e[i].node, NULL); }
+  for (int i = 0; i < 3; i++) { cctreap_insert(&m, &e[i].node, NULL); }
   ASSERT(CCTREAP_CONTAINER(cctreap_first(&m), struct entry, node)->key == 10);
   ASSERT(CCTREAP_CONTAINER(cctreap_last(&m), struct entry, node)->key == 30);
 
@@ -204,9 +195,9 @@ TEST(erase_update_first_last) {
 }
 
 TEST(clear) {
-  cctreap_t m; cctreap_init(&m, key_cmp, prio_cmp);
+  cctreap_t m; cctreap_init(&m, key_cmp);
   struct entry e[3] = {{.key=1},{.key=2},{.key=3}};
-  for (int i = 0; i < 3; i++) { e[i].priority = _rng(); cctreap_insert(&m, &e[i].node, NULL); }
+  for (int i = 0; i < 3; i++) { cctreap_insert(&m, &e[i].node, NULL); }
   cctreap_clear(&m);
   ASSERT(cctreap_size(&m) == 0);
   ASSERT(cctreap_begin(&m) == NULL);
@@ -216,9 +207,9 @@ TEST(clear) {
 }
 
 TEST(iterate_forward) {
-  cctreap_t m; cctreap_init(&m, key_cmp, prio_cmp);
+  cctreap_t m; cctreap_init(&m, key_cmp);
   struct entry e[5];
-  for (int i = 0; i < 5; i++) { e[i].key = 4 - i; e[i].priority = _rng(); cctreap_insert(&m, &e[i].node, NULL); }
+  for (int i = 0; i < 5; i++) { e[i].key = 4 - i; cctreap_insert(&m, &e[i].node, NULL); }
   int prev = -1;
   for (cctreap_node_t *n = cctreap_begin(&m); n != cctreap_end(&m); n = cctreap_next(n)) {
     int k = CCTREAP_CONTAINER(n, struct entry, node)->key;
@@ -229,9 +220,9 @@ TEST(iterate_forward) {
 }
 
 TEST(iterate_reverse) {
-  cctreap_t m; cctreap_init(&m, key_cmp, prio_cmp);
+  cctreap_t m; cctreap_init(&m, key_cmp);
   struct entry e[5];
-  for (int i = 0; i < 5; i++) { e[i].key = i; e[i].priority = _rng(); cctreap_insert(&m, &e[i].node, NULL); }
+  for (int i = 0; i < 5; i++) { e[i].key = i; cctreap_insert(&m, &e[i].node, NULL); }
   int prev = 999;
   for (cctreap_node_t *n = cctreap_rbegin(&m); n; n = cctreap_prev(n)) {
     int k = CCTREAP_CONTAINER(n, struct entry, node)->key;
@@ -242,9 +233,8 @@ TEST(iterate_reverse) {
 }
 
 TEST(next_prev_roundtrip) {
-  cctreap_t m; cctreap_init(&m, key_cmp, prio_cmp);
+  cctreap_t m; cctreap_init(&m, key_cmp);
   struct entry e1 = {.key = 10}, e2 = {.key = 20}, e3 = {.key = 30};
-  e1.priority = _rng(); e2.priority = _rng(); e3.priority = _rng();
   cctreap_insert(&m, &e1.node, NULL);
   cctreap_insert(&m, &e2.node, NULL);
   cctreap_insert(&m, &e3.node, NULL);
@@ -256,9 +246,9 @@ TEST(next_prev_roundtrip) {
 }
 
 TEST(kth_basics) {
-  cctreap_t m; cctreap_init(&m, key_cmp, prio_cmp);
+  cctreap_t m; cctreap_init(&m, key_cmp);
   struct entry e[5];
-  for (int i = 0; i < 5; i++) { e[i].key = i * 10; e[i].priority = _rng(); cctreap_insert(&m, &e[i].node, NULL); }
+  for (int i = 0; i < 5; i++) { e[i].key = i * 10; cctreap_insert(&m, &e[i].node, NULL); }
 
   ASSERT(CCTREAP_CONTAINER(cctreap_kth(&m, 0), struct entry, node)->key == 0);   /* min */
   ASSERT(CCTREAP_CONTAINER(cctreap_kth(&m, 1), struct entry, node)->key == 10);
@@ -271,14 +261,14 @@ TEST(kth_basics) {
   ASSERT(cctreap_kth(&m, 999) == NULL); /* k > size */
 
   /* empty */
-  cctreap_t empty; cctreap_init(&empty, key_cmp, prio_cmp);
+  cctreap_t empty; cctreap_init(&empty, key_cmp);
   ASSERT(cctreap_kth(&empty, 0) == NULL);
 }
 
 TEST(rank_basics) {
-  cctreap_t m; cctreap_init(&m, key_cmp, prio_cmp);
+  cctreap_t m; cctreap_init(&m, key_cmp);
   struct entry e[5];
-  for (int i = 0; i < 5; i++) { e[i].key = i * 10; e[i].priority = _rng(); cctreap_insert(&m, &e[i].node, NULL); }
+  for (int i = 0; i < 5; i++) { e[i].key = i * 10; cctreap_insert(&m, &e[i].node, NULL); }
 
   ASSERT(cctreap_rank(&m, &e[0].node) == 0);  /* key=0  */
   ASSERT(cctreap_rank(&m, &e[1].node) == 1);  /* key=10 */
@@ -293,18 +283,17 @@ TEST(rank_basics) {
   ghost.key = 99; ASSERT(cctreap_rank(&m, &ghost.node) == -1);
 
   /* empty */
-  cctreap_t empty; cctreap_init(&empty, key_cmp, prio_cmp);
+  cctreap_t empty; cctreap_init(&empty, key_cmp);
   ASSERT(cctreap_rank(&empty, &e[0].node) == -1);
 }
 
 TEST(kth_rank_roundtrip) {
-  cctreap_t m; cctreap_init(&m, key_cmp, prio_cmp);
+  cctreap_t m; cctreap_init(&m, key_cmp);
   enum { N = 100 };
   struct entry *e = calloc(N, sizeof(*e));
   ASSERT(e != NULL);
   for (int i = 0; i < N; i++) {
     e[i].key = (i * 7919) % (N * 10);  /* sparse keys */
-    e[i].priority = _rng();
     cctreap_insert(&m, &e[i].node, NULL);
   }
   ASSERT(cctreap_size(&m) == N);
@@ -318,8 +307,8 @@ TEST(kth_rank_roundtrip) {
 }
 
 TEST(null_safety) {
-  cctreap_t m; cctreap_init(&m, key_cmp, prio_cmp);
-  cctreap_init(NULL, NULL, NULL);
+  cctreap_t m; cctreap_init(&m, key_cmp);
+  cctreap_init(NULL, NULL);
   ASSERT(cctreap_insert(NULL, NULL, NULL) == -1);
   ASSERT(cctreap_find(NULL, NULL) == NULL);
   cctreap_erase(NULL, NULL);
@@ -338,20 +327,19 @@ TEST(null_safety) {
 }
 
 TEST(stress_insert_only) {
-  cctreap_t m; cctreap_init(&m, key_cmp, prio_cmp);
+  cctreap_t m; cctreap_init(&m, key_cmp);
   enum { N = 5000 };
   struct entry *e = calloc(N, sizeof(*e));
   ASSERT(e != NULL);
   for (int i = 0; i < N; i++) {
-    e[i].key      = (i * 7919) % N;
-    e[i].priority = _rng();
+    e[i].key = (i * 7919) % N;
     cctreap_insert(&m, &e[i].node, NULL);
   }
   ASSERT(cctreap_size(&m) == N);
   ASSERT(count_forward(&m) == N);
   ASSERT(count_reverse(&m) == N);
   ASSERT(verify_bst(m.root, key_cmp));
-  ASSERT(verify_heap(m.root, prio_cmp));
+  ASSERT(verify_heap(m.root));
   ASSERT(verify_sizes(m.root));
 
   /* height sanity: treap expected height is O(log n), well within 4x of estimate */
@@ -367,20 +355,19 @@ TEST(stress_insert_only) {
 }
 
 TEST(stress_erase_all) {
-  cctreap_t m; cctreap_init(&m, key_cmp, prio_cmp);
+  cctreap_t m; cctreap_init(&m, key_cmp);
   enum { N = 1000 };
   struct entry *e = calloc(N, sizeof(*e));
   ASSERT(e != NULL);
 
   /* insert ascending keys (worst-case for BST, treap handles via priority) */
   for (int i = 0; i < N; i++) {
-    e[i].key      = i;
-    e[i].priority = _rng();
+    e[i].key = i;
     cctreap_insert(&m, &e[i].node, NULL);
   }
   ASSERT(cctreap_size(&m) == N);
   ASSERT(verify_bst(m.root, key_cmp));
-  ASSERT(verify_heap(m.root, prio_cmp));
+  ASSERT(verify_heap(m.root));
   ASSERT(verify_sizes(m.root));
 
   /* erase in random order */
@@ -398,7 +385,7 @@ TEST(stress_erase_all) {
     cctreap_erase(&m, &e[idx].node);
     if (i % 200 == 199) {
       ASSERT(verify_bst(m.root, key_cmp));
-      ASSERT(verify_heap(m.root, prio_cmp));
+      ASSERT(verify_heap(m.root));
       ASSERT(verify_sizes(m.root));
     }
   }
@@ -410,7 +397,7 @@ TEST(stress_erase_all) {
 }
 
 TEST(stress_mixed) {
-  cctreap_t m; cctreap_init(&m, key_cmp, prio_cmp);
+  cctreap_t m; cctreap_init(&m, key_cmp);
   enum { N = 3000, OPS = 5000 };
   struct entry *pool = calloc(N, sizeof(*pool));
   ASSERT(pool != NULL);
@@ -418,8 +405,7 @@ TEST(stress_mixed) {
   ASSERT(in_tree != NULL);
 
   for (int i = 0; i < N; i++) {
-    pool[i].key      = i;
-    pool[i].priority = _rng();
+    pool[i].key = i;
   }
 
   size_t sz = 0;
@@ -438,7 +424,7 @@ TEST(stress_mixed) {
     ASSERT(cctreap_size(&m) == sz);
     if (op % 500 == 499) {
       ASSERT(verify_bst(m.root, key_cmp));
-      ASSERT(verify_heap(m.root, prio_cmp));
+      ASSERT(verify_heap(m.root));
       ASSERT(verify_sizes(m.root));
       if (sz > 0) {
         ASSERT(cctreap_first(&m) != NULL);

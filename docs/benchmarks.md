@@ -131,27 +131,33 @@
 
 ## cctreap vs `std::map` — 100K 顺序操作
 
+> priority 由内部 xorshift64 自动生成，无需外部管理。支持 `CCTREAP_COMPARE` 宏消除函数指针，以及 `CCTREAP_RAND` 宏替换随机数生成器。
+
 ### insert / find / erase / iterate
 
 | 操作 | cctreap | `std::map` | 倍率 |
 | --- | --- | --- | --- |
-| insert | **6.06 ms** | 14.54 ms | **0.42×** |
-| find | 15.13 ms | 12.09 ms | 1.25× |
-| erase | **6.28 ms** | 18.61 ms | **0.34×** |
-| iterate | 2.46 ms | 1.92 ms | 1.28× |
+| insert | **6.83 ms** | 17.26 ms | **0.40×** |
+| find | 11.33 ms | 9.66 ms | 1.17× |
+| erase | **8.56 ms** | 24.60 ms | **0.35×** |
+| iterate | 2.87 ms | 1.62 ms | 1.77× |
 
-> insert 和 erase 比 STL 快 2-3×——侵入式无节点分配开销，treap 旋转比红黑树着色更简洁。
+> **insert** 快 2.5×——侵入式无堆分配 + treap 修复比 RB 树着色更简洁。升序 key 插入命中 `fast-last` 捷径（O(1) BST 阶段）。
+>
+> **find** 稍慢 1.17×——主因是函数指针间接调用（`key_cmp`），每次比较额外 3-5 cycle × 约 40 次比较。定义 `CCTREAP_COMPARE` 宏可完全消除此差距。
+>
+> **erase** 快 2.9×——同 insert 不涉及内存释放，`_tp_del_fix` 向下旋转比 RB 删除修复路径更短。
 
 ### 顺序统计（kth / rank）
 
 | 操作 | cctreap | `std::map` | 倍率 |
 | --- | --- | --- | --- |
-| kth (N=100K, 随机访问) | 7.53 ms | 1.63 ms (顺序遍历) | — |
-| **rank (N=5K)** | **0.40 ms** | **56.43 ms** | **0.007× (141× 更快)** |
+| kth (500 次随机索引) | **0.55 ms** | 677.79 ms | **1232× 更快** |
+| rank (N=500, 全量) | **0.03 ms** | 0.43 ms | **0.07× (14× 更快)** |
 
-> **kth**：STL map 不支持随机访问，只能从头迭代 O(k)。treap 利用 `size` 字段二分，每次 O(log n)。
+> **kth**：STL map 不支持 O(log n) 随机访问，`std::advance(it, k)` 每次 O(k)，平均前进 N/2 = 50K 步。treap 利用子树 `size` 字段二分下降，每次 O(log n)。
 >
-> **rank**：STL `std::distance(begin, it)` 每次 O(n)，N=5000 时已慢 141×。treap 下降过程中累加左子树大小，每次 O(log n)。大数据集下差距进一步拉大。
+> **rank**：STL `std::distance(begin, it)` 每次 O(n)。treap 下降时累加左子树大小，每次 O(log n)。
 
 ## 构建与运行
 

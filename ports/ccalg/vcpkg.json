@@ -1,5 +1,5 @@
 {
-  "name": "cclag",
+  "name": "ccalg",
   "version": "0.1.0",
   "description": "Header-only high-performance data-structure library for C/C++ (intrusive RB-tree, hashmap, treap, heap, vector, flatmap, lists)",
   "homepage": "https://ccalg.dev",

@@ -1,4 +1,4 @@
-# cclag
+# ccalg
 
 A header-only library for high-performance data structures in C/C++.
 
@@ -76,7 +76,7 @@ See [docs/building.md](docs/building.md) for details and manual compilation.
 
 ```bash
 # vcpkg (overlay port)
-vcpkg install cclag --overlay-ports=<path-to-cclag>/ports
+vcpkg install ccalg --overlay-ports=<path-to-ccalg>/ports
 
 # Conan (2.x)
 conan create . -tf ""

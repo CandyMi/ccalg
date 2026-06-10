@@ -1,4 +1,4 @@
-"""Conan 2.x recipe for cclag — header-only data-structure library.
+"""Conan 2.x recipe for ccalg — header-only data-structure library.
 
 Usage:
     # Install locally
@@ -6,10 +6,10 @@ Usage:
 
     # Consume in your project's conanfile.txt:
     # [requires]
-    # cclag/0.1.0
+    # ccalg/0.1.0
 
     # Or conanfile.py:
-    # self.requires("cclag/0.1.0")
+    # self.requires("ccalg/0.1.0")
 """
 
 from conan import ConanFile
@@ -19,8 +19,8 @@ from conan.tools.build import check_min_cppstd
 import os
 
 
-class CclagConan(ConanFile):
-    name = "cclag"
+class CcalgConan(ConanFile):
+    name = "ccalg"
     version = "0.1.0"
     license = "BSD-3-Clause"
     author = "CandyMi"
@@ -86,9 +86,9 @@ class CclagConan(ConanFile):
         self.cpp_info.bindirs = []
         self.cpp_info.libdirs = []
 
-        # Headers are in include/cclag/*.h, users include as <cclag/ccmap.h>
+        # Headers are in include/ccalg/*.h, users include as <ccalg/ccmap.h>
         self.cpp_info.includedirs = ["include"]
 
         # Each header is self-contained; no link dependencies
-        self.cpp_info.set_property("cmake_file_name", "cclag")
-        self.cpp_info.set_property("cmake_target_name", "cclag::cclag")
+        self.cpp_info.set_property("cmake_file_name", "ccalg")
+        self.cpp_info.set_property("cmake_target_name", "ccalg::ccalg")

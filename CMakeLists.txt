@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(cclag LANGUAGES C CXX)
+project(ccalg LANGUAGES C CXX)
 
 # ── include directory ────────────────────────────────────────────────────
 set(CCLAG_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
@@ -19,7 +19,7 @@ endif()
 enable_testing()
 
 # ── test targets (C) ─────────────────────────────────────────────────────
-macro(add_cclag_test name)
+macro(add_ccalg_test name)
   add_executable(${name} tests/${name}.c)
   target_include_directories(${name} PRIVATE ${CCLAG_INCLUDE_DIR})
   add_test(
@@ -35,30 +35,30 @@ macro(add_cclag_test name)
   )
 endmacro()
 
-add_cclag_test(test_ccmap)
-add_cclag_test(test_cchashmap)
-add_cclag_test(test_cclist)
-add_cclag_test(test_cclink)
-add_cclag_test(test_ccheap)
-add_cclag_test(test_ccvector)
-add_cclag_test(test_ccflatmap)
-add_cclag_test(test_cctreap)
+add_ccalg_test(test_ccmap)
+add_ccalg_test(test_cchashmap)
+add_ccalg_test(test_cclist)
+add_ccalg_test(test_cclink)
+add_ccalg_test(test_ccheap)
+add_ccalg_test(test_ccvector)
+add_ccalg_test(test_ccflatmap)
+add_ccalg_test(test_cctreap)
 
 # ── benchmark targets (C++) ──────────────────────────────────────────────
-macro(add_cclag_bench name)
+macro(add_ccalg_bench name)
   add_executable(${name} bench/${name}.cpp)
   target_include_directories(${name} PRIVATE ${CCLAG_INCLUDE_DIR})
   target_compile_options(${name} PRIVATE -O2)
 endmacro()
 
-add_cclag_bench(bench_ccmap)
-add_cclag_bench(bench_cchashmap)
-add_cclag_bench(bench_cclist)
-add_cclag_bench(bench_cclink)
-add_cclag_bench(bench_ccheap)
-add_cclag_bench(bench_ccvector)
-add_cclag_bench(bench_ccflatmap)
-add_cclag_bench(bench_cctreap)
+add_ccalg_bench(bench_ccmap)
+add_ccalg_bench(bench_cchashmap)
+add_ccalg_bench(bench_cclist)
+add_ccalg_bench(bench_cclink)
+add_ccalg_bench(bench_ccheap)
+add_ccalg_bench(bench_ccvector)
+add_ccalg_bench(bench_ccflatmap)
+add_ccalg_bench(bench_cctreap)
 
 # prefetch benchmark — needs two compilations (with / without CCMAP_PREFETCH)
 add_executable(bench_ccmap_prefetch      bench/bench_ccmap_prefetch.cpp)
@@ -128,9 +128,9 @@ endif()
 
 # ── install ──────────────────────────────────────────────────────────────
 include(GNUInstallDirs)
-install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/cclag"
+install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/ccalg"
         FILES_MATCHING PATTERN "*.h")
-install(FILES LICENSE DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/cclag"
+install(FILES LICENSE DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/ccalg"
         OPTIONAL)
-install(FILES README.md DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/cclag"
+install(FILES README.md DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/doc/ccalg"
         OPTIONAL)

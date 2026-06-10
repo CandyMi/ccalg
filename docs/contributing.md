@@ -1,13 +1,13 @@
 # 参与贡献
 
-感谢对 cclag 的关注！
+感谢对 ccalg 的关注！
 
 ## 提交 vcpkg 官方注册表
 
 ### 前置条件
 
 - release tag 已创建并推送到 GitHub（当前: `v0.1.0`）
-- `ports/cclag/portfile.cmake` 中 SHA512 已填入（已填充）
+- `ports/ccalg/portfile.cmake` 中 SHA512 已填入（已填充）
 
 ### 操作步骤
 
@@ -17,21 +17,21 @@ git clone https://github.com/<你的用户名>/vcpkg
 cd vcpkg
 
 # 2. 复制覆盖端口文件
-curl -o ports/cclag/vcpkg.json \
-  https://raw.githubusercontent.com/CandyMi/ccalg/master/ports/cclag/vcpkg.json
-curl -o ports/cclag/portfile.cmake \
-  https://raw.githubusercontent.com/CandyMi/ccalg/master/ports/cclag/portfile.cmake
+curl -o ports/ccalg/vcpkg.json \
+  https://raw.githubusercontent.com/CandyMi/ccalg/master/ports/ccalg/vcpkg.json
+curl -o ports/ccalg/portfile.cmake \
+  https://raw.githubusercontent.com/CandyMi/ccalg/master/ports/ccalg/portfile.cmake
 
 # 3. 本地验证
 ./bootstrap-vcpkg.sh
-./vcpkg install cclag
-ls -la installed/x64-linux/include/cclag/   # 应看到 8 个 .h 文件
+./vcpkg install ccalg
+ls -la installed/x64-linux/include/ccalg/   # 应看到 8 个 .h 文件
 
 # 4. 提交 PR
-git checkout -b add-cclag
-git add ports/cclag/
-git commit -m "[cclag] add new port (version 0.1.0)"
-git push origin add-cclag
+git checkout -b add-ccalg
+git add ports/ccalg/
+git commit -m "[ccalg] add new port (version 0.1.0)"
+git push origin add-ccalg
 ```
 
 ### PR 模板
@@ -39,13 +39,13 @@ git push origin add-cclag
 **标题：**
 
 ```
-[cclag] Add new port (0.1.0)
+[ccalg] Add new port (0.1.0)
 ```
 
 **描述：**
 
 ```markdown
-Add cclag — header-only high-performance data-structure library for C/C++.
+Add ccalg — header-only high-performance data-structure library for C/C++.
 
 - 8 intrusive/container types: RB-tree (ccmap), hashmap (cchashmap),
   treap with order statistics (cctreap), d-ary heap (ccheap),
@@ -85,7 +85,7 @@ Homepage: https://ccalg.dev
 ConanCenter 中每个库的 recipe 按以下目录结构组织：
 
 ```
-conan-center-index/recipes/cclag/
+conan-center-index/recipes/ccalg/
 ├── config.yml              # 版本 → 文件夹映射
 └── all/
     ├── conanfile.py         # 主 recipe
@@ -128,8 +128,8 @@ import os
 
 required_conan_version = ">=1.50.0"
 
-class CclagConan(ConanFile):
-    name = "cclag"
+class CcalgConan(ConanFile):
+    name = "ccalg"
     description = "Header-only high-performance data-structure library for C/C++"
     license = "BSD-3-Clause"
     url = "https://github.com/conan-io/conan-center-index"
@@ -152,15 +152,15 @@ class CclagConan(ConanFile):
     def package(self):
         copy(self, "LICENSE", src=self.source_folder,
              dst=os.path.join(self.package_folder, "licenses"))
-        # 安装 8 个头文件到 include/cclag/
+        # 安装 8 个头文件到 include/ccalg/
         for h in ["ccmap.h", "cchashmap.h", "cclink.h", "cclist.h",
                    "ccheap.h", "ccvector.h", "ccflatmap.h", "cctreap.h"]:
             copy(self, h, src=os.path.join(self.source_folder, "include"),
-                 dst=os.path.join(self.package_folder, "include", "cclag"))
+                 dst=os.path.join(self.package_folder, "include", "ccalg"))
 
     def package_info(self):
-        self.cpp_info.set_property("cmake_file_name", "cclag")
-        self.cpp_info.set_property("cmake_target_name", "cclag::cclag")
+        self.cpp_info.set_property("cmake_file_name", "ccalg")
+        self.cpp_info.set_property("cmake_target_name", "ccalg::ccalg")
         self.cpp_info.bindirs = []
         self.cpp_info.libdirs = []
         self.cpp_info.includedirs = ["include"]
@@ -202,17 +202,17 @@ class TestPackageConan(ConanFile):
 cmake_minimum_required(VERSION 3.15)
 project(test_package LANGUAGES C)
 
-find_package(cclag REQUIRED CONFIG)
+find_package(ccalg REQUIRED CONFIG)
 
 add_executable(${PROJECT_NAME} test_package.c)
-target_link_libraries(${PROJECT_NAME} PRIVATE cclag::cclag)
+target_link_libraries(${PROJECT_NAME} PRIVATE ccalg::ccalg)
 target_compile_features(${PROJECT_NAME} PRIVATE c_std_99)
 ```
 
 #### test_package/test_package.c
 
 ```c
-#include <cclag/ccmap.h>
+#include <ccalg/ccmap.h>
 
 int main() {
     ccmap_t m;
@@ -229,11 +229,11 @@ int main() {
 git clone https://github.com/<你的用户名>/conan-center-index
 cd conan-center-index
 
-# 2. 创建 recipe（从 cclag 仓库的模板复制）
-mkdir -p recipes/cclag/all/test_package
+# 2. 创建 recipe（从 ccalg 仓库的模板复制）
+mkdir -p recipes/ccalg/all/test_package
 
 # conandata.yml
-cat > recipes/cclag/all/conandata.yml << 'EOF'
+cat > recipes/ccalg/all/conandata.yml << 'EOF'
 sources:
   "0.1.0":
     url: "https://github.com/CandyMi/ccalg/archive/refs/tags/v0.1.0.tar.gz"
@@ -241,7 +241,7 @@ sources:
 EOF
 
 # config.yml
-cat > recipes/cclag/config.yml << 'EOF'
+cat > recipes/ccalg/config.yml << 'EOF'
 versions:
   "0.1.0":
     folder: all
@@ -252,13 +252,13 @@ EOF
 #    … 粘贴 test_package/* 内容 …
 
 # 4. 本地验证
-conan create recipes/cclag/all/conanfile.py --version=0.1.0
+conan create recipes/ccalg/all/conanfile.py --version=0.1.0
 
 # 5. 提交 PR
-git checkout -b add-cclag
-git add recipes/cclag/
-git commit -m "cclag: add new recipe (version 0.1.0)"
-git push origin add-cclag
+git checkout -b add-ccalg
+git add recipes/ccalg/
+git commit -m "ccalg: add new recipe (version 0.1.0)"
+git push origin add-ccalg
 ```
 
 ### PR 模板
@@ -266,13 +266,13 @@ git push origin add-cclag
 **标题：**
 
 ```
-cclag: add new recipe (0.1.0)
+ccalg: add new recipe (0.1.0)
 ```
 
 **描述：**
 
 ```markdown
-Add cclag — header-only high-performance data-structure library for C/C++.
+Add ccalg — header-only high-performance data-structure library for C/C++.
 
 - 8 intrusive/container types: RB-tree (ccmap), hashmap (cchashmap),
   treap with order statistics (cctreap), d-ary heap (ccheap),

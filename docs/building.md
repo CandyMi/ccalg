@@ -1,6 +1,6 @@
 # 构建指南
 
-cclag 是 header-only 库，核心代码无需构建。构建系统用于**单元测试**和**基准测试**。
+ccalg 是 header-only 库，核心代码无需构建。构建系统用于**单元测试**和**基准测试**。
 
 ## CMake（推荐）
 
@@ -50,8 +50,8 @@ cmake --install build --prefix /usr/local
 
 ```
 /usr/local/
-├── include/cclag/         # 所有 .h 头文件
-└── share/doc/cclag/       # LICENSE, README.md
+├── include/ccalg/         # 所有 .h 头文件
+└── share/doc/ccalg/       # LICENSE, README.md
 ```
 
 自定义前缀：`cmake --install build --prefix ~/.local`
@@ -59,11 +59,11 @@ cmake --install build --prefix /usr/local
 安装后在代码中：
 
 ```c
-#include "cclag/ccmap.h"       // 而非 "ccmap.h"
-#include "cclag/cchashmap.h"
-#include "cclag/cclink.h"
-#include "cclag/cclist.h"
-#include "cclag/ccheap.h"
+#include "ccalg/ccmap.h"       // 而非 "ccmap.h"
+#include "ccalg/cchashmap.h"
+#include "ccalg/cclink.h"
+#include "ccalg/cclist.h"
+#include "ccalg/ccheap.h"
 ```
 
 ## Premake5（备选）
@@ -147,38 +147,38 @@ premake5 install --prefix=~/.local  # 自定义路径
 
 ```
 ~/.local/
-├── include/cclag/         # 所有 .h 头文件
-└── share/doc/cclag/       # LICENSE, README.md
+├── include/ccalg/         # 所有 .h 头文件
+└── share/doc/ccalg/       # LICENSE, README.md
 ```
 
 安装后在代码中：
 
 ```c
-#include "cclag/ccmap.h"       // 而非 "ccmap.h"
-#include "cclag/cchashmap.h"
-#include "cclag/cclink.h"
-#include "cclag/cclist.h"
-#include "cclag/ccheap.h"
+#include "ccalg/ccmap.h"       // 而非 "ccmap.h"
+#include "ccalg/cchashmap.h"
+#include "ccalg/cclink.h"
+#include "ccalg/cclist.h"
+#include "ccalg/ccheap.h"
 ```
 
 ## vcpkg
 
 ```bash
 # 方式一：叠加端口（本地仓库路径）
-vcpkg install cclag --overlay-ports=<path-to-cclag>/ports
+vcpkg install ccalg --overlay-ports=<path-to-ccalg>/ports
 
 # 方式二：清单模式（在项目的 vcpkg.json 中添加依赖）
-#   "dependencies": [ "cclag" ]
-#   vcpkg install --overlay-ports=<path-to-cclag>/ports
+#   "dependencies": [ "ccalg" ]
+#   vcpkg install --overlay-ports=<path-to-ccalg>/ports
 ```
 
 安装后在代码中：
 
 ```c
-#include <cclag/ccmap.h>
+#include <ccalg/ccmap.h>
 ```
 
-> **提交官方注册表**：标记 release tag（如 `v0.1.0`）后将 `ports/cclag/` 目录提交至 [vcpkg 仓库](https://github.com/Microsoft/vcpkg)。
+> **提交官方注册表**：标记 release tag（如 `v0.1.0`）后将 `ports/ccalg/` 目录提交至 [vcpkg 仓库](https://github.com/Microsoft/vcpkg)。
 
 ## Conan（2.x）
 
@@ -188,13 +188,13 @@ conan create . -tf ""
 
 # 在项目的 conanfile.txt 中添加：
 # [requires]
-# cclag/0.1.0
+# ccalg/0.1.0
 ```
 
 安装后在代码中：
 
 ```c
-#include <cclag/ccmap.h>
+#include <ccalg/ccmap.h>
 ```
 
 ## 手动编译

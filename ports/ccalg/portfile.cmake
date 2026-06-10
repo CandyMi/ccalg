@@ -1,14 +1,14 @@
-# vcpkg portfile for cclag
+# vcpkg portfile for ccalg
 #
 # Usage as overlay port:
-#   vcpkg install cclag --overlay-ports=<path-to-cclag>/ports
+#   vcpkg install ccalg --overlay-ports=<path-to-ccalg>/ports
 #
 # Submit to official registry:
 #   After tagging a release (e.g. v0.1.0):
 #   1. Update REF below to "v${VERSION}"
 #   2. Compute SHA512 with:
 #      curl -sL https://github.com/CandyMi/ccalg/archive/refs/tags/v0.1.0.tar.gz | sha512sum
-#   3. Copy to vcpkg/ports/cclag/ and submit PR
+#   3. Copy to vcpkg/ports/ccalg/ and submit PR
 
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
@@ -19,7 +19,7 @@ vcpkg_from_github(
     PATCHES
 )
 
-# cclag is header-only — CMake installs headers to include/cclag/
+# ccalg is header-only — CMake installs headers to include/ccalg/
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
 )
@@ -34,15 +34,15 @@ file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug")
 
 # Usage header
 file(WRITE "${CURRENT_PACKAGES_DIR}/share/${PORT}/usage" "\
-cclag is header-only. Include the relevant header(s) in your source:\n\
-  #include <cclag/ccmap.h>\n\
-  #include <cclag/cchashmap.h>\n\
-  #include <cclag/cclink.h>\n\
-  #include <cclag/cclist.h>\n\
-  #include <cclag/ccheap.h>\n\
-  #include <cclag/ccvector.h>\n\
-  #include <cclag/ccflatmap.h>\n\
-  #include <cclag/cctreap.h>\n\
+ccalg is header-only. Include the relevant header(s) in your source:\n\
+  #include <ccalg/ccmap.h>\n\
+  #include <ccalg/cchashmap.h>\n\
+  #include <ccalg/cclink.h>\n\
+  #include <ccalg/cclist.h>\n\
+  #include <ccalg/ccheap.h>\n\
+  #include <ccalg/ccvector.h>\n\
+  #include <ccalg/ccflatmap.h>\n\
+  #include <ccalg/cctreap.h>\n\
 ")
 
 vcpkg_copy_pdbs()

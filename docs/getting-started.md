@@ -4,13 +4,13 @@
 
 ## 1. 引入头文件
 
-cclag 是 header-only 库，无需编译链接。两种引入方式：
+ccalg 是 header-only 库，无需编译链接。两种引入方式：
 
 **方式一** — 直接从仓库 include 目录：
 
 ```c
 #include "ccmap.h"
-// gcc -I path/to/cclag/include main.c
+// gcc -I path/to/ccalg/include main.c
 ```
 
 **方式二** — 安装后（推荐）：
@@ -20,11 +20,11 @@ cmake --install build --prefix /usr/local   # 或 sh scripts/install.sh
 ```
 
 ```c
-#include "cclag/ccmap.h"      // 红黑树
-#include "cclag/cchashmap.h"  // 哈希表
-#include "cclag/cclink.h"     // 单向链表
-#include "cclag/cclist.h"     // 双向链表
-#include "cclag/ccheap.h"     // 优先队列
+#include "ccalg/ccmap.h"      // 红黑树
+#include "ccalg/cchashmap.h"  // 哈希表
+#include "ccalg/cclink.h"     // 单向链表
+#include "ccalg/cclist.h"     // 双向链表
+#include "ccalg/ccheap.h"     // 优先队列
 ```
 
 ## 2. ccmap — 红黑树（有序映射）

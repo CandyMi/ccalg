@@ -1,5 +1,5 @@
 {
-  "name": "cclag",
+  "name": "ccalg",
   "version": "0.1.0",
   "description": "Header-only high-performance data-structure library for C/C++ (intrusive RB-tree, hashmap, treap, heap, vector, flatmap, lists)",
   "homepage": "https://ccalg.dev",
@@ -10,11 +10,11 @@
     "This file enables vcpkg manifest mode:",
     "  vcpkg install --feature-flags=manifests,versions",
     "",
-    "To use cclag as a dependency in your own project:",
+    "To use ccalg as a dependency in your own project:",
     "  1. Add this to your vcpkg.json:",
-    "     \"dependencies\": [ \"cclag\" ]",
+    "     \"dependencies\": [ \"ccalg\" ]",
     "  2. Add an overlay:",
-    "     vcpkg install --overlay-ports=<path-to-cclag>/ports"
+    "     vcpkg install --overlay-ports=<path-to-ccalg>/ports"
   ],
   "dependencies": []
 }

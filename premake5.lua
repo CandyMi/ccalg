@@ -1,8 +1,8 @@
--- premake5.lua — build configuration for cclag
+-- premake5.lua — build configuration for ccalg
 -- Usage: premake5 gmake2  (or vs2022 / xcode4)
 ---@diagnostic disable: undefined-global
 
-workspace "cclag"
+workspace "ccalg"
   configurations { "Release", "Debug" }
   location "build"
 
@@ -136,8 +136,8 @@ workspace "cclag"
     description = "Install headers and documentation",
     execute     = function()
       local prefix = _OPTIONS["prefix"] or "/usr/local"
-      local incdir  = prefix .. "/include/cclag"
-      local docdir  = prefix .. "/share/doc/cclag"
+      local incdir  = prefix .. "/include/ccalg"
+      local docdir  = prefix .. "/share/doc/ccalg"
 
       -- install headers
       os.mkdir(incdir)

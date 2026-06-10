@@ -6,7 +6,7 @@
 
 ## Project identity
 
-**cclag** — a header-only C data-structure library, compatible with C89 / C99 / C++ / MSVC.
+**ccalg** — a header-only C data-structure library, compatible with C89 / C99 / C++ / MSVC.
 
 - **License:** BSD 3-Clause
 - **Author:** CandyMi

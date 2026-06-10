@@ -26,13 +26,18 @@ vcpkg_cmake_configure(
 
 vcpkg_cmake_install()
 
-# Install usage file
+# Strip files installed by upstream CMakeLists.txt that vcpkg doesn't expect:
+# - share/doc/ccalg/{LICENSE,README.md} (we handle license below)
+file(REMOVE_RECURSE
+    "${CURRENT_PACKAGES_DIR}/share/doc"
+    "${CURRENT_PACKAGES_DIR}/debug"
+    "${CURRENT_PACKAGES_DIR}/lib"
+)
+
+# License
 file(INSTALL "${SOURCE_PATH}/LICENSE" DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}" RENAME copyright)
 
-# Remove debug (header-only, nothing to debug)
-file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug")
-
-# Usage header
+# Usage
 file(WRITE "${CURRENT_PACKAGES_DIR}/share/${PORT}/usage" "\
 ccalg is header-only. Include the relevant header(s) in your source:\n\
   #include <ccalg/ccmap.h>\n\
@@ -44,5 +49,3 @@ ccalg is header-only. Include the relevant header(s) in your source:\n\
   #include <ccalg/ccflatmap.h>\n\
   #include <ccalg/cctreap.h>\n\
 ")
-
-vcpkg_copy_pdbs()

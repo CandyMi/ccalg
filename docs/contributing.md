@@ -113,7 +113,7 @@ versions:
 sources:
   "0.1.0":
     url: "https://github.com/CandyMi/ccalg/archive/refs/tags/v0.1.0.tar.gz"
-    sha256: "646fd3e0202948b696e7be33dc14c8c1543afe88f9bd0a9966c0e5a704df89b6"
+    sha256: "7a3c24ad64329daca403fb4896482b52e19d286cc76d46fa0b7b3b5bd5197f59"
 ```
 
 #### conanfile.py
@@ -237,7 +237,7 @@ cat > recipes/ccalg/all/conandata.yml << 'EOF'
 sources:
   "0.1.0":
     url: "https://github.com/CandyMi/ccalg/archive/refs/tags/v0.1.0.tar.gz"
-    sha256: "646fd3e0202948b696e7be33dc14c8c1543afe88f9bd0a9966c0e5a704df89b6"
+    sha256: "7a3c24ad64329daca403fb4896482b52e19d286cc76d46fa0b7b3b5bd5197f59"
 EOF
 
 # config.yml

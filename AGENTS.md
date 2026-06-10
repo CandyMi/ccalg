@@ -255,7 +255,7 @@ Each header defines its own `CCXXX_INLINE`:
 
 - BST (key) + max-heap (priority).  Node 32B (64-bit): `child[2]` (16B) + `pc` (8B) + `size` (8B) + `priority` (8B).  Priority internal, xorshift64-generated on insert.
 - Key comparison via `CCTREAP_COMPARE` (macro or fn-ptr). Priority is internal `uint64_t` with max-heap invariant, generated on insert via xorshift64 (overridable via `CCTREAP_RAND`).
-- **Insert**: BST descent → bubble-up by priority (rotate while `CCTREAP_PRIO(node, parent) > 0`).
+- **Insert**: BST descent → bubble-up by priority (rotate while `_TP_PRIO_CMP(node, parent) > 0`).
 - **Erase**: bubble-down to leaf (rotate toward higher-priority child) → transplant with NULL.
 - `kth(m, k)`: 0-indexed k-th smallest; uses node `size` to binary-search.  O(log n) deterministic.
 - `rank(m, probe)`: 0-indexed position; accumulates left-subtree sizes during descent.  Returns `-1` if not found.

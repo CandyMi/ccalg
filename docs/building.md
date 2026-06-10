@@ -161,6 +161,42 @@ premake5 install --prefix=~/.local  # 自定义路径
 #include "cclag/ccheap.h"
 ```
 
+## vcpkg
+
+```bash
+# 方式一：叠加端口（本地仓库路径）
+vcpkg install cclag --overlay-ports=<path-to-cclag>/ports
+
+# 方式二：清单模式（在项目的 vcpkg.json 中添加依赖）
+#   "dependencies": [ "cclag" ]
+#   vcpkg install --overlay-ports=<path-to-cclag>/ports
+```
+
+安装后在代码中：
+
+```c
+#include <cclag/ccmap.h>
+```
+
+> **提交官方注册表**：标记 release tag（如 `v0.1.0`）后将 `ports/cclag/` 目录提交至 [vcpkg 仓库](https://github.com/Microsoft/vcpkg)。
+
+## Conan（2.x）
+
+```bash
+# 从本地源码创建包
+conan create . -tf ""
+
+# 在项目的 conanfile.txt 中添加：
+# [requires]
+# cclag/0.1.0
+```
+
+安装后在代码中：
+
+```c
+#include <cclag/ccmap.h>
+```
+
 ## 手动编译
 
 无需构建系统时可直接编译单个文件：

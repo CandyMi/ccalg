@@ -72,6 +72,16 @@ make -C build config=release  # Build
 
 See [docs/building.md](docs/building.md) for details and manual compilation.
 
+### Package managers
+
+```bash
+# vcpkg (overlay port)
+vcpkg install cclag --overlay-ports=<path-to-cclag>/ports
+
+# Conan (2.x)
+conan create . -tf ""
+```
+
 ## Documents
 
 [Online documentation (only chinease)](https://ccalg.dev)

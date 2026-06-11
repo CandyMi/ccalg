@@ -523,6 +523,73 @@ ccrandom 遵循 ccalg 项目的一贯哲学——**头文件仅零开销**：no 
 
 ---
 
+## 6. cctreap 为何选择 xorshift64
+
+cctreap 内部使用 `_tp_xorshift64` 作为默认 `priority` 生成器。乍看之下，这似乎与 `ccrandom` 主库的 xoroshiro128++ / xoshiro256** 存在"质量差距"——但这是**场景驱动的故意选择**，而非偷工减料。
+
+### 6.1 几个关键事实
+
+| 视角 | xorshift64 (cctreap 内部) | xoroshiro128++ (ccrandom128) |
+| --- | --- | --- |
+| **状态大小** | 1×uint64_t（4 字节额外开销嵌入 cctreap_t）| 2×uint64_t + 初始化代码依赖 |
+| **每次 insert 调用次数** | 1 次 | 1 次 |
+| **统计质量** | 通过 SmallCrush，treap 足够 | BigCrush + PractRand ≥ 32 TiB |
+| **实现代码数** | 4 行 | ~60 行（含 init/next/f32 等全套 API）|
+| **依赖关系** | 零依赖（inline 函数，与 cctreap 同文件）| 需引入 ccrandom.h（额外头文件）|
+
+### 6.2 核心原因
+
+**① treap 对随机性质量的要求极低**
+
+Treap 的平衡性只依赖一个性质：priority 在节点间**大致均匀分布**，使得 BST 插入路径的期望旋转次数为 O(1)，树高期望 O(log n)。xorshift64 的周期为 2⁶⁴−1，通过了 TestU01 SmallCrush —— 对每节点只产生一个随机数的 treap 而言已远超需要。
+
+即使 xorshift64 存在某些线性相关性（相邻输出之间的位关联），这些关联在 treap 场景中完全不相关——每个 priority 值只参与一次堆修复比较，不存在对同一序列做统计分析的场景。
+
+**② 保持 cctreap 的零依赖独立性**
+
+cctreap 是**单头文件零依赖**容器。引入 xorshift64 只需 4 行代码嵌入自身文件：
+
+```c
+CCTREAP_INLINE uint64_t _tp_xorshift64(uint64_t *state) {
+  uint64_t x = *state;
+  x ^= x << 13; x ^= x >> 7; x ^= x << 17;
+  return *state = x;
+}
+```
+
+如果改用 xoroshiro128++ 则需要 `#include "ccrandom.h"`，引入额外的类型定义、API 符号、以及约 60 行代码——这对只想用 treap 的用户毫无意义。
+
+**③ 状态开销最小化**
+
+`cctreap_t` 结构体中的 RNG state 只占 8 字节（`uint64_t state`），seed 来自 `&m` 的指针值：
+
+```c
+m->state = (uint64_t)(uintptr_t)m;
+```
+
+无需单独调用 init_rng、无需额外内存分配、无需包含第二个头文件。
+
+**④ 用户可自由升级**
+
+如果用户对默认随机性质量不放心，`CCTREAP_RAND` 宏可以轻松替换为任何更强的生成器：
+
+```c
+// 使用 ccrandom128 替代 xorshift64
+#include "ccrandom.h"
+#define CCTREAP_RAND(state)  ccrandom128_next((ccrandom128_t *)(state))
+
+// 初始化时需要把 state 区域视为 ccrandom128_t
+cctreap_t m;
+m.state = (uint64_t)(uintptr_t)&m;  // 原 seed
+ccrandom128_init((ccrandom128_t *)&m.state, m.state);
+```
+
+### 6.3 一句话总结
+
+> xorshift64 对 treap 场景**质量足够、开销极小、零依赖**。ccrandom 双引擎是面向通用高性能 PRNG 场景的选择，它们定位不同，不构成替代关系。
+
+---
+
 ## 参考文献
 
 1. **Blackman & Vigna**, "Scrambled Linear Pseudorandom Number Generators", *ACM Trans. Math. Softw.* 47(4), 2021. [arXiv:1805.01407](https://arxiv.org/abs/1805.01407) — Xoroshiro128++ 和 Xoshiro256** 的原始论文

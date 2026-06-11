@@ -29,6 +29,7 @@
 | [ccvector.h](include/ccvector.h) | `ccvector_t` / `ccvector_node_t` | Dynamic array (value-based) |
 | [ccflatmap.h](include/ccflatmap.h) | `ccflatmap_t` / `ccflatmap_node_t` | Sorted-array map (value-based) |
 | [cctreap.h](include/cctreap.h) | `cctreap_t` / `cctreap_node_t` | Intrusive treap (BST + max-heap, order statistics) |
+| [ccunicode.h](include/ccunicode.h) | — | UTF-8 ↔ UCS-4 codec |
 
 ---
 
@@ -90,14 +91,15 @@ Each container owns its namespace. Prefix = container abbreviation. No macros ar
 
 | Container | Prefix | Key macros |
 | --- | --- | --- |
-| `ccmap` | `CCMAP_` | `CCMAP_INLINE`, `CCMAP_CONTAINER`, `CCMAP_COMPARE`, `CCMAP_RED`, `CCMAP_BLACK` |
-| `cchashmap` | `CCHASHMAP_` | `CCHASHMAP_INLINE`, `CCHASHMAP_CONTAINER`, `CCHASHMAP_REALLOC`, `CCHASHMAP_HASH` |
+| `ccmap` | `CCMAP_` | `CCMAP_INLINE`, `CCMAP_CONTAINER`, `CCMAP_COMPARE` |
+| `cchashmap` | `CCHASHMAP_` | `CCHASHMAP_INLINE`, `CCHASHMAP_CONTAINER`, `CCHASHMAP_REALLOC` |
 | `cclink` | `CCLINK_` | `CCLINK_INLINE`, `CCLINK_CONTAINER` |
 | `cclist` | `CCLIST_` | `CCLIST_INLINE`, `CCLIST_CONTAINER` |
-| `ccheap` | `CCHEAP_` | `CCHEAP_INLINE`, `CCHEAP_COMPARE`, `CCHEAP_REALLOC`, `CCHEAP_NODE_T` |
-| `ccvector` | `CCVECTOR_` | `CCVECTOR_INLINE`, `CCVECTOR_REALLOC`, `CCVECTOR_NODE_T` |
-| `ccflatmap` | `CCFLATMAP_` | `CCFLATMAP_INLINE`, `CCFLATMAP_COMPARE`, `CCFLATMAP_REALLOC`, `CCFLATMAP_NODE_T` |
+| `ccheap` | `CCHEAP_` | `CCHEAP_INLINE`, `CCHEAP_COMPARE`, `CCHEAP_REALLOC` |
+| `ccvector` | `CCVECTOR_` | `CCVECTOR_INLINE`, `CCVECTOR_REALLOC` |
+| `ccflatmap` | `CCFLATMAP_` | `CCFLATMAP_INLINE`, `CCFLATMAP_COMPARE`, `CCFLATMAP_REALLOC` |
 | `cctreap` | `CCTREAP_` | `CCTREAP_INLINE`, `CCTREAP_CONTAINER`, `CCTREAP_COMPARE`, `CCTREAP_RAND` |
+| `ccunicode` | `CCUNICODE_` | `CCUNICODE_INLINE` |
 
 ### Allocation hooks
 
@@ -148,7 +150,7 @@ Aliases: hashmap provides `set`/`get`/`del`.  `out` parameter: on duplicate `*ou
 
 Both capture `is_first`/`is_last` flags **before** any structural modification.
 
-`cctreap` nodes carry a `size` field enabling O(log n) `cctreap_kth(m, k)` (0-indexed k-th smallest) and `cctreap_rank(m, probe)` (0-indexed rank, `-1` if not found). Priority is internal — a random `uint64_t` generated on insert via xorshift64 (overridable via `CCTREAP_RAND`).
+`cctreap` nodes carry a `size` field enabling O(log n) `cctreap_kth(m, k)` (0-indexed k-th smallest) and `cctreap_rank(m, probe)` (0-indexed rank, `-1` if not found). Priority is internal — a random `uint64_t` generated on insert (overridable via `CCTREAP_RAND_NEXT`).
 
 **Exception**: `ccflatmap_next(m, p)` / `ccflatmap_prev(m, p)` take the container pointer — arrays need bounds via `m->len`.
 
@@ -187,21 +189,7 @@ All public functions NULL-safe — `if (!m)` or `if (!m || !node)` guards. No `a
 
 ## Portability
 
-Each header defines its own `CCXXX_INLINE`:
-
-```c
-#if defined(__cplusplus) || (__STDC_VERSION__ >= 199901L)
-  #define CCXXX_INLINE static inline
-#elif defined(_MSC_VER)
-  #define CCXXX_INLINE static __inline
-#elif defined(__GNUC__)
-  #define CCXXX_INLINE static __inline__
-#else
-  #define CCXXX_INLINE static
-#endif
-```
-
-`cclist.h` provides a C89 `bool` shim (`typedef int bool` + `true`/`false`).  Each container guards its node typedef with `#ifndef CCXXX_NODE_T`.
+Each header defines its own `CCXXX_INLINE` macro (pattern: `#define CCXXX_INLINE static inline`), user-overridable for C89 (`#define CCXXX_INLINE static` before `#include`).  `cclist.h` provides a C89 `bool` shim.  Each container guards its node typedef with `#ifndef CCXXX_NODE_T`.
 
 ---
 
@@ -264,42 +252,7 @@ Each header defines its own `CCXXX_INLINE`:
 
 ---
 
-## Configuration Macros
-
-| Macro | Container | Purpose | Default |
-| --- | --- | --- | --- |
-| `CCMAP_COMPARE(a,b)` | ccmap | Inline key compare | none |
-| `CCMAP_NODE_T` | ccmap | Override node type | none |
-| `CCHASHMAP_HASH(n,s)` | cchashmap | Inline hash | none |
-| `CCHASHMAP_EQUAL(a,b)` | cchashmap | Inline equality | none |
-| `CCHASHMAP_NODE_T` | cchashmap | Override node type | none |
-| `CCHASHMAP_MAX_LOAD` | cchashmap | Max load factor | `1.25` |
-| `CCHASHMAP_DEFAULT_SLOT` | cchashmap | Initial bucket count | `64` |
-| `CCHASHMAP_REALLOC` | cchashmap | Realloc | `realloc` |
-| `CCHASHMAP_MALLOC(sz)` | cchashmap | Alloc | `realloc(NULL, sz)` |
-| `CCHASHMAP_FREE(ptr)` | cchashmap | Free | `free` |
-| `CCHEAP_COMPARE(a,b)` | ccheap | Inline compare | none |
-| `CCHEAP_ARITY` | ccheap | D-ary branching | `2` (or `4`/`8`) |
-| `CCHEAP_REALLOC` | ccheap | Realloc | `realloc` |
-| `CCHEAP_MALLOC(sz)` | ccheap | Alloc | `realloc(NULL, sz)` |
-| `CCHEAP_FREE(ptr)` | ccheap | Free | `free` |
-| `CCHEAP_DEFAULT_CAP` | ccheap | Initial capacity | `32` |
-| `CCVECTOR_NODE_T` | ccvector | Element type | `ccvector_node_t` |
-| `CCVECTOR_REALLOC` | ccvector | Realloc | `realloc` |
-| `CCVECTOR_MALLOC(sz)` | ccvector | Alloc | `realloc(NULL, sz)` |
-| `CCVECTOR_FREE(ptr)` | ccvector | Free | `free` |
-| `CCVECTOR_DEFAULT_CAP` | ccvector | Initial capacity | `8` |
-| `CCFLATMAP_COMPARE(a,b)` | ccflatmap | Inline compare | none |
-| `CCFLATMAP_NODE_T` | ccflatmap | Override node type | `ccflatmap_node_t` |
-| `CCFLATMAP_REALLOC` | ccflatmap | Realloc | `realloc` |
-| `CCFLATMAP_MALLOC(sz)` | ccflatmap | Alloc | `realloc(NULL, sz)` |
-| `CCFLATMAP_FREE(ptr)` | ccflatmap | Free | `free` |
-| `CCFLATMAP_DEFAULT_CAP` | ccflatmap | Initial capacity | `8` |
-| `CCTREAP_COMPARE(a,b)` | cctreap | Inline key compare | none |
-| `CCTREAP_RAND(state)` | cctreap | Replace RNG (default xorshift64) | `_tp_xorshift64` |
-| `CCTREAP_NODE_T` | cctreap | Override node type | none |
-
-Internal constants: `CCMAP_RED=0`/`CCMAP_BLACK=1`/`CCMAP_LEFT=0`/`CCMAP_RIGHT=1`.
+Internal constants: `CCMAP_RED=0`, `CCMAP_BLACK=1`, `CCMAP_LEFT=0`, `CCMAP_RIGHT=1`.
 
 ---
 
@@ -316,16 +269,16 @@ cmake --install build --prefix /usr/local
 
 ### Test coverage
 
-| Test | Container | Assertions |
-| --- | --- | --- |
-| `test_ccmap.c` | Red-black tree | 2058 |
-| `test_cchashmap.c` | Hash map | 2043 |
-| `test_cclink.c` | Singly-linked list | 54 |
-| `test_cclist.c` | Doubly-linked list | 78 |
-| `test_ccheap.c` | D-ary heap | 1255 |
-| `test_ccvector.c` | Dynamic array | 548 |
-| `test_ccflatmap.c` | Sorted-array map | 15936 |
-| `test_cctreap.c` | Treap | 10396 |
+| Test | Container |
+| --- | --- |
+| `test_ccmap.c` | Red-black tree |
+| `test_cchashmap.c` | Hash map |
+| `test_cclink.c` | Singly-linked list |
+| `test_cclist.c` | Doubly-linked list |
+| `test_ccheap.c` | D-ary heap |
+| `test_ccvector.c` | Dynamic array |
+| `test_ccflatmap.c` | Sorted-array map |
+| `test_cctreap.c` | Treap |
 
 ### Benchmarks (C++ vs STL)
 

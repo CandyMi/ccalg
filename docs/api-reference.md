@@ -748,3 +748,37 @@ size_t cctreap_size(cctreap_t *m);
 int cctreap_height(const cctreap_t *m);
 // 树高估值。O(log n)，由 size 推算。
 ```
+
+---
+
+## ccunicode — UTF-8 ↔ UCS-4 编解码
+
+头文件: [`include/ccunicode.h`](../include/ccunicode.h)
+
+自包含的 UTF-8 与 UCS-4 互转编解码器，遵循 Unicode 17.0 / RFC 3629。
+
+- 支持 1–4 字节序列，拒绝超长编码、代理对（U+D800–U+DFFF）
+- ASCII 快速路径，256 字节查找表分类首字节，无分支编码器
+- 解码：展开 switch 处理连续字节，消除循环开销
+
+### 函数
+
+```c
+int ccunicode_to_codepoint(const char *str, int len, uint32_t *val);
+// UTF-8 → UCS-4。返回消耗字节数 1–4（成功）或 0（失败）。
+
+bool ccunicode_from_codepoint(uint32_t val, char str[4], int *len);
+// UCS-4 → UTF-8。*len 输出写入字节数。true 成功，false 非法码点。
+```
+
+### 编译期配置
+
+| 宏 | 作用 | 默认 |
+| --- | --- | --- |
+| `CCUNICODE_INLINE` | 函数内联关键字，可覆盖为 `static`（C89）| `static inline` |
+
+### 性能说明
+
+- 解码器：首字节查表（256B `seq_len`）→ 展开 switch 逐 case 处理，无循环、无跳转表开销
+- 编码器：无分支计算字节数（`1 + (val > 0x7F) + ...`，编译器降级为 SETcc/CMOV）→ 首字节查表 → fall-through switch 写连续字节
+- ASCII 路径（占比 70–90%）立即返回，不触碰查找表

@@ -25,6 +25,7 @@ cmake --install build --prefix /usr/local   # 或 sh scripts/install.sh
 #include "ccalg/cclink.h"     // 单向链表
 #include "ccalg/cclist.h"     // 双向链表
 #include "ccalg/ccheap.h"     // 优先队列
+#include "ccalg/ccunicode.h"  // UTF-8 编解码
 ```
 
 ## 2. ccmap — 红黑树（有序映射）
@@ -329,7 +330,63 @@ struct point { float x, y; };
 /* 现在 ccvector 存储 struct point 值 */
 ```
 
-## 10. 构建与测试
+## 10. ccunicode — UTF-8 编解码
+
+```c
+#include <stdio.h>
+#include <string.h>
+#include "ccunicode.h"
+
+int main() {
+    /* ── 解码：UTF-8 → UCS-4 ── */
+    const char *utf8 = "A©你";
+    int offset = 0, len = (int)strlen(utf8);
+
+    while (offset < len) {
+        uint32_t cp;
+        int n = ccunicode_to_codepoint(utf8 + offset, len - offset, &cp);
+        if (n == 0) { printf("invalid UTF-8\n"); break; }
+        printf("U+%04X  (%d bytes)\n", cp, n);
+        offset += n;
+    }
+    /* 输出:
+       U+0041  (1 byte)   — ASCII 'A'
+       U+00A9  (2 bytes)  — ©
+       U+4F60  (3 bytes)  — 你
+    */
+
+    /* ── 编码：UCS-4 → UTF-8 ── */
+    uint32_t codepoints[] = { 0x41, 0xA9, 0x4F60, 0x1F600 };  /* A, ©, 你, 😀 */
+    char buf[4]; int n;
+
+    for (size_t i = 0; i < sizeof(codepoints)/sizeof(codepoints[0]); i++) {
+        if (ccunicode_from_codepoint(codepoints[i], buf, &n)) {
+            printf("U+%05X → ", codepoints[i]);
+            for (int j = 0; j < n; j++) printf("%02X ", (unsigned char)buf[j]);
+            printf(" (%d bytes)\n", n);
+        } else {
+            printf("U+%05X → invalid\n", codepoints[i]);
+        }
+    }
+    /* 输出:
+       U+00041 → 41        (1 byte)
+       U+000A9 → C2 A9     (2 bytes)
+       U+04F60 → E4 BD A0  (3 bytes)
+       U+1F600 → F0 9F 98 80 (4 bytes)
+    */
+
+    /* ── 非法输入 ── */
+    uint32_t cp;
+    printf("%d\n", ccunicode_to_codepoint("\xC0\x80", 2, &cp));  // 0 — 超长编码
+    printf("%d\n", ccunicode_to_codepoint("\xED\xA0\x80", 3, &cp)); // 0 — 代理对
+    printf("%d\n", ccunicode_from_codepoint(0xD800, buf, &n));       // false — 代理对
+    printf("%d\n", ccunicode_from_codepoint(0x110000, buf, &n));     // false — 超范围
+
+    return 0;
+}
+```
+
+## 11. 构建与测试
 
 ```bash
 # CMake 一键构建 + 测试

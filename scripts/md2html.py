@@ -20,24 +20,24 @@ body { font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
        background: var(--bg); color: var(--fg); display: flex; min-height: 100vh; }
 html { scroll-behavior: smooth; }
 /* ── sidebar + collapse ─────────────────────────────────────────────── */
-.toggle-sidebar { position: fixed; top: 10px; left: calc(var(--sidebar-w) + 8px);
-                  z-index: 200; width: 32px; height: 32px;
-                  border: 1px solid var(--border); border-radius: 6px;
-                  background: var(--bg); color: var(--fg); font-size: 16px;
-                  cursor: pointer; display: flex; align-items: center;
-                  justify-content: center; transition: left .3s ease; }
-.toggle-sidebar:hover { background: var(--link); color: #fff; border-color: var(--link); }
 .sidebar { width: var(--sidebar-w); flex-shrink: 0; background: var(--accent);
            border-right: 1px solid var(--border); padding: 2rem 1.2rem;
            position: sticky; top: 0; height: 100vh; overflow: hidden;
            transition: width .3s ease, padding .3s ease, border-color .3s ease; }
 .sidebar:hover { overflow-y: auto; }
-.sidebar-collapsed .sidebar { width: 0 !important; padding-left: 0; padding-right: 0;
-                              border-right-color: transparent; }
-.sidebar-collapsed .toggle-sidebar { left: 10px; }
+.sidebar-toggle { display: block; width: 32px; height: 32px; margin: 0 0 0 auto;
+                  border: 1px solid var(--border); border-radius: 6px;
+                  background: var(--bg); color: var(--fg); font-size: 18px;
+                  cursor: pointer; line-height: 30px; text-align: center;
+                  flex-shrink: 0; }
+.sidebar-toggle:hover { background: var(--link); color: #fff; border-color: var(--link); }
+.sidebar-collapsed .sidebar { width: 44px; padding: 8px 4px; }
+.sidebar-collapsed .sidebar h2,
+.sidebar-collapsed .sidebar nav { display: none; }
 .sidebar-collapsed .main { max-width: none; }
-.sidebar h2 { font-size: 1.1em; margin-bottom: 1rem; color: var(--fg);
-              border-bottom: 1px solid var(--border); padding-bottom: .5em; }
+.sidebar h2 { font-size: 1.9em; margin-bottom: 1rem; color: var(--fg);
+              border-bottom: 1px solid var(--border); padding-bottom: .5em;
+              text-align: center; }
 .sidebar a { display: block; padding: .35em 0; color: var(--link); text-decoration: none;
              font-size: 0.95em; border-radius: 4px; padding-left: .5em; }
 .sidebar a:hover, .sidebar a.active { background: var(--link); color: #fff; }
@@ -47,7 +47,7 @@ html { scroll-behavior: smooth; }
        display: flex; flex-direction: column; font-size: 0.82em; z-index: 100;
        background: var(--bg); border: 1px solid var(--border);
        border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,.08);
-       opacity: 0.92; transition: opacity .2s; }
+       opacity: 0.92; transition: opacity .2s, width .3s ease; }
 .toc:hover { opacity: 1; }
 .toc-title { display: flex; justify-content: space-between; align-items: center;
              flex-shrink: 0; font-weight: 600; color: var(--fg);
@@ -64,12 +64,22 @@ html { scroll-behavior: smooth; }
 .toc .toc-h3 { padding-left: 1.2em; font-size: 0.95em; }
 .toc-top { color: #999; font-size: 1.1em; font-weight: 400; padding: 0 .3em; }
 .toc-top:hover { color: var(--link); text-decoration: none; }
+.toc-toggle { position: fixed; right: 12px; top: 50px; z-index: 101;
+              padding: 4px 10px; border: 1px solid var(--border);
+              border-radius: 6px 6px 0 0;
+              background: var(--bg); color: var(--fg);
+              font-size: 0.82em; cursor: pointer;
+              white-space: nowrap; }
+.toc-toggle:hover { background: var(--link); color: #fff; border-color: var(--link); }
+.toc-icon { display: inline-block; transition: transform .3s ease; }
+.toc-collapsed .toc { display: none; }
+.toc-collapsed .toc-icon { transform: rotate(180deg); }
 @media (prefers-color-scheme: dark) {
   .toc { box-shadow: 0 4px 20px rgba(0,0,0,.35); }
   .toc a { color: #8b949e; }
 }
 @media (max-width: 1100px) {
-  .toc { display: none; }
+  .toc, .toc-toggle { display: none; }
 }
 h1 { border-bottom: 1px solid var(--border); padding-bottom: .3em; margin-bottom: 1em; }
 h2 { margin-top: 1.8em; margin-bottom: .5em; }
@@ -226,9 +236,9 @@ def main():
 <style>{CSS}</style>
 </head>
 <body>
-<button class="toggle-sidebar" id="toggleSidebar" title="收起侧边栏">✕</button>
 <aside class="sidebar" id="sidebar">
-  <h2>alg docs</h2>
+  <button class="sidebar-toggle" id="toggleSidebar" title="收起侧边栏">亖</button>
+  <h2>目录</h2>
 {nav}
 </aside>
 <main class="main">
@@ -237,6 +247,7 @@ def main():
     alg — header-only C data-structure library · BSD 3-Clause · <a href="https://github.com/CandyMi/alg">GitHub</a>
   </footer>
 </main>
+<button class="toc-toggle" id="tocToggle" title="折叠目录">点击收起 <span class="toc-icon">▶</span></button>
 <nav class="toc" id="toc">
   <div class="toc-title"><span>本页目录</span><a href="#" class="toc-top" title="回到顶部">↑</a></div>
   <div class="toc-links">{toc}</div>
@@ -261,7 +272,6 @@ mermaid.run();
 
   function apply(state) {{
     body.classList.toggle('sidebar-collapsed', state);
-    btn.textContent = state ? '☰' : '✕';
     btn.title = state ? '展开侧边栏' : '收起侧边栏';
   }}
 
@@ -274,6 +284,29 @@ mermaid.run();
   // restore saved state
   try {{
     if (localStorage.getItem('sidebar-collapsed') === '1') apply(true);
+  }} catch(e) {{}}
+}})();
+
+// ── TOC collapse toggle ──────────────────────────────────────────────
+(function() {{
+  var btn = document.getElementById('tocToggle');
+  var toc = document.getElementById('toc');
+  if (!btn || !toc) return;
+
+  function apply(state) {{
+    document.body.classList.toggle('toc-collapsed', state);
+    btn.innerHTML = state ? '点击展开 <span class="toc-icon">▶</span>' : '点击收起 <span class="toc-icon">▶</span>';
+    btn.title = state ? '展开目录' : '折叠目录';
+  }}
+
+  btn.addEventListener('click', function() {{
+    var collapsed = !document.body.classList.contains('toc-collapsed');
+    apply(collapsed);
+    try {{ localStorage.setItem('toc-collapsed', collapsed ? '1' : '0'); }} catch(e) {{}}
+  }});
+
+  try {{
+    if (localStorage.getItem('toc-collapsed') === '1') apply(true);
   }} catch(e) {{}}
 }})();
 

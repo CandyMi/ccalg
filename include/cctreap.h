@@ -16,8 +16,10 @@
 **
 **  ── RNG override ──
 **
-**    #define CCTREAP_RAND(state)  my_rand64(state)
-**    Must return a uint64_t and update *state for the next call.
+**    #define CCTREAP_RAND_T               my_rng_state_t     (default uint64_t)
+**    #define CCTREAP_RAND_INIT(m, seed)   my_rng_init(m, seed)
+**    #define CCTREAP_RAND_NEXT(state)     my_rng_next(state)
+**    Default: uint64_t state + pointer seed + xorshift64 step.
 **
 **  ── Container-of ──
 **
@@ -146,6 +148,35 @@ CCTREAP_INLINE cctreap_node_t *_tp_max(cctreap_node_t *x) {
   return x;
 }
 
+
+/* ── internal xorshift64 (overridable via CCTREAP_RAND_NEXT) ────────── */
+CCTREAP_INLINE uint64_t _tp_xorshift64(uint64_t *state) {
+  uint64_t x = *state;
+  x ^= x << 13;
+  x ^= x >> 7;
+  x ^= x << 17;
+  return *state = x;
+}
+
+/* ── RNG state type (overridable) ────────────────────────────────────── */
+
+#ifndef CCTREAP_RAND_T
+  #define CCTREAP_RAND_T uint64_t
+#endif
+
+#ifndef CCTREAP_RAND_INIT
+  #define CCTREAP_RAND_INIT(m, seed)  ((m)->state = (seed))
+#endif
+
+#ifndef CCTREAP_RAND_NEXT
+  #define CCTREAP_RAND_NEXT(state) _tp_xorshift64(state)
+#endif
+
+/* backward-compat alias */
+#ifndef CCTREAP_RAND
+  #define CCTREAP_RAND(state) CCTREAP_RAND_NEXT(state)
+#endif
+
 /* ── types ────────────────────────────────────────────────────────────── */
 
 typedef int64_t (*cctreap_cmp_t) (const cctreap_node_t *a, const cctreap_node_t *b);
@@ -156,7 +187,7 @@ typedef struct cctreap {
   cctreap_node_t    *last;
   size_t             size;
   cctreap_cmp_t      key_cmp;
-  uint64_t           state;   /* xorshift64 state, seeded from ptr */
+  CCTREAP_RAND_T     state;   /* RNG state (default uint64_t, overridable) */
 } cctreap_t;
 
 /* ── internal priority (max-heap, non-overridable) ──────────────────── */
@@ -167,19 +198,6 @@ CCTREAP_INLINE int64_t _tp_prio_cmp(const cctreap_node_t *a,
   return 0;
 }
 #define _TP_PRIO_CMP(a, b) _tp_prio_cmp((a), (b))
-
-/* ── internal xorshift64 (overridable via CCTREAP_RAND) ──────────────── */
-CCTREAP_INLINE uint64_t _tp_xorshift64(uint64_t *state) {
-  uint64_t x = *state;
-  x ^= x << 13;
-  x ^= x >> 7;
-  x ^= x << 17;
-  return *state = x;
-}
-
-#ifndef CCTREAP_RAND
-  #define CCTREAP_RAND(state) _tp_xorshift64(state)
-#endif
 
 /* ── transplant ───────────────────────────────────────────────────────── */
 
@@ -257,14 +275,14 @@ CCTREAP_INLINE void cctreap_init(cctreap_t *m, cctreap_cmp_t key_cmp) {
   m->last      = NULL;
   m->size      = 0;
   m->key_cmp   = key_cmp;
-  m->state     = (uint64_t)(uintptr_t)m;
+  CCTREAP_RAND_INIT(m, (uint64_t)(uintptr_t)m);
 }
 
 CCTREAP_INLINE int cctreap_insert(cctreap_t *m, cctreap_node_t *node, cctreap_node_t **out) {
   if (cctreap_unlikely(!m || !node)) return -1;
   node->child[CCTREAP_LEFT] = node->child[CCTREAP_RIGHT] = NULL;
   node->size     = 1;
-  node->priority = CCTREAP_RAND(&m->state);
+  node->priority = CCTREAP_RAND_NEXT(&m->state);
   _tp_spc(node, NULL, 0);
 #ifndef CCTREAP_COMPARE
   cctreap_cmp_t key_cmp = m->key_cmp;

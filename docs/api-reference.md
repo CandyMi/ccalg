@@ -677,7 +677,7 @@ typedef struct cctreap {
     cctreap_node_t    *last;         // 最大节点 (O(1) rbegin)
     size_t             size;
     cctreap_cmp_t       key_cmp;
-    uint64_t            rng_state;   // xorshift64 state, seeded from ptr
+    CCTREAP_RAND_T      state;       // RNG state (默认 uint64_t, 可替换)
 } cctreap_t;
 ```
 
@@ -686,7 +686,10 @@ typedef struct cctreap {
 | 宏 | 作用 | 默认 |
 | --- | --- | --- |
 | `CCTREAP_COMPARE(a, b)` | 内联 key 比较 | 未定义 |
-| `CCTREAP_RAND(state)` | 替换随机数生成器（默认 xorshift64）| `_tp_xorshift64` |
+| `CCTREAP_RAND_T` | RNG 状态类型 | `uint64_t`（可替换为 `ccrandom128_t` / `ccrandom256_t`）|
+| `CCTREAP_RAND_INIT(m, seed)` | 播种：接收容器指针 + 种子值初始化 RNG 状态 | `(m)->state = (seed)` |
+| `CCTREAP_RAND_NEXT(state)` | 步进：生成下一个随机值 | `_tp_xorshift64` |
+| `CCTREAP_RAND(state)` | （兼容别名，等价于 `CCTREAP_RAND_NEXT`） | — |
 | `CCTREAP_NODE_T` | 阻止默认节点 typedef | 未定义 |
 
 ### 生命周期
@@ -694,7 +697,7 @@ typedef struct cctreap {
 ```c
 void cctreap_init(cctreap_t *m, cctreap_cmp_t key_cmp);
 // 初始化。若定义了 CCTREAP_COMPARE，key_cmp 被忽略。
-// rng_state 由 m 的指针值自动播种。
+// RNG 状态由 CCTREAP_RAND_INIT 负责播种（默认：m 的指针值）。
 
 void cctreap_clear(cctreap_t *m);
 // 重置为空。不释放节点内存。
@@ -705,7 +708,7 @@ void cctreap_clear(cctreap_t *m);
 ```c
 int cctreap_insert(cctreap_t *m, cctreap_node_t *node, cctreap_node_t **out);
 // 插入节点。返回 0 成功，-1 重复（*out = 已存在节点）。
-// priority 由内部 CCTREAP_RAND 自动生成，无需用户设置。
+// priority 由内部 CCTREAP_RAND_NEXT 自动生成，无需用户设置。
 
 cctreap_node_t *cctreap_find(cctreap_t *m, const cctreap_node_t *probe);
 // 按 key 查找。返回节点指针或 NULL。

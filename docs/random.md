@@ -571,18 +571,19 @@ m->state = (uint64_t)(uintptr_t)m;
 
 **④ 用户可自由升级**
 
-如果用户对默认随机性质量不放心，`CCTREAP_RAND` 宏可以轻松替换为任何更强的生成器：
+如果用户对默认随机性质量不放心，`CCTREAP_RAND_INIT` 和 `CCTREAP_RAND_NEXT` 两个宏可以分别替换播种和步进逻辑：
 
 ```c
 // 使用 ccrandom128 替代 xorshift64
 #include "ccrandom.h"
-#define CCTREAP_RAND(state)  ccrandom128_next((ccrandom128_t *)(state))
-
-// 初始化时需要把 state 区域视为 ccrandom128_t
-cctreap_t m;
-m.state = (uint64_t)(uintptr_t)&m;  // 原 seed
-ccrandom128_init((ccrandom128_t *)&m.state, m.state);
+#define CCTREAP_RAND_T       ccrandom128_t
+#define CCTREAP_RAND_INIT(m, seed) \
+    ccrandom128_init(&(m)->state, (seed))
+#define CCTREAP_RAND_NEXT(state) \
+    ccrandom128_next(state)
 ```
+
+`CCTREAP_RAND` 作为 `CCTREAP_RAND_NEXT` 的向下兼容别名仍然可用，但新代码推荐使用拆分后的宏。
 
 ### 6.3 一句话总结
 

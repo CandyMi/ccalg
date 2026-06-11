@@ -14,14 +14,33 @@ vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO CandyMi/ccalg
     REF "v${VERSION}"
-    SHA512 19e8815902f1aef659155fb71863c6f95cf6f408195aacf057398b63d157dcff62904f34c199c57b1f482478f7a6e80944311e01add19529ca02eeddcfe663a5
+    SHA512 78f7112a81099fcce8f8ac03a4947be1e378c0e744e257a0b310ee6ae4dc3178f047e9f945199aa11b44949f25de08dd228e706e3e3b32d5af8300a9e78ec8e6
     HEAD_REF master
-    PATCHES
 )
+
+# Disable test/bench targets by patching CMakeLists.txt in-place.
+# Avoids fragile `.patch` files that fail `git apply`.
+set(_ccalg_cmake "${SOURCE_PATH}/CMakeLists.txt")
+file(READ "${_ccalg_cmake}" _ccalg_content)
+# 1. Add BUILD_TESTING option right after project()
+string(REPLACE "project(ccalg LANGUAGES C CXX)"
+              "project(ccalg LANGUAGES C CXX)\noption(BUILD_TESTING \"Build tests and benchmarks\" ON)"
+              _ccalg_content "${_ccalg_content}")
+# 2. Guard enable_testing()
+string(REPLACE "\nenable_testing()"
+               "\nif(BUILD_TESTING)\n  enable_testing()"
+               _ccalg_content "${_ccalg_content}")
+# 3. Close the guard before docs section
+string(REPLACE "\n# ── docs → HTML"
+               "\nendif()\n\n# ── docs → HTML"
+               _ccalg_content "${_ccalg_content}")
+file(WRITE "${_ccalg_cmake}" "${_ccalg_content}")
 
 # ccalg is header-only — CMake installs headers to include/ccalg/
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
+    OPTIONS
+        -DBUILD_TESTING=OFF
 )
 
 vcpkg_cmake_install()

@@ -19,9 +19,23 @@ CSS = """
 body { font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
        background: var(--bg); color: var(--fg); display: flex; min-height: 100vh; }
 html { scroll-behavior: smooth; }
+/* ── sidebar + collapse ─────────────────────────────────────────────── */
+.toggle-sidebar { position: fixed; top: 10px; left: calc(var(--sidebar-w) + 8px);
+                  z-index: 200; width: 32px; height: 32px;
+                  border: 1px solid var(--border); border-radius: 6px;
+                  background: var(--bg); color: var(--fg); font-size: 16px;
+                  cursor: pointer; display: flex; align-items: center;
+                  justify-content: center; transition: left .3s ease; }
+.toggle-sidebar:hover { background: var(--link); color: #fff; border-color: var(--link); }
 .sidebar { width: var(--sidebar-w); flex-shrink: 0; background: var(--accent);
            border-right: 1px solid var(--border); padding: 2rem 1.2rem;
-           position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+           position: sticky; top: 0; height: 100vh; overflow: hidden;
+           transition: width .3s ease, padding .3s ease, border-color .3s ease; }
+.sidebar:hover { overflow-y: auto; }
+.sidebar-collapsed .sidebar { width: 0 !important; padding-left: 0; padding-right: 0;
+                              border-right-color: transparent; }
+.sidebar-collapsed .toggle-sidebar { left: 10px; }
+.sidebar-collapsed .main { max-width: none; }
 .sidebar h2 { font-size: 1.1em; margin-bottom: 1rem; color: var(--fg);
               border-bottom: 1px solid var(--border); padding-bottom: .5em; }
 .sidebar a { display: block; padding: .35em 0; color: var(--link); text-decoration: none;
@@ -97,7 +111,7 @@ PAGES = [
     ("building",          "构建指南", "ccalg - "),
     ("benchmarks",        "性能基准", "ccalg - "),
     ("thread-safety",     "线程安全", "ccalg - "),
-    ("random",            "随机数生成", "ccalg - "),
+    ("random",            "伪随机数", "ccalg - "),
     ("contributing",      "参与贡献", "ccalg - "),
 ]
 
@@ -212,7 +226,8 @@ def main():
 <style>{CSS}</style>
 </head>
 <body>
-<aside class="sidebar">
+<button class="toggle-sidebar" id="toggleSidebar" title="收起侧边栏">✕</button>
+<aside class="sidebar" id="sidebar">
   <h2>alg docs</h2>
 {nav}
 </aside>
@@ -238,33 +253,70 @@ document.querySelectorAll('pre code.language-mermaid').forEach(function(el) {{
 hljs.highlightAll();
 mermaid.run();
 
-// ── TOC scroll-spy ──────────────────────────────────────────────────
+// ── sidebar toggle ─────────────────────────────────────────────────
+(function() {{
+  var btn = document.getElementById('toggleSidebar');
+  var body = document.body;
+  if (!btn) return;
+
+  function apply(state) {{
+    body.classList.toggle('sidebar-collapsed', state);
+    btn.textContent = state ? '☰' : '✕';
+    btn.title = state ? '展开侧边栏' : '收起侧边栏';
+  }}
+
+  btn.addEventListener('click', function() {{
+    var collapsed = !body.classList.contains('sidebar-collapsed');
+    apply(collapsed);
+    try {{ localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0'); }} catch(e) {{}}
+  }});
+
+  // restore saved state
+  try {{
+    if (localStorage.getItem('sidebar-collapsed') === '1') apply(true);
+  }} catch(e) {{}}
+}})();
+
+// ── TOC scroll-spy (midpoint activation) ────────────────────────────
 (function() {{
   var toc = document.getElementById('toc');
   if (!toc) return;
   var links = toc.querySelectorAll('.toc-links a');
   if (!links.length) {{ toc.style.display = 'none'; return; }}
 
-  // activate first link on load
-  if (links[0]) links[0].classList.add('active');
-
-  var observer = new IntersectionObserver(function(entries) {{
-    entries.forEach(function(e) {{
-      if (e.isIntersecting) {{
-        var id = e.target.id;
-        links.forEach(function(a) {{
-          var match = a.getAttribute('data-target') === id;
-          a.classList.toggle('active', match);
-          if (match) a.scrollIntoView({{ block: 'nearest', behavior: 'smooth' }});
-        }});
-      }}
-    }});
-  }}, {{ rootMargin: '-80px 0px -70% 0px' }});
-
+  // collect heading targets
+  var headings = [];
   links.forEach(function(a) {{
-    var target = document.getElementById(a.getAttribute('data-target'));
-    if (target) observer.observe(target);
+    var el = document.getElementById(a.getAttribute('data-target'));
+    if (el) headings.push({{ el: el, link: a }});
   }});
+
+  // find which heading's midpoint is active
+  function updateActive() {{
+    var mid = window.scrollY + window.innerHeight / 2;
+    var activeIdx = -1;
+    for (var i = headings.length - 1; i >= 0; i--) {{
+      if (headings[i].el.offsetTop <= mid) {{ activeIdx = i; break; }}
+    }}
+
+    links.forEach(function(a, idx) {{
+      a.classList.toggle('active', idx === activeIdx);
+    }});
+
+    if (activeIdx >= 0 && headings[activeIdx]) {{
+      headings[activeIdx].link.scrollIntoView({{ block: 'nearest', behavior: 'instant' }});
+    }}
+  }}
+
+  updateActive();
+
+  var ticking = false;
+  window.addEventListener('scroll', function() {{
+    if (!ticking) {{
+      requestAnimationFrame(function() {{ ticking = false; updateActive(); }});
+      ticking = true;
+    }}
+  }}, {{ passive: true }});
 }})();
 </script>
 </body>

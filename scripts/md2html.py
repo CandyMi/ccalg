@@ -72,6 +72,12 @@ th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: center;
 th { background: var(--accent); font-weight: 600; }
 blockquote { border-left: 3px solid var(--link); padding: .5em 1em; margin: 1em 0;
              background: var(--accent); border-radius: 0 6px 6px 0; }
+a.citation { text-decoration: none; color: inherit; font-weight: 500;
+              border: 1px solid var(--border); border-radius: 3px;
+              padding: 0 .25em; font-size: 0.9em; vertical-align: super;
+              line-height: 1; transition: background .15s; }
+a.citation:hover { background: var(--link); color: #fff; border-color: var(--link); }
+li[id^="ref-"] { scroll-margin-top: 60px; }
 footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border);
          font-size: 0.85em; color: #888; }
 @media (max-width: 768px) {
@@ -129,6 +135,52 @@ def toc_html(body_html):
     return '\n'.join(items)
 
 
+def process_citations(body_html):
+    """Convert `[N]` citation markers to links, and anchor reference list items.
+
+    Steps:
+      1. Find `<h2>参考文献</h2>` heading, then the `<ol>` immediately following it.
+         Number each `<li>` with `id="ref-1"`, `id="ref-2"`, …
+      2. In all non-code/non-pre text, replace standalone `[N]` (N=1..9) with
+         `<a href="#ref-N" class="citation">[N]</a>`.
+
+    Returns the modified HTML string.
+    """
+    # ── Step 1: anchor reference list items ──────────────────────────────
+    ref_pat = re.compile(
+        r'(<h2[^>]*>参考文献</h2>\s*)<ol>\s*(.*?)\s*</ol>',
+        re.DOTALL
+    )
+    def anchor_refs(m):
+        prefix = m.group(1)
+        inner  = m.group(2)
+        idx    = 1
+        def tag_li(m_li):
+            nonlocal idx
+            li = m_li.group(0)
+            tagged = li.replace('<li>', f'<li id="ref-{idx}">', 1) if '<li>' in li else li
+            tagged = tagged.replace('<li ', f'<li id="ref-{idx}" ', 1) if '<li ' in li and 'id=' not in li else tagged
+            idx += 1
+            return tagged
+        inner_tagged = re.sub(r'<li[^>]*>', tag_li, inner)
+        return prefix + '<ol>' + inner_tagged + '</ol>'
+
+    body_html = ref_pat.sub(anchor_refs, body_html)
+
+    # ── Step 2: link citation markers in non-code text ───────────────────
+    def link_citations(segment):
+        # Replace [N] where N is 1-9, but not inside identifiers (ASCII \w only,
+        # because Python 3's default \w matches CJK — we want 重构[2] to match).
+        return re.sub(r'(?<![a-zA-Z0-9_])\[([1-9])\](?![a-zA-Z0-9_])', r'<a href="#ref-\1" class="citation">[\1]</a>', segment)
+
+    parts = re.split(r'(<pre[^>]*>.*?</pre>|<code[^>]*>.*?</code>)', body_html, flags=re.DOTALL)
+    for i in range(0, len(parts), 2):
+        parts[i] = link_citations(parts[i])
+    body_html = ''.join(parts)
+
+    return body_html
+
+
 def main():
     src_dir = sys.argv[1] if len(sys.argv) > 1 else "docs"
     out_dir = sys.argv[2] if len(sys.argv) > 2 else "build/docs-html"
@@ -144,6 +196,7 @@ def main():
         raw = open(src, encoding="utf-8").read()
         body = markdown(raw, extensions=["fenced_code", "tables", "toc"],
                         extension_configs={"toc": {"permalink": False, "baselevel": 1}})
+        body = process_citations(body)
         toc = toc_html(body)
         nav = nav_html(slug)
 

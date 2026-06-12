@@ -8,108 +8,45 @@ Usage:    python3 scripts/md2html.py docs/ build/docs-html/
 import sys, os, re
 from markdown import markdown
 
-CSS = """
-:root { --bg: #fafafa; --fg: #222; --link: #0366d6; --code-bg: #f0f0f0;
-        --border: #e1e4e8; --accent: #f6f8fa; --sidebar-w: 220px; }
-@media (prefers-color-scheme: dark) {
-  :root { --bg: #0d1117; --fg: #c9d1d9; --link: #58a6ff; --code-bg: #161b22;
-          --border: #30363d; --accent: #161b22; }
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-       background: var(--bg); color: var(--fg); display: flex; min-height: 100vh; }
-html { scroll-behavior: smooth; }
-/* ── sidebar + collapse ─────────────────────────────────────────────── */
-.sidebar { width: var(--sidebar-w); flex-shrink: 0; background: var(--accent);
-           border-right: 1px solid var(--border); padding: 2rem 1.2rem;
-           position: sticky; top: 0; height: 100vh; overflow: hidden;
-           transition: width .3s ease, padding .3s ease, border-color .3s ease; }
-.sidebar:hover { overflow-y: auto; }
-.sidebar-toggle { display: block; width: 32px; height: 32px; margin: 0 0 0 auto;
-                  border: 1px solid var(--border); border-radius: 6px;
-                  background: var(--bg); color: var(--fg); font-size: 18px;
-                  cursor: pointer; line-height: 30px; text-align: center;
-                  flex-shrink: 0; }
-.sidebar-toggle:hover { background: var(--link); color: #fff; border-color: var(--link); }
-.sidebar-collapsed .sidebar { width: 44px; padding: 8px 4px; }
+CUSTOM_CSS = """
+/* ── sidebar collapse (spanning multiple elements — CSS is cleaner than JS class toggling) ── */
+.sidebar-collapsed .sidebar { width: 44px !important; padding: 8px 4px !important; }
 .sidebar-collapsed .sidebar h2,
 .sidebar-collapsed .sidebar nav { display: none; }
-.sidebar-collapsed .main { max-width: none; }
-.sidebar h2 { font-size: 1.9em; margin-bottom: 1rem; color: var(--fg);
-              border-bottom: 1px solid var(--border); padding-bottom: .5em;
-              text-align: center; }
-.sidebar a { display: block; padding: .35em 0; color: var(--link); text-decoration: none;
-             font-size: 0.95em; border-radius: 4px; padding-left: .5em; }
-.sidebar a:hover, .sidebar a.active { background: var(--link); color: #fff; }
-.main { flex: 1; padding: 2rem 2.5rem; max-width: 900px; }
-/* ── floating TOC ─────────────────────────────────────────────────── */
-.toc { position: fixed; right: 12px; top: 80px; width: 210px; max-height: calc(100vh - 120px);
-       display: flex; flex-direction: column; font-size: 0.82em; z-index: 100;
-       background: var(--bg); border: 1px solid var(--border);
-       border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,.08);
-       opacity: 0.92; transition: opacity .2s, width .3s ease; }
-.toc:hover { opacity: 1; }
-.toc-title { display: flex; justify-content: space-between; align-items: center;
-             flex-shrink: 0; font-weight: 600; color: var(--fg);
-             font-size: 0.9em; padding: .6rem .8rem .4em;
-             border-bottom: 1px solid var(--border); }
-.toc-links { overflow-y: auto; flex: 1; padding: .4rem .8rem .8rem;
-             scrollbar-width: none; }
-.toc-links::-webkit-scrollbar { display: none; }
-.toc a { display: block; padding: .25em 0 .25em .6em; color: #666;
-         text-decoration: none; border-left: 2px solid transparent;
-         line-height: 1.35; transition: color .15s, border-color .15s; }
-.toc a:hover { color: var(--link); }
-.toc a.active { color: var(--link); border-left-color: var(--link); font-weight: 500; }
-.toc .toc-h3 { padding-left: 1.2em; font-size: 0.95em; }
-.toc-top { color: #999; font-size: 1.1em; font-weight: 400; padding: 0 .3em; }
-.toc-top:hover { color: var(--link); text-decoration: none; }
-.toc-toggle { position: fixed; right: 12px; top: 50px; z-index: 101;
-              padding: 4px 10px; border: 1px solid var(--border);
-              border-radius: 6px 6px 0 0;
-              background: var(--bg); color: var(--fg);
-              font-size: 0.82em; cursor: pointer;
-              white-space: nowrap; }
-.toc-toggle:hover { background: var(--link); color: #fff; border-color: var(--link); }
-.toc-icon { display: inline-block; transition: transform .3s ease; }
+.sidebar-collapsed .main { margin-left: 44px !important; max-width: none; }
+@media (max-width: 767px) {
+  .sidebar-collapsed .sidebar { width: 100% !important; padding: 1rem !important; }
+  .sidebar-collapsed .sidebar h2,
+  .sidebar-collapsed .sidebar nav { display: block; }
+  .sidebar-collapsed .main { margin-left: 0 !important; }
+}
+/* ── TOC collapse ── */
 .toc-collapsed .toc { display: none; }
 .toc-collapsed .toc-icon { transform: rotate(180deg); }
+/* ── TOC scrollbar ── */
+.toc-links { scrollbar-width: none; }
+.toc-links::-webkit-scrollbar { display: none; }
+/* ── TOC active link (Tailwind prose overrides need !important) ── */
+.toc a.active { color: #2563eb !important; border-left-color: #2563eb !important; font-weight: 500; }
 @media (prefers-color-scheme: dark) {
-  .toc { box-shadow: 0 4px 20px rgba(0,0,0,.35); }
-  .toc a { color: #8b949e; }
+  .toc a.active { color: #60a5fa !important; border-left-color: #60a5fa !important; }
 }
+/* ── citation links inside prose ── */
+a.citation {
+  text-decoration: none; color: inherit; font-weight: 500;
+  border: 1px solid #d1d5db; border-radius: 3px;
+  padding: 0 0.25em; font-size: 0.9em; vertical-align: super;
+  line-height: 1; transition: background 0.15s;
+}
+a.citation:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+@media (prefers-color-scheme: dark) {
+  a.citation { border-color: #475569; }
+  a.citation:hover { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+}
+li[id^="ref-"] { scroll-margin-top: 80px; }
+/* ── responsive: hide TOC on narrow screens ── */
 @media (max-width: 1100px) {
-  .toc, .toc-toggle { display: none; }
-}
-h1 { border-bottom: 1px solid var(--border); padding-bottom: .3em; margin-bottom: 1em; }
-h2 { margin-top: 1.8em; margin-bottom: .5em; }
-h3 { margin-top: 1.4em; }
-a { color: var(--link); text-decoration: none; }
-a:hover { text-decoration: underline; }
-pre { background: var(--code-bg); border: 1px solid var(--border);
-      border-radius: 6px; padding: 1em; overflow-x: auto; margin: 1em 0; }
-code { font: 13px SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
-       background: var(--code-bg); padding: .2em .4em; border-radius: 3px; }
-pre code { background: none; padding: 0; }
-table { border-collapse: collapse; width: 100%; margin: 1em 0; }
-th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: center; }
-th { background: var(--accent); font-weight: 600; }
-blockquote { border-left: 3px solid var(--link); padding: .5em 1em; margin: 1em 0;
-             background: var(--accent); border-radius: 0 6px 6px 0; }
-a.citation { text-decoration: none; color: inherit; font-weight: 500;
-              border: 1px solid var(--border); border-radius: 3px;
-              padding: 0 .25em; font-size: 0.9em; vertical-align: super;
-              line-height: 1; transition: background .15s; }
-a.citation:hover { background: var(--link); color: #fff; border-color: var(--link); }
-li[id^="ref-"] { scroll-margin-top: 60px; }
-footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border);
-         font-size: 0.85em; color: #888; }
-@media (max-width: 768px) {
-  body { flex-direction: column; }
-  .sidebar { width: 100%; height: auto; position: static; border-right: none;
-             border-bottom: 1px solid var(--border); padding: 1rem 1.2rem; }
-  .sidebar a { display: inline-block; margin-right: .8em; }
-  .main { padding: 1.5rem; }
+  .toc, .toc-toggle { display: none !important; }
 }
 """
 
@@ -135,14 +72,23 @@ items = [
   '七、',
   '八、',
   '九、',
+  '十、',
 ]
 
 def nav_html(active_slug):
     links = []
     i = 0
-    for slug, name, title  in PAGES:
-        cls = ' class="active"' if slug == active_slug else ""
-        links.append(f'      <a href="{slug}.html"{cls}>{items[i] + name}</a>')
+    base = (
+        'block py-2 px-3 rounded-md text-sm font-medium no-underline '
+        'text-teal-700 dark:text-teal-300 '
+        'hover:bg-blue-50 hover:text-blue-700 '
+        'dark:hover:bg-blue-950 dark:hover:text-blue-300 '
+        'transition-colors duration-150'
+    )
+    active_cls = ' bg-blue-600 text-white hover:bg-blue-700 hover:text-white dark:bg-blue-600 dark:text-white'
+    for slug, name, title in PAGES:
+        cls = base + (active_cls if slug == active_slug else '')
+        links.append(f'      <a href="{slug}.html" class="{cls}">{items[i] + name}</a>')
         i = i + 1
     return "\n".join(links)
 
@@ -150,12 +96,18 @@ def nav_html(active_slug):
 def toc_html(body_html):
     """Generate TOC links from rendered HTML h2/h3 elements."""
     items = []
+    base = (
+        'block py-1 no-underline border-l-2 border-transparent '
+        'text-teal-500 dark:text-teal-400 '
+        'hover:text-blue-600 dark:hover:text-blue-400 '
+        'transition-colors duration-150 leading-snug'
+    )
     for m in re.finditer(r'<(h[23])(?:\s+id="([^"]*)")?[^>]*>(.+?)</\1>', body_html):
         tag, aid, title = m.group(1), m.group(2), m.group(3).strip()
         if not aid or title.lower() == 'alg docs':
             continue
-        cls = 'toc-h3' if tag == 'h3' else 'toc-h2'
-        items.append(f'<a href="#{aid}" class="{cls}" data-target="{aid}">{title}</a>')
+        indent = ' pl-3 text-xs' if tag == 'h3' else ' pl-2 text-[0.82em]'
+        items.append(f'<a href="#{aid}" class="{base}{indent}" data-target="{aid}">{title}</a>')
     return '\n'.join(items)
 
 
@@ -226,31 +178,95 @@ def main():
 
         baidu = '<meta name="baidu-site-verification" content="codeva-IOubXz4IUX" />\n' if slug == "index" else ""
         html = f"""<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="scroll-smooth">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 {baidu}<title>{ slug == 'index' and title or (title + name)}</title>
-<link rel="stylesheet" media="(prefers-color-scheme: light)" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/monokai.min.css">
-<link rel="stylesheet" media="(prefers-color-scheme: dark)"  href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/monokai-sublime.min.css">
-<style>{CSS}</style>
+<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+<script>
+tailwind.config = {{
+  darkMode: 'media',
+  theme: {{
+    extend: {{
+      typography: {{
+        DEFAULT: {{
+          css: {{
+            maxWidth: 'none',
+            'code::before': {{ content: 'none' }},
+            'code::after': {{ content: 'none' }},
+            'blockquote p:first-of-type::before': {{ content: 'none' }},
+            'blockquote p:last-of-type::after': {{ content: 'none' }},
+          }}
+        }}
+      }}
+    }}
+  }}
+}}
+</script>
+<style>{CUSTOM_CSS}</style>
 </head>
-<body>
-<aside class="sidebar" id="sidebar">
-  <button class="sidebar-toggle" id="toggleSidebar" title="收起侧边栏">亖</button>
-  <h2>目录</h2>
+<body class="flex min-h-screen bg-white dark:bg-teal-950 text-teal-900 dark:text-teal-100 font-sans antialiased">
+<aside class="sidebar w-full h-auto static border-b border-teal-200 dark:border-teal-800 p-4
+              md:fixed md:left-0 md:top-0 md:h-full md:w-[220px] md:border-r md:border-b-0 md:p-8
+              bg-teal-50 dark:bg-teal-900 overflow-hidden hover:overflow-y-auto z-30
+              transition-[width,padding] duration-300"
+       id="sidebar">
+  <button class="block w-8 h-8 ml-auto border border-teal-300 dark:border-teal-700
+                 rounded-md bg-white dark:bg-teal-800 text-teal-600 dark:text-teal-300
+                 text-lg cursor-pointer leading-7 text-center
+                 hover:bg-blue-600 hover:text-white hover:border-blue-600
+                 dark:hover:bg-blue-600 dark:hover:text-white
+                 transition-colors duration-200 flex-shrink-0"
+          id="toggleSidebar" title="收起侧边栏">☰</button>
+  <h2 class="text-2xl font-bold mt-3 mb-4 pb-2 border-b border-teal-200 dark:border-teal-700
+             text-teal-800 dark:text-teal-100 text-center">目录</h2>
+  <nav class="flex flex-wrap gap-1 md:flex-col md:gap-0.5">
 {nav}
+  </nav>
 </aside>
-<main class="main">
+<main class="main flex-1 px-4 py-6 md:ml-[220px] md:px-10 md:py-8 max-w-[900px]
+             transition-[margin] duration-300" id="main">
+  <article class="prose prose-slate dark:prose-invert max-w-none
+                  prose-headings:scroll-mt-20
+                  prose-pre:rounded-lg prose-pre:border prose-pre:border-teal-200
+                  dark:prose-pre:border-teal-800
+                  prose-img:rounded-lg
+                  prose-table:block prose-table:overflow-x-auto
+                  md:prose-table:table">
 {body}
-  <footer>
-    alg — header-only C data-structure library · BSD 3-Clause · <a href="https://github.com/CandyMi/alg">GitHub</a>
+  </article>
+  <footer class="mt-12 pt-4 border-t border-teal-200 dark:border-teal-800
+                 text-sm text-teal-500 dark:text-teal-400">
+    <p>ccalg — header-only C data-structure library · BSD 3-Clause ·
+    <a href="https://github.com/CandyMi/ccalg" class="text-blue-600 dark:text-blue-400 hover:underline">GitHub</a></p>
   </footer>
 </main>
-<button class="toc-toggle" id="tocToggle" title="折叠目录">点击收起 <span class="toc-icon">▶</span></button>
-<nav class="toc" id="toc">
-  <div class="toc-title"><span>本页目录</span><a href="#" class="toc-top" title="回到顶部">↑</a></div>
-  <div class="toc-links">{toc}</div>
+<button class="toc-toggle fixed right-3 top-[50px] z-[101] px-2.5 py-1
+               border border-teal-300 dark:border-teal-700 rounded-t-md
+               bg-white dark:bg-teal-900 text-teal-600 dark:text-teal-300
+               text-sm cursor-pointer whitespace-nowrap
+               hover:bg-blue-600 hover:text-white hover:border-blue-600
+               dark:hover:bg-blue-600 dark:hover:text-white
+               transition-colors duration-200"
+        id="tocToggle" title="折叠目录">点击收起 <span class="toc-icon inline-block transition-transform duration-300">▶</span></button>
+<nav class="toc fixed right-3 top-20 w-[210px] max-h-[calc(100vh-120px)]
+            flex flex-col text-sm z-[100] bg-white dark:bg-teal-900
+            border border-teal-200 dark:border-teal-800 rounded-xl
+            shadow-lg shadow-teal-200/50 dark:shadow-teal-950/50
+            opacity-90 hover:opacity-100 transition-opacity duration-200"
+     id="toc">
+  <div class="flex justify-between items-center flex-shrink-0 font-semibold
+              text-teal-800 dark:text-teal-100 text-sm
+              px-3 py-2.5 border-b border-teal-200 dark:border-teal-800">
+    <span>本页目录</span>
+    <a href="#" class="text-teal-400 dark:text-teal-500 text-base font-normal
+                       no-underline hover:text-blue-600 dark:hover:text-blue-400 px-1"
+       title="回到顶部">↑</a>
+  </div>
+  <div class="toc-links overflow-y-auto flex-1 px-3 py-2">
+{toc}
+  </div>
 </nav>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
@@ -273,6 +289,7 @@ mermaid.run();
   function apply(state) {{
     body.classList.toggle('sidebar-collapsed', state);
     btn.title = state ? '展开侧边栏' : '收起侧边栏';
+    btn.innerHTML = state ? '☰' : '☰';
   }}
 
   btn.addEventListener('click', function() {{
@@ -295,7 +312,7 @@ mermaid.run();
 
   function apply(state) {{
     document.body.classList.toggle('toc-collapsed', state);
-    btn.innerHTML = state ? '点击展开 <span class="toc-icon">▶</span>' : '点击收起 <span class="toc-icon">▶</span>';
+    btn.innerHTML = state ? '点击展开 <span class="toc-icon inline-block transition-transform duration-300">▶</span>' : '点击收起 <span class="toc-icon inline-block transition-transform duration-300">▶</span>';
     btn.title = state ? '展开目录' : '折叠目录';
   }}
 
@@ -351,6 +368,25 @@ mermaid.run();
     }}
   }}, {{ passive: true }});
 }})();
+</script>
+<script>
+// Load HLJS theme CSS AFTER Tailwind CDN has injected its styles.
+// Tailwind CDN injects styles async (DOMContentLoaded / rAF) — we use
+// double rAF to guarantee HLJS loads last and wins cascade ties.
+requestAnimationFrame(function() {{
+  requestAnimationFrame(function() {{
+    var light = document.createElement('link');
+    light.rel = 'stylesheet';
+    light.media = '(prefers-color-scheme: light)';
+    light.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs.min.css';
+    document.head.appendChild(light);
+    var dark = document.createElement('link');
+    dark.rel = 'stylesheet';
+    dark.media = '(prefers-color-scheme: dark)';
+    dark.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs2015.min.css';
+    document.head.appendChild(dark);
+  }});
+}});
 </script>
 </body>
 </html>"""

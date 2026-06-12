@@ -76,5 +76,3 @@ cmake --build build --target bench    # 构建 + 基准
 ## 5. 最后
 
   希望你能喜欢上它! 😃😃😃😃😃
-
-[ccalg.dev](https://ccalg.dev) · author - [CandyMi](https://github.com/CandyMi) · BSD 3-Clause

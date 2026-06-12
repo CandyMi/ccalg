@@ -396,4 +396,4 @@ cmake -S . -B build && cmake --build build --target check
 cmake --build build --target bench
 ```
 
-详见 [构建指南](building.md)。
+详见 [构建指南](building.html)。

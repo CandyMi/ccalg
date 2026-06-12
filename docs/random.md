@@ -1,6 +1,6 @@
 # ccrandom — 非加密伪随机数生成器
 
-> 头文件: [`include/ccrandom.h`](../include/ccrandom.h)
+> 头文件: [`include/ccrandom.h`](https://github.com/CandyMi/ccalg/blob/master/include/ccrandom.h)
 
 轻量、可复现、跨平台的高性能 PRNG，提供 128-bit 与 256-bit 两个引擎。专为**非加密场景**（模拟、游戏、测试、采样、蒙特卡洛）设计。
 

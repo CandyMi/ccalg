@@ -2,7 +2,7 @@
 
 ## ccmap — 侵入式红黑树
 
-头文件: [`include/ccmap.h`](../include/ccmap.h)
+头文件: [`include/ccmap.h`](https://github.com/CandyMi/ccalg/blob/master/include/ccmap.h)
 
 有序映射，基于红黑树。节点 16 字节（64-bit），颜色编码在父指针低位。
 
@@ -97,7 +97,7 @@ int ccmap_height(const ccmap_t *m);
 
 ## cchashmap — 侵入式链式哈希表
 
-头文件: [`include/cchashmap.h`](../include/cchashmap.h)
+头文件: [`include/cchashmap.h`](https://github.com/CandyMi/ccalg/blob/master/include/cchashmap.h)
 
 链式哈希，内部管理桶数组。容量为 2 的幂，位掩码索引。
 
@@ -178,7 +178,7 @@ size_t cchashmap_size(cchashmap_t *m);
 
 ## cclist — 侵入式双向链表
 
-头文件: [`include/cclist.h`](../include/cclist.h)
+头文件: [`include/cclist.h`](https://github.com/CandyMi/ccalg/blob/master/include/cclist.h)
 
 标准双向链表，head/tail 哨兵 + size 计数。无内部分配。
 
@@ -277,7 +277,7 @@ cclist_ecode_t cclist_verify(const cclist_t *l);
 
 ## cclink — 侵入式单向链表
 
-头文件: [`include/cclink.h`](../include/cclink.h)
+头文件: [`include/cclink.h`](https://github.com/CandyMi/ccalg/blob/master/include/cclink.h)
 
 轻量单向链表，无内部分配。可作为哈希桶链等场景的构建块。
 
@@ -362,7 +362,7 @@ cclink_ecode_t cclink_verify(const cclink_t *l);
 
 ## ccheap — D-ary 堆（优先队列）
 
-头文件: [`include/ccheap.h`](../include/ccheap.h)
+头文件: [`include/ccheap.h`](https://github.com/CandyMi/ccalg/blob/master/include/ccheap.h)
 
 指针数组存储，调用方持有节点内存。默认二叉堆，可选 4-ary / 8-ary。
 
@@ -453,7 +453,7 @@ size_t heap_size(ccheap_t *heap);
 
 ## ccvector — 动态数组
 
-头文件: [`include/ccvector.h`](../include/ccvector.h)
+头文件: [`include/ccvector.h`](https://github.com/CandyMi/ccalg/blob/master/include/ccvector.h)
 
 值存储的动态数组，元素以值形式存入连续内存。自动 2x 扩容。ccvector 不是侵入式容器——元素通过浅拷贝存入内部数组。
 
@@ -547,7 +547,7 @@ int  ccvector_reserve(ccvector_t *v, size_t new_cap);
 
 ## ccflatmap — 排序数组映射
 
-头文件: [`include/ccflatmap.h`](../include/ccflatmap.h)
+头文件: [`include/ccflatmap.h`](https://github.com/CandyMi/ccalg/blob/master/include/ccflatmap.h)
 
 值存储的排序数组映射——连续内存 + 二分查找。类似 C++23 `std::flat_map`。
 
@@ -655,7 +655,7 @@ int    ccflatmap_reserve(ccflatmap_t *m, size_t new_cap);
 
 ## cctreap — 侵入式 Treap
 
-头文件: [`include/cctreap.h`](../include/cctreap.h)
+头文件: [`include/cctreap.h`](https://github.com/CandyMi/ccalg/blob/master/include/cctreap.h)
 
 有序映射，基于 treap（BST + max-heap）。节点 32 字节（64-bit），优先级内置（插入时 xorshift64 自动生成）。
 
@@ -753,7 +753,7 @@ int cctreap_height(const cctreap_t *m);
 
 ## ccunicode — UTF-8 ↔ UCS-4 编解码
 
-头文件: [`include/ccunicode.h`](../include/ccunicode.h)
+头文件: [`include/ccunicode.h`](https://github.com/CandyMi/ccalg/blob/master/include/ccunicode.h)
 
 自包含的 UTF-8 与 UCS-4 互转编解码器，遵循 Unicode 17.0 / RFC 3629。
 

@@ -297,6 +297,13 @@ ccheap_size(ccheap_t *heap)
 }
 
 CCHEAP_INLINE void
+ccheap_clear(ccheap_t *heap)
+{
+  if (!heap) return;
+  heap->len = 0;
+}
+
+CCHEAP_INLINE void
 ccheap_destroy(ccheap_t *heap)
 {
   if (!heap) return;

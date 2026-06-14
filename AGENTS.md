@@ -308,6 +308,7 @@ cmake --install build --prefix /usr/local
 | `test_ccflatmap.c` | Sorted-array map |
 | `test_cctreap.c` | Treap |
 | `test_ccrandom.c` | PRNG (Xoroshiro128++ / Xoshiro256**) |
+| `test_ccunicode.c` | UTF-8 ↔ UCS-4 codec |
 
 ### Benchmarks (C++ vs STL)
 
@@ -344,14 +345,90 @@ cmake --install build --prefix /usr/local
 
 ---
 
-## Editing Conventions
+## Standard Operating Procedures
 
-- **README.md and `docs/*.md`** — Chinese (中文).
-- **AGENTS.md** — English.
-- **Build artifacts** in `build/` (gitignored).  Do not commit binaries.
-- **Macro prefixes are per-container.**  No cross-container shared macros.
-- **Cascade:** header change → tests → benchmarks → docs → gh-pages deploy.
-- Do not use internal helper functions (`_rb_*`, `_tp_*`, `_cclist_*`) to manipulate containers — use only the public API.
+> **Mandatory.** These rules MUST be checked before every create / modify / debug / commit.  
+> If uncertain about any rule's applicability, STOP and ask interactively — do NOT proceed without confirmation.
+
+### 1. File header — License
+
+Every source file (`*.h`, `*.c`, `*.cpp`) MUST include the BSD 3-Clause license header:
+
+```c
+/*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+*/
+```
+
+### 2. Comment style
+
+Use `/* */` consistently throughout each file.  
+**No mixing** — a single file MUST NOT contain both `/* */` and `//` comments.  
+If a file mixes styles, STOP and ask which style to unify to before proceeding.
+
+### 3. Language standard & C89 compatibility
+
+- C99+ and C89 syntax may coexist in the project.
+- **A single file MUST NOT mix C89 and C99+ syntax styles** (e.g. declarations at block start + mid-block declarations).  
+  If mixing is detected, STOP and ask which standard to normalize to.
+- C++ interop: wrap public declarations in `#ifdef __cplusplus extern "C" {` / `}` if the header may be consumed from C++.
+
+### 4. Documentation sync
+
+- New or changed public API → MUST update:
+  - `docs/api-reference.md`
+  - `docs/algorithms.md` (if algorithmic detail changed)
+  - `docs/index.md` (if feature list changed)
+  - `AGENTS.md` (architecture, file map, test table, macro table, per-container details)
+- **Stale docs MUST be removed** — if an API was removed or renamed, purge its old docs entry.
+
+### 5. Test requirement
+
+- Every new public function or container MUST have a matching test in `tests/test_ccxxx.c`.
+- The test MUST be registered in `CMakeLists.txt` so `cmake --build build --target check` runs it.
+- Benchmarks (`.cpp` under `bench/`) are strongly recommended for new containers.
+
+### 6. Commit message format
+
+Use **Conventional Commits**:
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+```
+
+Types: `feat`, `fix`, `docs`, `refactor`, `test`, `bench`, `chore`, `cmake`.  
+Scope is the component name (e.g. `ccmap`, `ccrandom`, `docs`, `AGENTS`).  
+Body explains *why* when the title isn't sufficient.
+
+### 7. NULL safety & error handling
+
+- Every public function MUST guard `NULL` parameters:
+  ```c
+  if (!m) return 0;   /* or NULL / false, matching the return type */
+  ```
+- **No `assert()`, no `abort()`** in public functions — errors return a sentinel value.
+- Internal helpers may assert for invariant checking in debug builds.
+
+### 8. Formatting
+
+- Line endings: **LF** (`\n`), never CRLF.
+- No trailing whitespace on any line.
+- Files MUST end with a single newline.
+- Build artifacts (`build/`, `*.o`, `*.exe`, etc.) MUST NOT be committed.
+
+### 9. Cascade order
+
+```
+header change → tests → benchmarks → docs → gh-pages deploy
+```
+
+### 10. API hygiene
+
+- **Macro prefixes are per-container.** No cross-container shared macros.
+- Do not use internal helper functions (`_rb_*`, `_tp_*`, `_cclist_*`) outside their owning header — use only the public API.
 
 ---
 

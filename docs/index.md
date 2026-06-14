@@ -35,7 +35,14 @@
 
 > `cctreap` 额外支持 O(log n) 的 `kth`（第 k 小）和 `rank`（排名查询）操作。均摊复杂度基于默认配置（ccmap 红黑树保证最坏 O(log n)，cchashmap 负载因子 ≤1.25 保证均摊 O(1)）。
 
-## 3. 上手
+## 3. 工具
+
+| 模块 | 用途 |
+| --- | --- |
+| `ccrandom` | 非加密 PRNG（Xoroshiro128++ / Xoshiro256**） |
+| `ccunicode` | UTF-8 ↔ UCS-4 编解码 |
+
+## 4. 上手
 
   现在给您一分钟阅读代码, 然后我们立刻快速上手使用高性能容器.
 
@@ -63,7 +70,7 @@ int main() {
 
   是的, 就是这么快上手! 
 
-## 4. 构建
+## 5. 构建
 
   你问: "既然是 header-only 为什么还要构建?" , 还不是因为让你也能和我一样跑用例测试它 👍🏻 
 
@@ -73,6 +80,6 @@ cmake --build build --target check    # 构建 + 测试
 cmake --build build --target bench    # 构建 + 基准
 ```
 
-## 5. 最后
+## 6. 最后
 
   希望你能喜欢上它! 😃😃😃😃😃

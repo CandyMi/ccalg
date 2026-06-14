@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 ** ccrandom.h — 128-bit and 256-bit non-cryptographic PRNGs.
 **
 ** ============================================================================

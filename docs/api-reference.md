@@ -786,3 +786,60 @@ bool ccunicode_from_codepoint(uint32_t val, char str[4], int *len);
 - 解码器：首字节查表（256B `seq_len`）→ 展开 switch 逐 case 处理，无循环、无跳转表开销
 - 编码器：无分支计算字节数（`1 + (val > 0x7F) + ...`，编译器降级为 SETcc/CMOV）→ 首字节查表 → fall-through switch 写连续字节
 - ASCII 路径（占比 70–90%）立即返回，不触碰查找表
+
+---
+
+## ccrandom — 非加密伪随机数生成器
+
+头文件: [`include/ccrandom.h`](https://github.com/CandyMi/ccalg/blob/master/include/ccrandom.h)
+
+轻量、可复现、跨平台的高性能 PRNG，提供 128-bit 与 256-bit 两个引擎。专为**非加密场景**（模拟、游戏、测试、采样、蒙特卡洛）设计。
+
+两个引擎均通过 BigCrush (TestU01) 和 PractRand ≥ 32 TiB 统计测试。
+
+| 引擎 | 算法 | 状态 | 周期 | 特点 |
+| --- | --- | --- | --- | --- |
+| `ccrandom128` | Xoroshiro128++ | 2×u64 | 2¹²⁸−1 | 最快，适合吞吐敏感场景 |
+| `ccrandom256` | Xoshiro256** | 4×u64 | 2²⁵⁶−1 | 统计质量更高 |
+
+### 初始化
+
+```c
+void ccrandom128_init(ccrandom128_t *s, uint64_t seed);
+void ccrandom256_init(ccrandom256_t *s, uint64_t seed);
+// SplitMix64 扩展种子至内部状态。任何 64 位值均可（含 0）。
+```
+
+### 整数输出
+
+```c
+uint64_t ccrandom128_next(ccrandom128_t *s);
+uint64_t ccrandom256_next(ccrandom256_t *s);
+// 返回 [0, 2^64−1] 均匀分布 64 位无符号整数。
+```
+
+### 浮点输出
+
+```c
+float  ccrandom128_f32next(ccrandom128_t *s);
+float  ccrandom256_f32next(ccrandom256_t *s);
+// 返回 [0, 1) 范围内 float，24 位尾数精度。
+
+double ccrandom128_f64next(ccrandom128_t *s);
+double ccrandom256_f64next(ccrandom256_t *s);
+// 返回 [0, 1) 范围内 double，53 位尾数精度。
+```
+
+### 编译期配置
+
+| 宏 | 作用 | 默认 |
+| --- | --- | --- |
+| `CCRANDOM_INLINE` | 函数内联关键字，可覆盖为 `static`（C89）| `static inline` |
+
+### 线程安全
+
+每个实例是独立的 u64 数组，**无内部锁**。推荐每线程一个实例，从主生成器或 OS 熵源播种。
+
+### 与非加密保证
+
+ccrandom **不适于加密**。输出经过非线性加扰，但保留线性状态转移的全部信息——约 O(2^64) 输出后状态可被重构。

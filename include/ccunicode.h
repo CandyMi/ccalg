@@ -18,9 +18,9 @@
  * inline and moves the error handling out of line.
  */
 #if defined(__GNUC__) || defined(__clang__)
-  #define ccunicode_unlikely(x) __builtin_expect(!!(x), 0)
+  #define CCUNICODE_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #else
-  #define ccunicode_unlikely(x) (x)
+  #define CCUNICODE_UNLIKELY(x) (x)
 #endif
 
 /*
@@ -28,9 +28,9 @@
  * and C5260 (MSVC).
  */
 #if defined(_MSC_VER)
-  #define ccunicode_fallthrough __fallthrough
+  #define CCUNICODE_FALLTHROUGH __fallthrough
 #else
-  #define ccunicode_fallthrough /* fall through */
+  #define CCUNICODE_FALLTHROUGH /* fall through */
 #endif
 
 #define CCUNICODE_INLINE static inline
@@ -84,7 +84,7 @@ static const uint8_t seq_len[256] = {
 CCUNICODE_INLINE
 int ccunicode_to_codepoint(const char *str, int len, uint32_t *val)
 {
-  if (ccunicode_unlikely(!str || len <= 0 || !val)) return 0;
+  if (CCUNICODE_UNLIKELY(!str || len <= 0 || !val)) return 0;
 
   const uint8_t* p = (const uint8_t*)str;
 
@@ -95,8 +95,8 @@ int ccunicode_to_codepoint(const char *str, int len, uint32_t *val)
   }
 
   int bytes = seq_len[p[0]];
-  if (ccunicode_unlikely(bytes < 2)) return 0;  /* invalid first byte (0) or ASCII (1) */
-  if (ccunicode_unlikely((size_t)len < (size_t)bytes)) return 0; /* incomplete sequence */
+  if (CCUNICODE_UNLIKELY(bytes < 2)) return 0;  /* invalid first byte (0) or ASCII (1) */
+  if (CCUNICODE_UNLIKELY((size_t)len < (size_t)bytes)) return 0; /* incomplete sequence */
 
   uint32_t code;
   /*
@@ -106,20 +106,20 @@ int ccunicode_to_codepoint(const char *str, int len, uint32_t *val)
    */
   switch (bytes) {
     case 4:
-      if (ccunicode_unlikely(((p[1] ^ 0x80) | (p[2] ^ 0x80) | (p[3] ^ 0x80)) & 0xC0)) return 0;
+      if (CCUNICODE_UNLIKELY(((p[1] ^ 0x80) | (p[2] ^ 0x80) | (p[3] ^ 0x80)) & 0xC0)) return 0;
       code  = (uint32_t)(p[0] & 0x07) << 18;
       code |= (uint32_t)(p[1] & 0x3F) << 12;
       code |= (uint32_t)(p[2] & 0x3F) << 6;
       code |= (uint32_t)(p[3] & 0x3F);
       break;
     case 3:
-      if (ccunicode_unlikely(((p[1] ^ 0x80) | (p[2] ^ 0x80)) & 0xC0)) return 0;
+      if (CCUNICODE_UNLIKELY(((p[1] ^ 0x80) | (p[2] ^ 0x80)) & 0xC0)) return 0;
       code  = (uint32_t)(p[0] & 0x0F) << 12;
       code |= (uint32_t)(p[1] & 0x3F) << 6;
       code |= (uint32_t)(p[2] & 0x3F);
       break;
     default: /* 2 */
-      if (ccunicode_unlikely((p[1] & 0xC0) != 0x80)) return 0;
+      if (CCUNICODE_UNLIKELY((p[1] & 0xC0) != 0x80)) return 0;
       code  = (uint32_t)(p[0] & 0x1F) << 6;
       code |= (uint32_t)(p[1] & 0x3F);
       break;
@@ -127,10 +127,10 @@ int ccunicode_to_codepoint(const char *str, int len, uint32_t *val)
 
   /* Overlong encoding check (minima: 2-byte → U+0080, 3-byte → U+0800, 4-byte → U+10000) */
   /* Beyond Unicode maximum (e.g. F4 90 80 80 → U+110000) */
-  if (ccunicode_unlikely(code < cp_ranges[bytes] || code > 0x10FFFF)) return 0;
+  if (CCUNICODE_UNLIKELY(code < cp_ranges[bytes] || code > 0x10FFFF)) return 0;
 
   /* Surrogate halves (U+D800–U+DFFF) are invalid in UTF-8 */
-  if (ccunicode_unlikely(code >= 0xD800 && code <= 0xDFFF)) return 0;
+  if (CCUNICODE_UNLIKELY(code >= 0xD800 && code <= 0xDFFF)) return 0;
 
   *val = code;
   return bytes;
@@ -154,12 +154,12 @@ int ccunicode_to_codepoint(const char *str, int len, uint32_t *val)
 CCUNICODE_INLINE
 bool ccunicode_from_codepoint(uint32_t val, char str[4], int *len)
 {
-  if (ccunicode_unlikely(!str || !len)) return false;
+  if (CCUNICODE_UNLIKELY(!str || !len)) return false;
 
   /* Unicode range caps at U+10FFFF. */
-  if (ccunicode_unlikely(val > 0x10FFFF)) return false;
+  if (CCUNICODE_UNLIKELY(val > 0x10FFFF)) return false;
   /* Surrogates are not valid Unicode scalar values. */
-  if (ccunicode_unlikely(val >= 0xD800 && val <= 0xDFFF)) return false;
+  if (CCUNICODE_UNLIKELY(val >= 0xD800 && val <= 0xDFFF)) return false;
 
   uint8_t *p = (uint8_t *)str;
 
@@ -181,11 +181,11 @@ bool ccunicode_from_codepoint(uint32_t val, char str[4], int *len)
     case 4:
       p[3] = (uint8_t)(0x80 | (val & 0x3F));
       val >>= 6;
-      ccunicode_fallthrough;
+      CCUNICODE_FALLTHROUGH;
     case 3:
       p[2] = (uint8_t)(0x80 | (val & 0x3F));
       val >>= 6;
-      ccunicode_fallthrough;
+      CCUNICODE_FALLTHROUGH;
     case 2:
       p[1] = (uint8_t)(0x80 | (val & 0x3F));
       break;

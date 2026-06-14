@@ -42,121 +42,121 @@ static int passed, failed;
 
 TEST(init_destroy) {
   ccheap_t h;
-  ASSERT(heap_init(&h, min_cmp) == 0);
-  ASSERT(heap_size(&h) == 0);
-  ASSERT(heap_peek(&h) == NULL);
-  heap_destroy(&h);
-  ASSERT(heap_size(&h) == 0);
+  ASSERT(ccheap_init(&h, min_cmp) == 0);
+  ASSERT(ccheap_size(&h) == 0);
+  ASSERT(ccheap_peek(&h) == NULL);
+  ccheap_destroy(&h);
+  ASSERT(ccheap_size(&h) == 0);
 }
 
 TEST(insert_and_peek) {
-  ccheap_t h; heap_init(&h, min_cmp);
+  ccheap_t h; ccheap_init(&h, min_cmp);
   struct my_node n = {{0}, 5};
-  ASSERT(heap_insert(&h, &n.node) == 0);
-  ASSERT(heap_size(&h) == 1);
-  ASSERT(heap_peek(&h) == &n.node);
-  heap_destroy(&h);
+  ASSERT(ccheap_insert(&h, &n.node) == 0);
+  ASSERT(ccheap_size(&h) == 1);
+  ASSERT(ccheap_peek(&h) == &n.node);
+  ccheap_destroy(&h);
 }
 
 TEST(pop_empty) {
-  ccheap_t h; heap_init(&h, min_cmp);
-  ASSERT(heap_pop(&h) == NULL);
-  heap_destroy(&h);
+  ccheap_t h; ccheap_init(&h, min_cmp);
+  ASSERT(ccheap_pop(&h) == NULL);
+  ccheap_destroy(&h);
 }
 
 TEST(min_heap_ordering) {
   /* insert 9,8,7,...,1 — pop should return 1,2,...,9 */
-  ccheap_t h; heap_init(&h, min_cmp);
+  ccheap_t h; ccheap_init(&h, min_cmp);
   struct my_node n[9];
-  for (int i = 0; i < 9; i++) { n[i].priority = 9 - i; heap_insert(&h, &n[i].node); }
-  ASSERT(heap_size(&h) == 9);
+  for (int i = 0; i < 9; i++) { n[i].priority = 9 - i; ccheap_insert(&h, &n[i].node); }
+  ASSERT(ccheap_size(&h) == 9);
   for (int i = 0; i < 9; i++) {
-    ccheap_node_t *np = heap_pop(&h);
+    ccheap_node_t *np = ccheap_pop(&h);
     ASSERT(np != NULL);
     struct my_node *p = CCHEAP_CONTAINER(np, struct my_node, node);
     ASSERT(p->priority == (uint32_t)(i + 1));
   }
-  ASSERT(heap_size(&h) == 0);
-  ASSERT(heap_pop(&h) == NULL);
-  heap_destroy(&h);
+  ASSERT(ccheap_size(&h) == 0);
+  ASSERT(ccheap_pop(&h) == NULL);
+  ccheap_destroy(&h);
 }
 
 TEST(max_heap_ordering) {
-  ccheap_t h; heap_init(&h, max_cmp);
+  ccheap_t h; ccheap_init(&h, max_cmp);
   struct my_node n[7];
-  for (int i = 0; i < 7; i++) { n[i].priority = (uint32_t)i; heap_insert(&h, &n[i].node); }
+  for (int i = 0; i < 7; i++) { n[i].priority = (uint32_t)i; ccheap_insert(&h, &n[i].node); }
   for (int i = 0; i < 7; i++) {
-    ccheap_node_t *np = heap_pop(&h);
+    ccheap_node_t *np = ccheap_pop(&h);
     struct my_node *p = CCHEAP_CONTAINER(np, struct my_node, node);
     ASSERT(p->priority == (uint32_t)(6 - i)); /* 6,5,4,3,2,1,0 */
   }
-  heap_destroy(&h);
+  ccheap_destroy(&h);
 }
 
 TEST(interleaved_insert_pop) {
-  ccheap_t h; heap_init(&h, min_cmp);
+  ccheap_t h; ccheap_init(&h, min_cmp);
   struct my_node n[5];
-  for (int i = 0; i < 3; i++) { n[i].priority = (uint32_t)(i * 10 + 10); heap_insert(&h, &n[i].node); }
-  ASSERT(CCHEAP_CONTAINER(heap_pop(&h), struct my_node, node)->priority == 10);
-  ASSERT(heap_size(&h) == 2);
-  n[3].priority = 5; heap_insert(&h, &n[3].node);
-  n[4].priority = 15; heap_insert(&h, &n[4].node);
-  ASSERT(CCHEAP_CONTAINER(heap_pop(&h), struct my_node, node)->priority == 5);
-  ASSERT(CCHEAP_CONTAINER(heap_pop(&h), struct my_node, node)->priority == 15);
-  ASSERT(CCHEAP_CONTAINER(heap_pop(&h), struct my_node, node)->priority == 20);
-  ASSERT(CCHEAP_CONTAINER(heap_pop(&h), struct my_node, node)->priority == 30);
-  ASSERT(heap_size(&h) == 0);
-  heap_destroy(&h);
+  for (int i = 0; i < 3; i++) { n[i].priority = (uint32_t)(i * 10 + 10); ccheap_insert(&h, &n[i].node); }
+  ASSERT(CCHEAP_CONTAINER(ccheap_pop(&h), struct my_node, node)->priority == 10);
+  ASSERT(ccheap_size(&h) == 2);
+  n[3].priority = 5; ccheap_insert(&h, &n[3].node);
+  n[4].priority = 15; ccheap_insert(&h, &n[4].node);
+  ASSERT(CCHEAP_CONTAINER(ccheap_pop(&h), struct my_node, node)->priority == 5);
+  ASSERT(CCHEAP_CONTAINER(ccheap_pop(&h), struct my_node, node)->priority == 15);
+  ASSERT(CCHEAP_CONTAINER(ccheap_pop(&h), struct my_node, node)->priority == 20);
+  ASSERT(CCHEAP_CONTAINER(ccheap_pop(&h), struct my_node, node)->priority == 30);
+  ASSERT(ccheap_size(&h) == 0);
+  ccheap_destroy(&h);
 }
 
 TEST(large_insert_pop) {
-  ccheap_t h; heap_init(&h, min_cmp);
+  ccheap_t h; ccheap_init(&h, min_cmp);
   enum { N = 1000 };
   struct my_node *n = calloc(N, sizeof(*n));
   ASSERT(n != NULL);
-  for (int i = 0; i < N; i++) { n[i].priority = (uint32_t)(N - i); heap_insert(&h, &n[i].node); }
-  ASSERT(heap_size(&h) == N);
+  for (int i = 0; i < N; i++) { n[i].priority = (uint32_t)(N - i); ccheap_insert(&h, &n[i].node); }
+  ASSERT(ccheap_size(&h) == N);
   for (int i = 0; i < N; i++) {
-    ccheap_node_t *np = heap_pop(&h);
+    ccheap_node_t *np = ccheap_pop(&h);
     struct my_node *p = CCHEAP_CONTAINER(np, struct my_node, node);
     ASSERT(p->priority == (uint32_t)(i + 1));
   }
-  ASSERT(heap_size(&h) == 0);
+  ASSERT(ccheap_size(&h) == 0);
   free(n);
-  heap_destroy(&h);
+  ccheap_destroy(&h);
 }
 
 TEST(resize_trigger) {
-  ccheap_t h; heap_init(&h, min_cmp);
+  ccheap_t h; ccheap_init(&h, min_cmp);
   /* default cap is 32, insert 200 to force multiple resizes */
   struct my_node n[200];
-  for (int i = 0; i < 200; i++) { n[i].priority = (uint32_t)(200 - i); heap_insert(&h, &n[i].node); }
-  ASSERT(heap_size(&h) == 200);
+  for (int i = 0; i < 200; i++) { n[i].priority = (uint32_t)(200 - i); ccheap_insert(&h, &n[i].node); }
+  ASSERT(ccheap_size(&h) == 200);
   for (int i = 0; i < 200; i++) {
-    struct my_node *p = CCHEAP_CONTAINER(heap_pop(&h), struct my_node, node);
+    struct my_node *p = CCHEAP_CONTAINER(ccheap_pop(&h), struct my_node, node);
     ASSERT(p->priority == (uint32_t)(i + 1));
   }
-  heap_destroy(&h);
+  ccheap_destroy(&h);
 }
 
 TEST(push_alias) {
-  ccheap_t h; heap_init(&h, min_cmp);
+  ccheap_t h; ccheap_init(&h, min_cmp);
   struct my_node n = {{0}, 42};
-  ASSERT(heap_push(&h, &n.node) == 0); /* push = insert alias */
-  ASSERT(heap_size(&h) == 1);
-  ASSERT(CCHEAP_CONTAINER(heap_peek(&h), struct my_node, node)->priority == 42);
-  heap_destroy(&h);
+  ASSERT(ccheap_push(&h, &n.node) == 0); /* push = insert alias */
+  ASSERT(ccheap_size(&h) == 1);
+  ASSERT(CCHEAP_CONTAINER(ccheap_peek(&h), struct my_node, node)->priority == 42);
+  ccheap_destroy(&h);
 }
 
 TEST(null_safety) {
-  ccheap_t h; heap_init(&h, min_cmp);
-  ASSERT(heap_init(NULL, NULL) == -1);
-  ASSERT(heap_insert(NULL, NULL) == -1);
-  ASSERT(heap_pop(NULL) == NULL);
-  ASSERT(heap_peek(NULL) == NULL);
-  ASSERT(heap_size(NULL) == 0);
-  heap_destroy(NULL); /* should not crash */
-  heap_destroy(&h);
+  ccheap_t h; ccheap_init(&h, min_cmp);
+  ASSERT(ccheap_init(NULL, NULL) == -1);
+  ASSERT(ccheap_insert(NULL, NULL) == -1);
+  ASSERT(ccheap_pop(NULL) == NULL);
+  ASSERT(ccheap_peek(NULL) == NULL);
+  ASSERT(ccheap_size(NULL) == 0);
+  ccheap_destroy(NULL); /* should not crash */
+  ccheap_destroy(&h);
 }
 
 /* ── main ─────────────────────────────────────────────────────────────── */

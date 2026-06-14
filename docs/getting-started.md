@@ -188,22 +188,22 @@ int main() {
 
 int main() {
     ccheap_t h;
-    heap_init(&h, NULL);  // CCHEAP_COMPARE 定义后第二个参数被忽略
+    ccheap_init(&h, NULL);  // CCHEAP_COMPARE 定义后第二个参数被忽略
 
     ccheap_node_t n1 = {.priority = 50};
     ccheap_node_t n2 = {.priority = 10};
     ccheap_node_t n3 = {.priority = 30};
-    heap_push(&h, &n1);
-    heap_push(&h, &n2);
-    heap_push(&h, &n3);
+    ccheap_push(&h, &n1);
+    ccheap_push(&h, &n2);
+    ccheap_push(&h, &n3);
 
     /* 弹出顺序: .priority = 10, 30, 50 */
-    while (heap_size(&h) > 0) {
-        ccheap_node_t *top = heap_pop(&h);
+    while (ccheap_size(&h) > 0) {
+        ccheap_node_t *top = ccheap_pop(&h);
         printf("%llu\n", (unsigned long long)top->priority);
     }
 
-    heap_destroy(&h);
+    ccheap_destroy(&h);
     return 0;
 }
 ```
@@ -217,10 +217,10 @@ static int64_t cmp(const ccheap_node_t *a, const ccheap_node_t *b) {
     return (int64_t)b->timeout - (int64_t)a->timeout;
 }
 
-/* ccheap_t h; heap_init(&h, cmp); */
+/* ccheap_t h; ccheap_init(&h, cmp); */
 /* struct task t = {{.timeout = now() + 5000}, my_cb, NULL}; */
-/* heap_push(&h, &t.node); */
-/* struct task *done = CCHEAP_CONTAINER(heap_pop(&h), struct task, node); */
+/* ccheap_push(&h, &t.node); */
+/* struct task *done = CCHEAP_CONTAINER(ccheap_pop(&h), struct task, node); */
 /* done->cb(done->arg); */
 ```
 
@@ -230,7 +230,7 @@ static int64_t cmp(const ccheap_node_t *a, const ccheap_node_t *b) {
 #define CCHEAP_COMPARE(a, b) \
     ((int64_t)(b)->timeout - (int64_t)(a)->timeout)
 #include "ccheap.h"
-/* heap_init(&h, NULL) — 第二个参数被忽略 */
+/* ccheap_init(&h, NULL) — 第二个参数被忽略 */
 ```
 
 ## 7. ccflatmap — 排序数组映射

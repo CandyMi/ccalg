@@ -17,9 +17,9 @@
 **      f(a, b) > 0  →  a has higher priority (closer to root)
 **      f(a, b) < 0  →  b has higher priority
 **
-**    Default:                ccheap_compare_t function pointer via heap_init().
+**    Default:                ccheap_compare_t function pointer via ccheap_init().
 **    CCHEAP_COMPARE(a, b):   macro, inlined at every comparison site —
-**                            eliminates indirect call overhead.  heap_init()'s
+**                            eliminates indirect call overhead.  ccheap_init()'s
 **                            second argument is ignored when this is defined.
 **
 **    Function-pointer example (min-heap by timeout):
@@ -42,10 +42,10 @@
 **        ((int64_t)(b)->priority - (int64_t)(a)->priority)
 **    #include "ccheap.h"
 **
-**    ccheap_t h;  heap_init(&h, NULL);
+**    ccheap_t h;  ccheap_init(&h, NULL);
 **    ccheap_node_t jobs[] = {{.priority=5}, {.priority=1}, {.priority=3}};
-**    for (int i = 0; i < 3; i++) heap_push(&h, &jobs[i]);
-**    while (heap_size(&h)) printf("%lu\n", heap_pop(&h)->priority); // 1,3,5
+**    for (int i = 0; i < 3; i++) ccheap_push(&h, &jobs[i]);
+**    while (ccheap_size(&h)) printf("%lu\n", ccheap_pop(&h)->priority); // 1,3,5
 **
 **  ── Embedding for extra payload (container_of) ──
 **
@@ -61,10 +61,10 @@
 **        return (int64_t)tb->node.priority - (int64_t)ta->node.priority;
 **    }
 **
-**    ccheap_t h;  heap_init(&h, cmp);
+**    ccheap_t h;  ccheap_init(&h, cmp);
 **    struct task t = {{.priority = 42}, my_callback, NULL};
-**    heap_push(&h, &t.node);
-**    struct task *done = CCHEAP_CONTAINER(heap_pop(&h), struct task, node);
+**    ccheap_push(&h, &t.node);
+**    struct task *done = CCHEAP_CONTAINER(ccheap_pop(&h), struct task, node);
 **    done->cb(done->arg);
 */
 #ifndef CCHEAP_H
@@ -186,7 +186,7 @@ CCHEAP_INLINE void _hswap(ccheap_t *h, size_t a, size_t b) {
 /* ── public API ───────────────────────────────────────────────────────── */
 
 CCHEAP_INLINE int
-heap_init(ccheap_t *heap, ccheap_compare_t f)
+ccheap_init(ccheap_t *heap, ccheap_compare_t f)
 {
   if (ccheap_unlikely(!heap)) return -1;
   heap->data = (ccheap_node_t **)CCHEAP_MALLOC(
@@ -202,9 +202,9 @@ heap_init(ccheap_t *heap, ccheap_compare_t f)
   return 0;
 }
 
-#define heap_push(h, n) heap_insert((h), (n))
+#define ccheap_push(h, n) ccheap_insert((h), (n))
 CCHEAP_INLINE int
-heap_insert(ccheap_t *heap, CCHEAP_NODE_T *n)
+ccheap_insert(ccheap_t *heap, CCHEAP_NODE_T *n)
 {
   if (ccheap_unlikely(!heap || !n)) return -1;
 
@@ -234,7 +234,7 @@ heap_insert(ccheap_t *heap, CCHEAP_NODE_T *n)
 }
 
 CCHEAP_INLINE CCHEAP_NODE_T *
-heap_pop(ccheap_t *heap)
+ccheap_pop(ccheap_t *heap)
 {
   if (ccheap_unlikely(!heap || heap->len == 0)) return NULL;
 
@@ -289,21 +289,21 @@ heap_pop(ccheap_t *heap)
 }
 
 CCHEAP_INLINE CCHEAP_NODE_T *
-heap_peek(ccheap_t *heap)
+ccheap_peek(ccheap_t *heap)
 {
   if (ccheap_unlikely(!heap || heap->len == 0)) return NULL;
   return CCHEAP_PEEK(heap);
 }
 
 CCHEAP_INLINE size_t
-heap_size(ccheap_t *heap)
+ccheap_size(ccheap_t *heap)
 {
   if (!heap) return 0;
   return heap->len;
 }
 
 CCHEAP_INLINE void
-heap_destroy(ccheap_t *heap)
+ccheap_destroy(ccheap_t *heap)
 {
   if (!heap) return;
   if (heap->data) CCHEAP_FREE(heap->data);

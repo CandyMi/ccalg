@@ -128,12 +128,12 @@
 
 | 操作 | 锁类型 | 并行度 | 备注 |
 | --- | --- | --- | --- |
-| `heap_peek` | 读锁 | N 路 | 返回 `data.buckets[0]` 指针——读锁期间有效 |
-| `heap_size` | 读锁 | N 路 | 读取 `data.len` |
-| `heap_insert` | 写锁 | 1 路 | 可能触发 resize；上浮调整 |
-| `heap_pop` | 写锁 | 1 路 | 下沉调整；可能触发缩容（当前实现不缩容） |
-| `heap_destroy` | 写锁 | 1 路 | 释放内部数组 |
-| `heap_init` | — | — | 初始化调用 |
+| `ccheap_peek` | 读锁 | N 路 | 返回 `data.buckets[0]` 指针——读锁期间有效 |
+| `ccheap_size` | 读锁 | N 路 | 读取 `data.len` |
+| `ccheap_insert` | 写锁 | 1 路 | 可能触发 resize；上浮调整 |
+| `ccheap_pop` | 写锁 | 1 路 | 下沉调整；可能触发缩容（当前实现不缩容） |
+| `ccheap_destroy` | 写锁 | 1 路 | 释放内部数组 |
+| `ccheap_init` | — | — | 初始化调用 |
 
 > **并行度总结**：读操作极少（仅 `peek` + `size`），N 路并发。写操作串行化。
 >

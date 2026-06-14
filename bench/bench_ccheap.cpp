@@ -83,12 +83,12 @@ static void run(int N) {
   /* ── push ─────────────────────────────────────────────────────────── */
   ccheap_t h;
 #ifdef BENCH_MACRO
-  heap_init(&h, NULL);            /* 2nd arg ignored */
+  ccheap_init(&h, NULL);            /* 2nd arg ignored */
 #else
-  heap_init(&h, min_cmp);
+  ccheap_init(&h, min_cmp);
 #endif
   auto t0 = clk::now();
-  for (int i = 0; i < N; i++) heap_push(&h, &tasks[i].node);
+  for (int i = 0; i < N; i++) ccheap_push(&h, &tasks[i].node);
   auto t1 = clk::now();
   printf("  push:     ccheap            %8.2f ms\n", ms(t0, t1));
 
@@ -102,7 +102,7 @@ static void run(int N) {
   /* ── pop ──────────────────────────────────────────────────────────── */
   t0 = clk::now();
   for (int i = 0; i < N; i++) {
-    ccheap_node_t *np = heap_pop(&h);
+    ccheap_node_t *np = ccheap_pop(&h);
     volatile auto *t = CCHEAP_CONTAINER(np, struct task, node);
     (void)t;
   }
@@ -115,7 +115,7 @@ static void run(int N) {
   printf("            std::priority_q   %8.2f ms\n", ms(t2, t3));
   printf("            ratio             %8.2fx\n\n", ms(t0, t1) / ms(t2, t3));
 
-  heap_destroy(&h);
+  ccheap_destroy(&h);
   delete[] tasks;
   delete[] stl;
 }

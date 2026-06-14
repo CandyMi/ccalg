@@ -417,11 +417,11 @@ f(a, b) == 0 →  相等
 ### 生命周期
 
 ```c
-int  heap_init(ccheap_t *heap, ccheap_compare_t f);
+int  ccheap_init(ccheap_t *heap, ccheap_compare_t f);
 // 返回 0 成功，-1 失败（heap NULL 或分配失败）。
 // 若定义了 CCHEAP_COMPARE，f 被忽略。
 
-void heap_destroy(ccheap_t *heap);
+void ccheap_destroy(ccheap_t *heap);
 // 释放内部数组。不释放节点（指针模式）。
 // NULL 安全。
 ```
@@ -429,23 +429,23 @@ void heap_destroy(ccheap_t *heap);
 ### 增删查
 
 ```c
-int  heap_insert(ccheap_t *heap, ccheap_node_t *n);
-// (别名: heap_push)
+int  ccheap_insert(ccheap_t *heap, ccheap_node_t *n);
+// (别名: ccheap_push)
 // 返回 0 成功，-1 失败（NULL 或分配失败）。
 // 自动 2x 扩容。传入嵌入节点的指针。
 
-ccheap_node_t *heap_pop(ccheap_t *heap);
+ccheap_node_t *ccheap_pop(ccheap_t *heap);
 // 弹出根节点。空返回 NULL。
 // 用 CCHEAP_CONTAINER 恢复父结构体。
 
-ccheap_node_t *heap_peek(ccheap_t *heap);
+ccheap_node_t *ccheap_peek(ccheap_t *heap);
 // 查看根节点（不弹出）。空/NULL 返回 NULL。
 ```
 
 ### 工具
 
 ```c
-size_t heap_size(ccheap_t *heap);
+size_t ccheap_size(ccheap_t *heap);
 // NULL 返回 0。
 ```
 

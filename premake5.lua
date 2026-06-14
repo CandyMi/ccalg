@@ -21,7 +21,7 @@ workspace "ccalg"
   local tests = {
     "test_ccmap", "test_cchashmap", "test_cclink", "test_cclist",
     "test_ccheap", "test_ccvector", "test_ccflatmap", "test_cctreap",
-    "test_ccrandom", "test_ccunicode"
+    "test_ccrandom", "test_ccunicode", "test_ccunicode_verify"
   }
   for _, name in ipairs(tests) do
     project(name)

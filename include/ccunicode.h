@@ -43,6 +43,20 @@
 static const uint8_t  lead_mark[4]  = { 0x00, 0xC0, 0xE0, 0xF0 };
 static const uint8_t  lead_shift[4] = {    0,    6,   12,   18 };
 static const uint32_t cp_ranges[5]  = { 0, 0, 0x80, 0x800, 0x10000 };
+
+/* Tables for branchless multi-byte assembly: indexed by (bytes - 1). */
+static const uint8_t byte_sh[4][4] = {
+  { 0,  0,  0,  0},  /* ASCII: unused (goes through fast path) */
+  { 6,  0,  0,  0},  /* 2-byte: lead<<6 | cont1 */
+  {12,  6,  0,  0},  /* 3-byte: lead<<12 | cont1<<6 | cont2 */
+  {18, 12,  6,  0},  /* 4-byte: lead<<18 | cont1<<12 | cont2<<6 | cont3 */
+};
+static const uint8_t byte_ms[4][4] = {
+  {0x7F, 0x00, 0x00, 0x00},
+  {0x1F, 0x3F, 0x00, 0x00},
+  {0x0F, 0x3F, 0x3F, 0x00},
+  {0x07, 0x3F, 0x3F, 0x3F},
+};
 /*
   * Lookup table: number of bytes in the sequence for each possible first byte.
   * 0   = invalid first byte (continuation bytes 0x80-0xBF,
@@ -65,15 +79,54 @@ static const uint8_t seq_len[256] = {
   0,0,0,0,0,0,0,0, 0,0,0,                                             /* F5-FF: >U+10FFFF */
 };
 
+/*
+ * Internal: validate one UTF-8 sequence and (optionally) return its codepoint.
+ *
+ * Shared by ccunicode_to_codepoint (code != NULL) and ccunicode_verify
+ * (code == NULL).  The assembled codepoint is always computed for
+ * range/surrogate checks; writing it back is conditional on `code`.
+ *
+ * Returns bytes (1–4) on success, 0 on failure.
+ */
+CCUNICODE_INLINE
+int ccunicode_validate_seq(const uint8_t *p, int len, uint32_t *code)
+{
+  if (p[0] < 0x80) {
+    if (code) *code = p[0];
+    return 1;
+  }
+  int bytes = seq_len[p[0]];
+  if (CCUNICODE_UNLIKELY(bytes < 2)) return 0;
+  if (CCUNICODE_UNLIKELY((size_t)len < (size_t)bytes)) return 0;
+
+  /* Safe reads: predictable ternary → cmov/csel, no branch */
+  uint32_t b1 = p[1];
+  uint32_t b2 = (bytes >= 3) ? (uint32_t)p[2] : 0;
+  uint32_t b3 = (bytes >= 4) ? (uint32_t)p[3] : 0;
+
+  /* Continuation-byte validity: arithmetic masking, no branch */
+  int bad  = ((b1 ^ 0x80) & 0xC0);
+  bad |= (((b2 ^ 0x80) & 0xC0) & -(bytes >= 3));
+  bad |= (((b3 ^ 0x80) & 0xC0) & -(bytes >= 4));
+  if (CCUNICODE_UNLIKELY(bad)) return 0;
+
+  /* Table-driven assembly */
+  int idx = bytes - 1;
+  uint32_t v = ((uint32_t)(p[0] & byte_ms[idx][0]) << byte_sh[idx][0])
+             | ((uint32_t)(b1 & byte_ms[idx][1]) << byte_sh[idx][1])
+             | ((uint32_t)(b2 & byte_ms[idx][2]) << byte_sh[idx][2])
+             | ((uint32_t)(b3 & byte_ms[idx][3]) << byte_sh[idx][3]);
+
+  /* Combined range/surrogate check */
+  if (CCUNICODE_UNLIKELY((v < cp_ranges[bytes]) | (v > 0x10FFFF)
+      | ((uint32_t)(v - 0xD800) < 0x0800u))) return 0;
+
+  if (code) *code = v;
+  return bytes;
+}
+
 /**
  * Convert one UTF-8 character to its UCS-4 code point.
- *
- * Performance-oriented implementation:
- *   - ASCII (most common case) returns immediately without touching the lookup table.
- *   - A 256-byte lookup table classifies the first byte in a single access, replacing
- *     the if-else chain and folding in the 0xC0/0xC1 overlong and 0xF5+ out-of-range
- *     rejections.
- *   - Continuation bytes are processed via an unrolled switch, eliminating loop overhead.
  *
  * @param str Pointer to UTF-8 encoded byte sequence (not necessarily null-terminated).
  * @param len Number of bytes available in the buffer pointed to by str.
@@ -85,55 +138,7 @@ CCUNICODE_INLINE
 int ccunicode_to_codepoint(const char *str, int len, uint32_t *val)
 {
   if (CCUNICODE_UNLIKELY(!str || len <= 0 || !val)) return 0;
-
-  const uint8_t* p = (const uint8_t*)str;
-
-  /* Fast path: ASCII — ~70–90% of typical UTF-8 text (HTML, JSON, source code). */
-  if (p[0] < 0x80) {
-    *val = p[0];
-    return 1;
-  }
-
-  int bytes = seq_len[p[0]];
-  if (CCUNICODE_UNLIKELY(bytes < 2)) return 0;  /* invalid first byte (0) or ASCII (1) */
-  if (CCUNICODE_UNLIKELY((size_t)len < (size_t)bytes)) return 0; /* incomplete sequence */
-
-  uint32_t code;
-  /*
-   * Unrolled continuation-byte processing.
-   * Each case processes its continuation bytes and assembles the code point directly,
-   * eliminating loop overhead and enabling better instruction-level parallelism.
-   */
-  switch (bytes) {
-    case 4:
-      if (CCUNICODE_UNLIKELY(((p[1] ^ 0x80) | (p[2] ^ 0x80) | (p[3] ^ 0x80)) & 0xC0)) return 0;
-      code  = (uint32_t)(p[0] & 0x07) << 18;
-      code |= (uint32_t)(p[1] & 0x3F) << 12;
-      code |= (uint32_t)(p[2] & 0x3F) << 6;
-      code |= (uint32_t)(p[3] & 0x3F);
-      break;
-    case 3:
-      if (CCUNICODE_UNLIKELY(((p[1] ^ 0x80) | (p[2] ^ 0x80)) & 0xC0)) return 0;
-      code  = (uint32_t)(p[0] & 0x0F) << 12;
-      code |= (uint32_t)(p[1] & 0x3F) << 6;
-      code |= (uint32_t)(p[2] & 0x3F);
-      break;
-    default: /* 2 */
-      if (CCUNICODE_UNLIKELY((p[1] & 0xC0) != 0x80)) return 0;
-      code  = (uint32_t)(p[0] & 0x1F) << 6;
-      code |= (uint32_t)(p[1] & 0x3F);
-      break;
-  }
-
-  /* Overlong encoding check (minima: 2-byte → U+0080, 3-byte → U+0800, 4-byte → U+10000) */
-  /* Beyond Unicode maximum (e.g. F4 90 80 80 → U+110000) */
-  if (CCUNICODE_UNLIKELY(code < cp_ranges[bytes] || code > 0x10FFFF)) return 0;
-
-  /* Surrogate halves (U+D800–U+DFFF) are invalid in UTF-8 */
-  if (CCUNICODE_UNLIKELY(code >= 0xD800 && code <= 0xDFFF)) return 0;
-
-  *val = code;
-  return bytes;
+  return ccunicode_validate_seq((const uint8_t *)str, len, val);
 }
 
 /**
@@ -192,6 +197,57 @@ bool ccunicode_from_codepoint(uint32_t val, char str[4], int *len)
   }
 
   *len = bytes;
+  return true;
+}
+
+/**
+ * Validate that a buffer contains well-formed UTF-8.
+ *
+ * Scans the input linearly, checking each sequence for:
+ *   - valid lead byte
+ *   - correctly formatted continuation bytes
+ *   - no overlong encodings
+ *   - no surrogate halves (U+D800–U+DFFF)
+ *   - no code points beyond U+10FFFF
+ *
+ * @param str  Input buffer (not necessarily null-terminated).
+ * @param len  Number of bytes in the buffer.
+ * @return     true if the entire buffer is valid UTF-8, false otherwise.
+ */
+CCUNICODE_INLINE
+bool ccunicode_verify(const char *str, size_t len)
+{
+  size_t offset = 0;
+
+  /* 4× unrolled loop: process 4 sequences per iteration.
+   * All 4 decoded before any error check — eliminates 3 of 4 branches
+   * from the hot path.  A single multiply-and-test catches any failure. */
+  while (len - offset >= 16) {
+    int n1 = ccunicode_validate_seq((const uint8_t *)str + offset,
+                                    (int)(len - offset), NULL);
+    int n2 = ccunicode_validate_seq((const uint8_t *)str + offset + n1,
+                                    (int)(len - offset - n1), NULL);
+    int n3 = ccunicode_validate_seq((const uint8_t *)str + offset + n1 + n2,
+                                    (int)(len - offset - n1 - n2), NULL);
+    int n4 = ccunicode_validate_seq((const uint8_t *)str + offset + n1 + n2 + n3,
+                                    (int)(len - offset - n1 - n2 - n3), NULL);
+    if (CCUNICODE_UNLIKELY(!(n1 * n2 * n3 * n4))) return false;
+    offset += (size_t)(n1 + n2 + n3 + n4);
+  }
+
+  /* Tail: process remaining bytes one by one */
+  const uint8_t *p = (const uint8_t *)str + offset;
+  size_t remain = len - offset;
+  while (remain) {
+    if (p[0] < 0x80) {
+      p++; remain--;            /* ASCII fast path: inline, no function call */
+      continue;
+    }
+    int n = ccunicode_validate_seq(p, (int)remain, NULL);
+    if (CCUNICODE_UNLIKELY(!n)) return false;
+    p += n; remain -= (size_t)n;
+  }
+
   return true;
 }
 

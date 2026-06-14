@@ -1,5 +1,6 @@
 -- premake5.lua — build configuration for ccalg
 -- Usage: premake5 gmake2  (or vs2022 / xcode4)
+---@diagnostic disable: undefined-field
 ---@diagnostic disable: undefined-global
 
 workspace "ccalg"

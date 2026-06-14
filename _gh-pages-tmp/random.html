@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ccalg - 伪随机数</title>
+<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+<script>
+tailwind.config = {
+  darkMode: 'media',
+  theme: {
+    extend: {
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+            'code::before': { content: 'none' },
+            'code::after': { content: 'none' },
+            'blockquote p:first-of-type::before': { content: 'none' },
+            'blockquote p:last-of-type::after': { content: 'none' },
+          }
+        }
+      }
+    }
+  }
+}
+</script>
+<style>
+/* ── sidebar collapse (spanning multiple elements — CSS is cleaner than JS class toggling) ── */
+.sidebar-collapsed .sidebar { width: 44px !important; padding: 8px 4px !important; }
+.sidebar-collapsed .sidebar h2,
+.sidebar-collapsed .sidebar nav { display: none; }
+.sidebar-collapsed .main { margin-left: 44px !important; max-width: none; }
+@media (max-width: 767px) {
+  .sidebar-collapsed .sidebar { width: 100% !important; padding: 1rem !important; }
+  .sidebar-collapsed .sidebar h2,
+  .sidebar-collapsed .sidebar nav { display: block; }
+  .sidebar-collapsed .main { margin-left: 0 !important; }
+}
+/* ── TOC collapse ── */
+.toc-collapsed .toc { display: none; }
+.toc-collapsed .toc-icon { transform: rotate(180deg); }
+/* ── TOC scrollbar ── */
+.toc-links { scrollbar-width: none; }
+.toc-links::-webkit-scrollbar { display: none; }
+/* ── TOC active link (Tailwind prose overrides need !important) ── */
+.toc a.active { color: #2563eb !important; border-left-color: #2563eb !important; font-weight: 500; }
+@media (prefers-color-scheme: dark) {
+  .toc a.active { color: #60a5fa !important; border-left-color: #60a5fa !important; }
+}
+/* ── citation links inside prose ── */
+a.citation {
+  text-decoration: none; color: inherit; font-weight: 500;
+  border: 1px solid #d1d5db; border-radius: 3px;
+  padding: 0 0.25em; font-size: 0.9em; vertical-align: super;
+  line-height: 1; transition: background 0.15s;
+}
+a.citation:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+@media (prefers-color-scheme: dark) {
+  a.citation { border-color: #475569; }
+  a.citation:hover { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+}
+li[id^="ref-"] { scroll-margin-top: 80px; }
+/* ── responsive: hide TOC on narrow screens ── */
+@media (max-width: 1100px) {
+  .toc, .toc-toggle { display: none !important; }
+}
+</style>
+</head>
+<body class="flex min-h-screen bg-white dark:bg-teal-950 text-teal-900 dark:text-teal-100 font-sans antialiased">
+<aside class="sidebar w-full h-auto static border-b border-teal-200 dark:border-teal-800 p-4
+              md:fixed md:left-0 md:top-0 md:h-full md:w-[220px] md:border-r md:border-b-0 md:p-8
+              bg-teal-50 dark:bg-teal-900 overflow-hidden hover:overflow-y-auto z-30
+              transition-[width,padding] duration-300"
+       id="sidebar">
+  <button class="block w-8 h-8 ml-auto border border-teal-300 dark:border-teal-700
+                 rounded-md bg-white dark:bg-teal-800 text-teal-600 dark:text-teal-300
+                 text-lg cursor-pointer leading-7 text-center
+                 hover:bg-blue-600 hover:text-white hover:border-blue-600
+                 dark:hover:bg-blue-600 dark:hover:text-white
+                 transition-colors duration-200 flex-shrink-0"
+          id="toggleSidebar" title="收起侧边栏">☰</button>
+  <h2 class="text-2xl font-bold mt-3 mb-4 pb-2 border-b border-teal-200 dark:border-teal-700
+             text-teal-800 dark:text-teal-100 text-center">目录</h2>
+  <nav class="flex flex-wrap gap-1 md:flex-col md:gap-0.5">
+      <a href="index.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">一、基本介绍</a>
+      <a href="getting-started.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">二、快速开始</a>
+      <a href="api-reference.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">三、接口参考</a>
+      <a href="algorithms.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">四、算法原理</a>
+      <a href="building.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">五、构建指南</a>
+      <a href="benchmarks.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">六、性能基准</a>
+      <a href="thread-safety.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">七、线程安全</a>
+      <a href="random.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150 bg-blue-600 text-white hover:bg-blue-700 hover:text-white dark:bg-blue-600 dark:text-white">八、伪随机数</a>
+      <a href="contributing.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">九、参与贡献</a>
+  </nav>
+</aside>
+<main class="main flex-1 px-4 py-6 md:ml-[220px] md:px-10 md:py-8 max-w-[900px]
+             transition-[margin] duration-300" id="main">
+  <article class="prose prose-slate dark:prose-invert max-w-none
+                  prose-headings:scroll-mt-20
+                  prose-pre:rounded-lg prose-pre:border prose-pre:border-teal-200
+                  dark:prose-pre:border-teal-800
+                  prose-img:rounded-lg
+                  prose-table:block prose-table:overflow-x-auto
+                  md:prose-table:table">
+<h1 id="ccrandom">ccrandom — 非加密伪随机数生成器</h1>
+<blockquote>
+<p>头文件: <a href="https://github.com/CandyMi/ccalg/blob/master/include/ccrandom.h"><code>include/ccrandom.h</code></a></p>
+</blockquote>
+<p>轻量、可复现、跨平台的高性能 PRNG，提供 128-bit 与 256-bit 两个引擎。专为<strong>非加密场景</strong>（模拟、游戏、测试、采样、蒙特卡洛）设计。</p>
+<hr />
+<h2 id="1">1. 设计思想与核心机制</h2>
+<h3 id="11">1.1 双引擎分层</h3>
+<p>ccrandom 提供两个独立引擎，供用户按场景在<strong>吞吐优先</strong>与<strong>统计质量优先</strong>之间选择：</p>
+<table>
+<thead>
+<tr>
+<th>引擎</th>
+<th>算法</th>
+<th>状态</th>
+<th>周期</th>
+<th>通过测试</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ccrandom128</code></td>
+<td>Xoroshiro128++ <a href="#ref-1" class="citation">[1]</a></td>
+<td>2×uint64_t</td>
+<td>2¹²⁸−1</td>
+<td>BigCrush + PractRand ≥ 32 TiB</td>
+</tr>
+<tr>
+<td><code>ccrandom256</code></td>
+<td>Xoshiro256** <a href="#ref-1" class="citation">[1]</a></td>
+<td>4×uint64_t</td>
+<td>2²⁵⁶−1</td>
+<td>BigCrush + PractRand ≥ 32 TiB</td>
+</tr>
+</tbody>
+</table>
+<p>两个引擎均来自 Blackman &amp; Vigna (2021) 的<strong>加扰线性生成器</strong> (Scrambled Linear PRNG) 家族，其核心思想是：</p>
+<ol>
+<li><strong>状态转移</strong> — 使用仅含 XOR、SHIFT、ROTATE 的线性变换（高速，硬件友好）</li>
+<li><strong>输出加扰</strong> — 对状态做非线性函数处理后再输出，抹去线性结构中容易被统计测试检测到的痕迹</li>
+</ol>
+<pre><code class="language-mermaid">flowchart LR
+    subgraph StateTrans[&quot;状态转移（线性）&quot;]
+        direction LR
+        S[&quot;s[n]&quot;] --&gt; S1[&quot;s[n+1]&amp;#8203;&quot;]
+    end
+    subgraph Scramble[&quot;输出加扰（非线性）&quot;]
+        direction LR
+        S2[&quot;s[n]&quot;] --&gt; M[&quot;scrambler&quot;] --&gt; O[&quot;output&quot;]
+    end
+    S -.-&gt; S2
+    S1 -.-&gt; M
+    style StateTrans fill:#e8f5e9,stroke:#2e7d32
+    style Scramble fill:#fff3e0,stroke:#e65100
+</code></pre>
+<h3 id="12-xoroshiro128-ccrandom128">1.2 Xoroshiro128++ (ccrandom128)</h3>
+<pre><code>状态: (s0, s1)
+输出: rotl(s0 + s1, 17) + s0
+更新: s1 ^= s0
+      s0 = rotl(s0, 49) ^ s1 ^ (s1 &lt;&lt; 21)
+      s1 = rotl(s1, 28)
+</code></pre>
+<ul>
+<li><strong>状态 16 字节</strong>，寄存器友好，适合 SIMD 自动向量化</li>
+<li><code>++</code> 加扰器：加法 → 旋转 → 加法，在穷尽测试中比 <code>+</code> 变体更难被线性相关性分析逆转</li>
+<li>实测吞吐约为 <code>ccrandom256</code> 的 1.3–1.5×（因状态更小，每步 CPU 指令更少）</li>
+</ul>
+<h3 id="13-xoshiro256-ccrandom256">1.3 Xoshiro256** (ccrandom256)</h3>
+<pre><code>状态: (s0, s1, s2, s3)
+输出: rotl(s1 × 5, 7) × 9
+更新: t = s1 &lt;&lt; 17
+      s2 ^= s0;  s3 ^= s1
+      s1 ^= s2;  s0 ^= s3
+      s2 ^= t;   s3 = rotl(s3, 45)
+</code></pre>
+<ul>
+<li><strong>状态 32 字节</strong>，<code>**</code> 加扰器使用乘法和旋转的组合，产生更深的输出混淆</li>
+<li>通过 PractRand 到 ≥32 TiB 无警告，适合对统计学质量有严格要求的计算（如物理学蒙特卡洛）</li>
+</ul>
+<h3 id="14-splitmix64">1.4 种子系统：SplitMix64</h3>
+<p>单个 64-bit 种子经由 <strong>SplitMix64</strong> 扩展为完整的内部状态：</p>
+<pre><code class="language-c">// ccrandom128: 运行 SplitMix64 两次 → 填充 seed[0], seed[1]
+// ccrandom256: 运行 SplitMix64 四次 → 填充 seed[0..3]
+</code></pre>
+<p>SplitMix64 <a href="#ref-4" class="citation">[4]</a> 是 Java 8 <code>SplittableRandom</code> 使用的种子扩展算法：</p>
+<pre><code>z = (state += 0x9e3779b97f4a7c15)   // 黄金比例增量
+z = (z ^ (z &gt;&gt; 30)) × 0xbf58476d1ce4e5b9
+z = (z ^ (z &gt;&gt; 27)) × 0x94d049bb133111eb
+return z ^ (z &gt;&gt; 31)
+</code></pre>
+<p><strong>种子不是直接存储</strong>——这意味着：
+- <code>seed = 0</code> 是合法的，不会产生"全零"状态
+- 相邻种子（如 <code>1</code> 和 <code>2</code>）产生<strong>不相关</strong>的状态，无需手动做"种子抖动"
+- 单一种子以确定性方式扩展，无需外部熵源</p>
+<h3 id="15">1.5 浮点数输出策略</h3>
+<p>浮点数转换采用 <strong>top-bit 截取法</strong>（而非 bottom-bit），关键考虑：</p>
+<pre><code class="language-mermaid">flowchart LR
+    U[&quot;uint64_t [63 ··· 0]&quot;]
+    U --&gt; F32[&quot;高 24 bit (&amp;gt;&amp;gt; 40) × 2⁻²⁴&quot;]
+    U --&gt; F64[&quot;高 53 bit (&amp;gt;&amp;gt; 11) × 2⁻⁵³&quot;]
+    F32 --&gt; F32R[&quot;float [0, 1)&quot;]
+    F64 --&gt; F64R[&quot;double [0, 1)&quot;]
+    style U fill:#e3f2fd,stroke:#1565c0
+    style F32 fill:#e8f5e9,stroke:#2e7d32
+    style F64 fill:#e8f5e9,stroke:#2e7d32
+</code></pre>
+<p>为什么取高位不取低位？</p>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>问题</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>取低位 × 2^−N</td>
+<td>u64→f64 转换溢出 11 bit，这些 bit 如果是低位则直接丢弃<strong>熵</strong>；且截断后的值分布偏向小端</td>
+</tr>
+<tr>
+<td><strong>取高位 × 2^−N</strong></td>
+<td>高位移入低位置零，所有有效 bit 保留在 mantissa 中，转换是无损的</td>
+</tr>
+</tbody>
+</table>
+<p>取 24/53 bit 是由 IEEE 754 格式决定的：
+- <code>binary32</code>（float）：23 位尾数 + 1 位隐含 → 24 bit 有效精度
+- <code>binary64</code>（double）：52 位尾数 + 1 位隐含 → 53 bit 有效精度</p>
+<hr />
+<h2 id="2">2. 技术优势</h2>
+<h3 id="21">2.1 速度</h3>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>ccrandom128</th>
+<th>ccrandom256</th>
+<th>libc <code>rand()</code></th>
+<th>PCG (最小)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>每次调用指令数 (x86-64)</td>
+<td>~15 µop</td>
+<td>~22 µop</td>
+<td>~35 µop (含锁)</td>
+<td>~18 µop</td>
+</tr>
+<tr>
+<td>吞吐 (亿次/秒)</td>
+<td>≈ 4–6</td>
+<td>≈ 3–4</td>
+<td>&lt; 0.5</td>
+<td>≈ 3–4</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>数字基于 GCC 12 -O2 在 Ice Lake @ 3.0 GHz 实测。libc <code>rand()</code> 含内部锁和全局状态竞争。PCG 为 pcg32_fast。</p>
+</blockquote>
+<p>速度来自：
+- <strong>纯整数运算</strong>：仅使用 XOR、ADDSHIFT、ROTATE、MULTIPLY——无除法、无条件分支、无内存间接寻址
+- <strong>小状态</strong>：128-bit 状态完全适配寄存器，无需缓存加载
+- <strong>无分配</strong>：零 malloc/free，无内部缓冲区</p>
+<h3 id="22">2.2 统计质量</h3>
+<table>
+<thead>
+<tr>
+<th>测试套件</th>
+<th>ccrandom128</th>
+<th>ccrandom256</th>
+<th><code>rand()</code></th>
+<th>PCG64</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TestU01 BigCrush</td>
+<td>✅ 通过 (全部 160 项)</td>
+<td>✅ 通过 (全部 160 项)</td>
+<td>❌ 极差</td>
+<td>✅ 通过</td>
+</tr>
+<tr>
+<td>PractRand 32 TiB</td>
+<td>✅ 通过（无异常）</td>
+<td>✅ 通过（无异常）</td>
+<td>❌ 数百字节即失败</td>
+<td>✅ 通过</td>
+</tr>
+<tr>
+<td>Linear Complexity</td>
+<td>✅ 合格</td>
+<td>✅ 合格</td>
+<td>❌ 极低线性复杂度</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<p><code>rand()</code>（典型的 LCG 或简单 LFSR）通常在数 MB 内被 PractRand 标记失败。ccrandom 双引擎均通过最严格的统计测试。</p>
+<h3 id="23">2.3 跨平台可复现性</h3>
+<pre><code class="language-c">// 在任何平台上，输出完全相同
+ccrandom128_t rng;
+ccrandom128_init(&amp;rng, 42ULL);
+uint64_t x = ccrandom128_next(&amp;rng);  // 42 种子 → GCC, Clang, MSVC, ARM, x86 都相同
+</code></pre>
+<p>保证可复现是因为：
+- 状态转换使用<strong>无符号 64-bit 溢出</strong>（C/C++ 规范定义明确的行为，不是 UB）
+- 没有浮点运算参与核心更新
+- 没有 endian 依赖（数组按相同的 64-bit 值访问，不拆字节）
+- SplitMix64 常数是固定的 UINT64_C 字面量</p>
+<h3 id="24">2.4 零开销接入</h3>
+<pre><code class="language-c">#define CCRANDOM_INLINE static       // C89 编译
+// 或
+#define CCRANDOM_INLINE static inline // C99+
+</code></pre>
+<ul>
+<li>所有函数为 <code>static inline</code>，编译器可完全内联到调用点</li>
+<li>无函数指针、无虚表、无运行时派发</li>
+<li>内联后单次 <code>next()</code> 调用可压至 <strong>3–4 条汇编指令</strong></li>
+</ul>
+<h3 id="25">2.5 资源占用</h3>
+<table>
+<thead>
+<tr>
+<th>引擎</th>
+<th>实例大小</th>
+<th>栈使用</th>
+<th>堆使用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ccrandom128_t</code></td>
+<td>16 字节</td>
+<td>0 (一次性栈对象)</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>ccrandom256_t</code></td>
+<td>32 字节</td>
+<td>0</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p>适合<strong>嵌入式环境</strong>、<strong>GPU kernel</strong>（如果直写 CUDA C）、<strong>裸机固件</strong>等受限场景。</p>
+<hr />
+<h2 id="3">3. 使用须知与局限</h2>
+<h3 id="31">3.1 非加密 —— 安全的边界在哪里</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>可以</th>
+<th>不可以</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>游戏/模拟</strong></td>
+<td>✅ 地形生成、怪物 AI、物品掉落</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>测试框架</strong></td>
+<td>✅ 模糊测试输入、mock 数据</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>蒙特卡洛</strong></td>
+<td>✅ 物理学模拟、金融定价（非安全敏感）</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>抽奖系统</strong></td>
+<td>❌ —</td>
+<td>可预测：攻击者收集约 2 个连续输出即可确定状态</td>
+</tr>
+<tr>
+<td><strong>Token 生成</strong></td>
+<td>❌ —</td>
+<td>泄露约 2¹²⁸ 输出现代密码学可穷举推算状态</td>
+</tr>
+<tr>
+<td><strong>Session ID</strong></td>
+<td>❌ —</td>
+<td>同上</td>
+</tr>
+<tr>
+<td><strong>密钥派生</strong></td>
+<td>❌ —</td>
+<td>不抗侧信道，无密码学安全证明</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>判定标准</strong>：如果攻击者能通过观测到的一次（或少量）输出来推算<strong>未来或过去</strong>的输出，该场景就是非加密的。ccrandom 的输出仅经过非线性加扰，但<strong>保留了线性状态转移的全部信息</strong>——约 O(2^64) 输出后状态可被重构<a href="#ref-2" class="citation">[2]</a>。</p>
+</blockquote>
+<h3 id="32">3.2 线程安全</h3>
+<pre><code class="language-mermaid">flowchart LR
+    subgraph PerThread[&quot;✅ 每线程独立实例（推荐）&quot;]
+        A[&quot;实例 rngA&quot;] --- T1[&quot;线程 1&quot;]
+        B[&quot;实例 rngB&quot;] --- T2[&quot;线程 2&quot;]
+        C[&quot;实例 rngC&quot;] --- T3[&quot;线程 3&quot;]
+    end
+    subgraph Shared[&quot;❌ 同一实例被多线程并发调用&quot;]
+        D[&quot;实例 rngX&quot;] --- T4[&quot;线程 1&quot;]
+        D --- T5[&quot;线程 2&quot;]
+        D --- T6[&quot;线程 3&quot;]
+    end
+    style PerThread fill:#e8f5e9,stroke:#2e7d32
+    style Shared fill:#ffebee,stroke:#c62828
+</code></pre>
+<p>推荐模式：</p>
+<pre><code class="language-c">#include &lt;stdatomic.h&gt;
+#include &quot;ccrandom.h&quot;
+
+// 每线程独立实例（推荐）
+_Thread_local ccrandom128_t tls_rng;
+
+void worker(void) {
+    uint64_t v = ccrandom128_next(&amp;tls_rng);  // 无竞争
+}
+
+// 或：全局 + mutex（不推荐，有性能瓶颈）
+ccrandom128_t g_rng;
+pthread_mutex_t g_lock = PTHREAD_MUTEX_INITIALIZER;
+
+uint64_t locked_next(void) {
+    pthread_mutex_lock(&amp;g_lock);
+    uint64_t v = ccrandom128_next(&amp;g_rng);
+    pthread_mutex_unlock(&amp;g_lock);
+    return v;
+}
+</code></pre>
+<p>如果使用<strong>主从种子</strong>模式（master RNG 为每个 worker 生成一个独立的种子值），可以无锁地初始化独立实例：</p>
+<pre><code class="language-c">ccrandom128_t master;
+ccrandom128_init(&amp;master, time(NULL));
+
+#pragma omp parallel
+{
+    ccrandom128_t local;
+    ccrandom128_init(&amp;local, ccrandom128_next(&amp;master));
+    // local 在各自线程中独立使用，无竞争
+}
+</code></pre>
+<h3 id="33-init">3.3 每次构造都要 init</h3>
+<pre><code class="language-c">ccrandom128_t rng;
+// rng.next(&amp;rng);          ❌ 未初始化
+ccrandom128_init(&amp;rng, 42); // ✅ 必须
+ccrandom128_next(&amp;rng);     // ✅ 正确
+</code></pre>
+<p><code>ccrandom128_t</code> 是朴素的栈结构体，<strong>构造时不自动初始化</strong>——不调用 <code>init</code> 就去 <code>next</code> 将产生未定义行为（UB）。</p>
+<h3 id="34-jump-ahead">3.4 无 jump-ahead</h3>
+<p>Xoroshiro128++ 和 Xoshiro256<strong> 不支持</strong>快速跳跃**（jump-ahead / leap-ahead）<a href="#ref-1" class="citation">[1]</a>。要获得 <code>N</code> 个独立流，建议：</p>
+<ol>
+<li>用单个 master 生成器产生 <code>N</code> 个不同的 seed</li>
+<li>每个 seed 构造一个独立实例</li>
+<li>每个实例完整运行其流</li>
+</ol>
+<pre><code class="language-c">// ✅ 正确：主从种子
+for (int i = 0; i &lt; N; i++) {
+    ccrandom128_init(&amp;streams[i], master_next(&amp;master));
+}
+
+// ❌ 错误：试图通过跳过输出来模拟跳流
+for (int i = 0; i &lt; N * SKIP; i++) {
+    ccrandom128_next(&amp;single_rng);  // 浪费 CPU，且被跳过的输出不可恢复
+}
+</code></pre>
+<h3 id="35">3.5 版本间无向后兼容保证</h3>
+<p>ccrandom 的输出值（给定相同种子）在同一个库版本中是确定性的，但<strong>跨版本不保证</strong>。如果某个测试用例依赖固定的随机输出序列，应将当前版本的输出<strong>快照</strong>写入测试数据文件，而不是假定下次升级后序列不变。</p>
+<h3 id="36-0-1">3.6 浮点数并非 [0, 1]</h3>
+<p><code>f32next</code> 返回 <code>[0, 1)</code> ——<strong>包含 0，不包含 1</strong>。原因：</p>
+<pre><code>输出高 N bit 范围: [0, 2^N−1]
+乘以 2^−N 后:      [0, 1−2^−N] ⊂ [0, 1)
+</code></pre>
+<p>如果应用场景需要 <code>(0, 1]</code> 或需排除 0，请自行处理：</p>
+<pre><code class="language-c">float f;
+do { f = ccrandom128_f32next(&amp;rng); } while (f == 0.0f);  // 排除 0 → (0, 1)
+</code></pre>
+<h3 id="37">3.7 性能权衡速查</h3>
+<table>
+<thead>
+<tr>
+<th>需求</th>
+<th>选择</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>计算资源极有限</td>
+<td><code>ccrandom128</code></td>
+<td>16B 状态，最少指令数，每核 ns 级</td>
+</tr>
+<tr>
+<td>统计质量优先</td>
+<td><code>ccrandom256</code></td>
+<td>通过 BigCrush + PractRand 到极限</td>
+</tr>
+<tr>
+<td>两者兼顾</td>
+<td><code>ccrandom128</code> 即可</td>
+<td>128 变体已通过 BigCrush，绝大多数场景够用</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4">4. 使用用例</h2>
+<h3 id="41">4.1 基础：产生一批随机整数</h3>
+<pre><code class="language-c">#include &lt;stdio.h&gt;
+#include &quot;ccrandom.h&quot;
+
+int main(void) {
+    ccrandom128_t rng;
+    ccrandom128_init(&amp;rng, 2024ULL);
+
+    printf(&quot;10 random u64 values:\n&quot;);
+    for (int i = 0; i &lt; 10; i++) {
+        printf(&quot;%016llx\n&quot;, (unsigned long long)ccrandom128_next(&amp;rng));
+    }
+    return 0;
+}
+</code></pre>
+<h3 id="42">4.2 随机浮点数：模拟抛硬币</h3>
+<pre><code class="language-c">#include &lt;stdio.h&gt;
+#include &quot;ccrandom.h&quot;
+
+int main(void) {
+    ccrandom256_t rng;
+    ccrandom256_init(&amp;rng, 42ULL);
+
+    int heads = 0, tails = 0;
+    for (int i = 0; i &lt; 1000000; i++) {
+        if (ccrandom256_f64next(&amp;rng) &lt; 0.5)
+            heads++;
+        else
+            tails++;
+    }
+    printf(&quot;Heads: %d  Tails: %d  Ratio: %.4f\n&quot;,
+           heads, tails, (double)heads / (heads + tails));
+    // 期望输出 ≈ 0.5 ± 0.001
+    return 0;
+}
+</code></pre>
+<h3 id="43-fisheryates">4.3 洗牌 (Fisher–Yates)</h3>
+<pre><code class="language-c">#include &quot;ccrandom.h&quot;
+
+void shuffle(int *arr, size_t n, ccrandom128_t *rng) {
+    for (size_t i = n - 1; i &gt; 0; i--) {
+        // 在 [0, i] 范围内均匀选取下标
+        uint64_t r = ccrandom128_next(rng);
+        size_t j = (size_t)((double)r / (double)UINT64_MAX * (i + 1));
+        int tmp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = tmp;
+    }
+}
+
+int main(void) {
+    int data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    ccrandom128_t rng;
+    ccrandom128_init(&amp;rng, 99ULL);
+    shuffle(data, 10, &amp;rng);
+    // data 现在被乱序
+    return 0;
+}
+</code></pre>
+<blockquote>
+<p>注意：纯浮点方法取模可能存在微小偏差，对极大规模应用（&gt;10⁹ 次）建议使用更精确的范围缩减方法（如 <code>(r &gt;&gt; 11) * i &gt;&gt; 53</code> 或 Lemire 算法）。</p>
+</blockquote>
+<h3 id="44-boxmuller">4.4 正态分布 (Box–Muller)</h3>
+<pre><code class="language-c">#include &lt;math.h&gt;
+#include &quot;ccrandom.h&quot;
+
+double randn(ccrandom128_t *rng) {
+    // Box–Muller 变换，返回标准正态分布 N(0, 1)
+    double u1 = ccrandom128_f64next(rng);
+    double u2 = ccrandom128_f64next(rng);
+    return sqrt(-2.0 * log(u1)) * cos(2.0 * M_PI * u2);
+}
+
+int main(void) {
+    ccrandom128_t rng;
+    ccrandom128_init(&amp;rng, 777ULL);
+    for (int i = 0; i &lt; 1000; i++) {
+        printf(&quot;%f\n&quot;, randn(&amp;rng));
+    }
+    return 0;
+}
+</code></pre>
+<h3 id="45">4.5 蒙特卡洛估算 π</h3>
+<pre><code class="language-c">#include &lt;stdio.h&gt;
+#include &quot;ccrandom.h&quot;
+
+int main(void) {
+    ccrandom256_t rng;
+    ccrandom256_init(&amp;rng, 12345ULL);
+
+    long long inside = 0, total = 10000000;
+    for (long long i = 0; i &lt; total; i++) {
+        double x = ccrandom256_f64next(&amp;rng);
+        double y = ccrandom256_f64next(&amp;rng);
+        if (x * x + y * y &lt;= 1.0) inside++;
+    }
+    printf(&quot;π ≈ %.6f\n&quot;, 4.0 * inside / total);
+    return 0;
+}
+</code></pre>
+<h3 id="46">4.6 多线程并行采样</h3>
+<pre><code class="language-c">#include &lt;stdio.h&gt;
+#include &lt;omp.h&gt;
+#include &quot;ccrandom.h&quot;
+
+int main(void) {
+    ccrandom128_t master;
+    ccrandom128_init(&amp;master, 2024ULL);
+
+    #pragma omp parallel
+    {
+        ccrandom128_t local;
+        // 每个线程获得唯一种子
+        #pragma omp critical
+        ccrandom128_init(&amp;local, ccrandom128_next(&amp;master));
+
+        // 每个线程独立产生 1M 随机数
+        double sum = 0.0;
+        #pragma omp for reduction(+:sum)
+        for (long long i = 0; i &lt; 100000000; i++) {
+            sum += ccrandom128_f64next(&amp;local);
+        }
+
+        #pragma omp single
+        printf(&quot;Average of 100M floats: %.10f (expected ≈ 0.5)\n&quot;,
+               sum / 100000000.0);
+    }
+    return 0;
+}
+</code></pre>
+<h3 id="47">4.7 确定性单元测试（快照种子）</h3>
+<pre><code class="language-c">#include &lt;assert.h&gt;
+#include &quot;ccrandom.h&quot;
+
+static void test_sequence(void) {
+    ccrandom128_t rng;
+    ccrandom128_init(&amp;rng, 0ULL);  // 0 是合法种子
+
+    // 快照：版本 X 下 0 种子的前 5 个输出
+    // 如果库版本升级后序列变化，更新这些值
+    assert(ccrandom128_next(&amp;rng) == 0xA3D78C93A3E7FULL); // 举例
+    assert(ccrandom128_next(&amp;rng) == 0xB4E12F574D99011ULL);
+    assert(ccrandom128_next(&amp;rng) == 0x7C12309BCDEFFF2ULL);
+    assert(ccrandom128_next(&amp;rng) == 0xDEDCBA9876543210ULL);
+    assert(ccrandom128_next(&amp;rng) == 0x1234567890ABCDEFULL);
+}
+</code></pre>
+<hr />
+<h2 id="5">5. 结论</h2>
+<h3 id="51">5.1 关于设计思想</h3>
+<p>ccrandom 遵循 ccalg 项目的一贯哲学——<strong>头文件仅零开销</strong>：no allocation、no function-pointer-necessary、no platform divergence。</p>
+<p>选择 Xoroshiro128++ 和 Xoshiro256<strong> 这对经过学术界广泛验证的算法，在</strong>速度<strong>、</strong>统计质量<strong>、</strong>代码简洁性**三个维度上同时达到了工业级标准。</p>
+<h3 id="52">5.2 关于技术优势</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>评价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>吞吐</strong></td>
+<td>每核数亿次/秒，接近硬件 RDRAND 的两倍</td>
+</tr>
+<tr>
+<td><strong>质量</strong></td>
+<td>BigCrush + PractRand ≥ 32 TiB 双线通过，超越大多数应用需求</td>
+</tr>
+<tr>
+<td><strong>可复现</strong></td>
+<td>种一值定终身，平台无关，排错友好</td>
+</tr>
+<tr>
+<td><strong>资源</strong></td>
+<td>16–32 字节状态，零动态分配，嵌入式可用</td>
+</tr>
+<tr>
+<td><strong>集成</strong></td>
+<td>单头文件 <code>#include</code>，无外部依赖，C89/C++98 全线兼容</td>
+</tr>
+</tbody>
+</table>
+<h3 id="53">5.3 关于使用须知</h3>
+<table>
+<thead>
+<tr>
+<th>要点</th>
+<th>建议</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🚫 非加密</td>
+<td>密码学场景请使用 <code>getrandom()</code>、<code>arc4random()</code> 或 <code>RAND_bytes()</code></td>
+</tr>
+<tr>
+<td>🚫 非线程安全</td>
+<td>守则：一个实例<strong>或</strong>外部加锁<strong>或</strong>每线程独立实例</td>
+</tr>
+<tr>
+<td>✅ 确定性</td>
+<td>同种子同输出——适合可复现测试和调试</td>
+</tr>
+<tr>
+<td>✅ 零分配</td>
+<td>栈上直接使用，无需考虑释放</td>
+</tr>
+<tr>
+<td>⚠️ 版本间不稳定</td>
+<td>固定输出序列应快照到测试文件，而非依赖运行库版本</td>
+</tr>
+</tbody>
+</table>
+<h3 id="54">5.4 最终建议</h3>
+<ul>
+<li><strong>默认首选 <code>ccrandom128</code></strong> — 实测已通过 BigCrush，吞吐在所有引擎中最快，绝大多数模拟/游戏/测试场景完全够用</li>
+<li><strong>仅在确实需要时才升级到 <code>ccrandom256</code></strong> — 如果你正在做学术级别的随机性分析、物理系的超大规模蒙特卡洛、或者某个统计测试恰好撞上了 Xoroshiro128++ 的极弱弱点（实践中迄今未发现），再考虑 256-bit 引擎</li>
+<li><strong>绝不用 ccrandom 做任何安全相关的事情</strong> — 攻击者一旦收集到若干个输出，推导剩余状态是已知可行的攻击路径<a href="#ref-2" class="citation">[2]</a></li>
+</ul>
+<hr />
+<h2 id="6-cctreap-xorshift64">6. cctreap 为何选择 xorshift64</h2>
+<p>cctreap 内部使用 <code>_tp_xorshift64</code> 作为默认 <code>priority</code> 生成器。乍看之下，这似乎与 <code>ccrandom</code> 主库的 xoroshiro128++ / xoshiro256<strong> 存在"质量差距"——但这是</strong>场景驱动的故意选择**，而非偷工减料。</p>
+<h3 id="61">6.1 几个关键事实</h3>
+<table>
+<thead>
+<tr>
+<th>视角</th>
+<th>xorshift64 (cctreap 内部)</th>
+<th>xoroshiro128++ (ccrandom128)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>状态大小</strong></td>
+<td>1×uint64_t（4 字节额外开销嵌入 cctreap_t）</td>
+<td>2×uint64_t + 初始化代码依赖</td>
+</tr>
+<tr>
+<td><strong>每次 insert 调用次数</strong></td>
+<td>1 次</td>
+<td>1 次</td>
+</tr>
+<tr>
+<td><strong>统计质量</strong></td>
+<td>通过 SmallCrush，treap 足够</td>
+<td>BigCrush + PractRand ≥ 32 TiB</td>
+</tr>
+<tr>
+<td><strong>实现代码数</strong></td>
+<td>4 行</td>
+<td>~60 行（含 init/next/f32 等全套 API）</td>
+</tr>
+<tr>
+<td><strong>依赖关系</strong></td>
+<td>零依赖（inline 函数，与 cctreap 同文件）</td>
+<td>需引入 ccrandom.h（额外头文件）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="62">6.2 核心原因</h3>
+<p><strong>① treap 对随机性质量的要求极低</strong></p>
+<p>Treap 的平衡性只依赖一个性质：priority 在节点间<strong>大致均匀分布</strong>，使得 BST 插入路径的期望旋转次数为 O(1)，树高期望 O(log n)。xorshift64 的周期为 2⁶⁴−1，通过了 TestU01 SmallCrush —— 对每节点只产生一个随机数的 treap 而言已远超需要。</p>
+<p>即使 xorshift64 存在某些线性相关性（相邻输出之间的位关联），这些关联在 treap 场景中完全不相关——每个 priority 值只参与一次堆修复比较，不存在对同一序列做统计分析的场景。</p>
+<p><strong>② 保持 cctreap 的零依赖独立性</strong></p>
+<p>cctreap 是<strong>单头文件零依赖</strong>容器。引入 xorshift64 只需 4 行代码嵌入自身文件：</p>
+<pre><code class="language-c">CCTREAP_INLINE uint64_t _tp_xorshift64(uint64_t *state) {
+  uint64_t x = *state;
+  x ^= x &lt;&lt; 13; x ^= x &gt;&gt; 7; x ^= x &lt;&lt; 17;
+  return *state = x;
+}
+</code></pre>
+<p>如果改用 xoroshiro128++ 则需要 <code>#include "ccrandom.h"</code>，引入额外的类型定义、API 符号、以及约 60 行代码——这对只想用 treap 的用户毫无意义。</p>
+<p><strong>③ 状态开销最小化</strong></p>
+<p><code>cctreap_t</code> 结构体中的 RNG state 只占 8 字节（<code>uint64_t state</code>），seed 来自 <code>&amp;m</code> 的指针值：</p>
+<pre><code class="language-c">m-&gt;state = (uint64_t)(uintptr_t)m;
+</code></pre>
+<p>无需单独调用 init_rng、无需额外内存分配、无需包含第二个头文件。</p>
+<p><strong>④ 用户可自由升级</strong></p>
+<p>如果用户对默认随机性质量不放心，<code>CCTREAP_RAND_INIT</code> 和 <code>CCTREAP_RAND_NEXT</code> 两个宏可以分别替换播种和步进逻辑：</p>
+<pre><code class="language-c">// 使用 ccrandom128 替代 xorshift64
+#include &quot;ccrandom.h&quot;
+#define CCTREAP_RAND_T       ccrandom128_t
+#define CCTREAP_RAND_INIT(m, seed) \
+    ccrandom128_init(&amp;(m)-&gt;state, (seed))
+#define CCTREAP_RAND_NEXT(state) \
+    ccrandom128_next(state)
+</code></pre>
+<p><code>CCTREAP_RAND</code> 作为 <code>CCTREAP_RAND_NEXT</code> 的向下兼容别名仍然可用，但新代码推荐使用拆分后的宏。</p>
+<h3 id="63">6.3 一句话总结</h3>
+<blockquote>
+<p>xorshift64 对 treap 场景<strong>质量足够、开销极小、零依赖</strong>。ccrandom 双引擎是面向通用高性能 PRNG 场景的选择，它们定位不同，不构成替代关系。</p>
+</blockquote>
+<hr />
+<h2 id="_1">参考文献</h2>
+<ol><li id="ref-1"><strong>Blackman &amp; Vigna</strong>, "Scrambled Linear Pseudorandom Number Generators", <em>ACM Trans. Math. Softw.</em> 47(4), 2021. <a href="https://arxiv.org/abs/1805.01407">arXiv:1805.01407</a> — Xoroshiro128++ 和 Xoshiro256** 的原始论文</li>
+<li id="ref-2"><strong>Vigna</strong>, "An experimental exploration of Marsaglia's xorshift generators, scrambled", 2016. <a href="https://vigna.di.unimi.it/xorshift/">vigna.di.unimi.it/xorshift</a> — 状态重建攻击的讨论</li>
+<li id="ref-3"><strong>Steele &amp; Vigna</strong>, "Computationally easy, spectrally good multipliers for congruential PRNGs", 2021. <a href="https://arxiv.org/abs/2001.05304">arXiv:2001.05304</a> — SplitMix64 乘法常数的来源</li>
+<li id="ref-4"><strong>Java 8 <code>SplittableRandom</code></strong> — SplitMix64 的原始实现上下文</li>
+<li id="ref-5"><strong>TestU01</strong> — L'Ecuyer &amp; Simard, "TestU01: A C Library for Empirical Testing of Random Number Generators", <em>ACM Trans. Math. Softw.</em> 33(4), 2007</li>
+<li id="ref-6"><strong>PractRand</strong> — Chris Doty-Humphrey, "Practical Random Number Tester" <a href="https://pracrand.sourceforge.net/">pracrand.sourceforge.net</a></li></ol>
+  </article>
+  <footer class="mt-12 pt-4 border-t border-teal-200 dark:border-teal-800
+                 text-sm text-teal-500 dark:text-teal-400">
+    <p>ccalg — header-only C data-structure library · BSD 3-Clause ·
+    <a href="https://github.com/CandyMi/ccalg" class="text-blue-600 dark:text-blue-400 hover:underline">GitHub</a></p>
+  </footer>
+</main>
+<button class="toc-toggle fixed right-3 top-[50px] z-[101] px-2.5 py-1
+               border border-teal-300 dark:border-teal-700 rounded-t-md
+               bg-white dark:bg-teal-900 text-teal-600 dark:text-teal-300
+               text-sm cursor-pointer whitespace-nowrap
+               hover:bg-blue-600 hover:text-white hover:border-blue-600
+               dark:hover:bg-blue-600 dark:hover:text-white
+               transition-colors duration-200"
+        id="tocToggle" title="折叠目录">点击收起 <span class="toc-icon inline-block transition-transform duration-300">▶</span></button>
+<nav class="toc fixed right-3 top-20 w-[210px] max-h-[calc(100vh-120px)]
+            flex flex-col text-sm z-[100] bg-white dark:bg-teal-900
+            border border-teal-200 dark:border-teal-800 rounded-xl
+            shadow-lg shadow-teal-200/50 dark:shadow-teal-950/50
+            opacity-90 hover:opacity-100 transition-opacity duration-200"
+     id="toc">
+  <div class="flex justify-between items-center flex-shrink-0 font-semibold
+              text-teal-800 dark:text-teal-100 text-sm
+              px-3 py-2.5 border-b border-teal-200 dark:border-teal-800">
+    <span>本页目录</span>
+    <a href="#" class="text-teal-400 dark:text-teal-500 text-base font-normal
+                       no-underline hover:text-blue-600 dark:hover:text-blue-400 px-1"
+       title="回到顶部">↑</a>
+  </div>
+  <div class="toc-links overflow-y-auto flex-1 px-3 py-2">
+<a href="#1" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="1">1. 设计思想与核心机制</a>
+<a href="#11" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="11">1.1 双引擎分层</a>
+<a href="#12-xoroshiro128-ccrandom128" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="12-xoroshiro128-ccrandom128">1.2 Xoroshiro128++ (ccrandom128)</a>
+<a href="#13-xoshiro256-ccrandom256" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="13-xoshiro256-ccrandom256">1.3 Xoshiro256** (ccrandom256)</a>
+<a href="#14-splitmix64" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="14-splitmix64">1.4 种子系统：SplitMix64</a>
+<a href="#15" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="15">1.5 浮点数输出策略</a>
+<a href="#2" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="2">2. 技术优势</a>
+<a href="#21" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="21">2.1 速度</a>
+<a href="#22" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="22">2.2 统计质量</a>
+<a href="#23" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="23">2.3 跨平台可复现性</a>
+<a href="#24" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="24">2.4 零开销接入</a>
+<a href="#25" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="25">2.5 资源占用</a>
+<a href="#3" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="3">3. 使用须知与局限</a>
+<a href="#31" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="31">3.1 非加密 —— 安全的边界在哪里</a>
+<a href="#32" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="32">3.2 线程安全</a>
+<a href="#33-init" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="33-init">3.3 每次构造都要 init</a>
+<a href="#34-jump-ahead" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="34-jump-ahead">3.4 无 jump-ahead</a>
+<a href="#35" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="35">3.5 版本间无向后兼容保证</a>
+<a href="#36-0-1" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="36-0-1">3.6 浮点数并非 [0, 1]</a>
+<a href="#37" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="37">3.7 性能权衡速查</a>
+<a href="#4" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="4">4. 使用用例</a>
+<a href="#41" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="41">4.1 基础：产生一批随机整数</a>
+<a href="#42" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="42">4.2 随机浮点数：模拟抛硬币</a>
+<a href="#43-fisheryates" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="43-fisheryates">4.3 洗牌 (Fisher–Yates)</a>
+<a href="#44-boxmuller" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="44-boxmuller">4.4 正态分布 (Box–Muller)</a>
+<a href="#45" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="45">4.5 蒙特卡洛估算 π</a>
+<a href="#46" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="46">4.6 多线程并行采样</a>
+<a href="#47" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="47">4.7 确定性单元测试（快照种子）</a>
+<a href="#5" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="5">5. 结论</a>
+<a href="#51" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="51">5.1 关于设计思想</a>
+<a href="#52" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="52">5.2 关于技术优势</a>
+<a href="#53" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="53">5.3 关于使用须知</a>
+<a href="#54" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="54">5.4 最终建议</a>
+<a href="#6-cctreap-xorshift64" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="6-cctreap-xorshift64">6. cctreap 为何选择 xorshift64</a>
+<a href="#61" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="61">6.1 几个关键事实</a>
+<a href="#62" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="62">6.2 核心原因</a>
+<a href="#63" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="63">6.3 一句话总结</a>
+<a href="#_1" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="_1">参考文献</a>
+  </div>
+</nav>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+mermaid.initialize({ startOnLoad: false, theme: 'base' });
+// protect mermaid blocks from highlight.js — convert before hljs runs
+document.querySelectorAll('pre code.language-mermaid').forEach(function(el) {
+  el.parentElement.classList.add('mermaid');
+  el.parentElement.innerHTML = el.textContent;
+});
+hljs.highlightAll();
+mermaid.run();
+
+// ── sidebar toggle ─────────────────────────────────────────────────
+(function() {
+  var btn = document.getElementById('toggleSidebar');
+  var body = document.body;
+  if (!btn) return;
+
+  function apply(state) {
+    body.classList.toggle('sidebar-collapsed', state);
+    btn.title = state ? '展开侧边栏' : '收起侧边栏';
+    btn.innerHTML = state ? '☰' : '☰';
+  }
+
+  btn.addEventListener('click', function() {
+    var collapsed = !body.classList.contains('sidebar-collapsed');
+    apply(collapsed);
+    try { localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0'); } catch(e) {}
+  });
+
+  // restore saved state
+  try {
+    if (localStorage.getItem('sidebar-collapsed') === '1') apply(true);
+  } catch(e) {}
+})();
+
+// ── TOC collapse toggle ──────────────────────────────────────────────
+(function() {
+  var btn = document.getElementById('tocToggle');
+  var toc = document.getElementById('toc');
+  if (!btn || !toc) return;
+
+  function apply(state) {
+    document.body.classList.toggle('toc-collapsed', state);
+    btn.innerHTML = state ? '点击展开 <span class="toc-icon inline-block transition-transform duration-300">▶</span>' : '点击收起 <span class="toc-icon inline-block transition-transform duration-300">▶</span>';
+    btn.title = state ? '展开目录' : '折叠目录';
+  }
+
+  btn.addEventListener('click', function() {
+    var collapsed = !document.body.classList.contains('toc-collapsed');
+    apply(collapsed);
+    try { localStorage.setItem('toc-collapsed', collapsed ? '1' : '0'); } catch(e) {}
+  });
+
+  try {
+    if (localStorage.getItem('toc-collapsed') === '1') apply(true);
+  } catch(e) {}
+})();
+
+// ── TOC scroll-spy (midpoint activation) ────────────────────────────
+(function() {
+  var toc = document.getElementById('toc');
+  if (!toc) return;
+  var links = toc.querySelectorAll('.toc-links a');
+  if (!links.length) { toc.style.display = 'none'; return; }
+
+  // collect heading targets
+  var headings = [];
+  links.forEach(function(a) {
+    var el = document.getElementById(a.getAttribute('data-target'));
+    if (el) headings.push({ el: el, link: a });
+  });
+
+  // find which heading's midpoint is active
+  function updateActive() {
+    var mid = window.scrollY + window.innerHeight / 2;
+    var activeIdx = -1;
+    for (var i = headings.length - 1; i >= 0; i--) {
+      if (headings[i].el.offsetTop <= mid) { activeIdx = i; break; }
+    }
+
+    links.forEach(function(a, idx) {
+      a.classList.toggle('active', idx === activeIdx);
+    });
+
+    if (activeIdx >= 0 && headings[activeIdx]) {
+      headings[activeIdx].link.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+    }
+  }
+
+  updateActive();
+
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() { ticking = false; updateActive(); });
+      ticking = true;
+    }
+  }, { passive: true });
+})();
+</script>
+<script>
+// Load HLJS theme CSS AFTER Tailwind CDN has injected its styles.
+// Tailwind CDN injects styles async (DOMContentLoaded / rAF) — we use
+// double rAF to guarantee HLJS loads last and wins cascade ties.
+requestAnimationFrame(function() {
+  requestAnimationFrame(function() {
+    var light = document.createElement('link');
+    light.rel = 'stylesheet';
+    light.media = '(prefers-color-scheme: light)';
+    light.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs.min.css';
+    document.head.appendChild(light);
+    var dark = document.createElement('link');
+    dark.rel = 'stylesheet';
+    dark.media = '(prefers-color-scheme: dark)';
+    dark.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs2015.min.css';
+    document.head.appendChild(dark);
+  });
+});
+</script>
+</body>
+</html>

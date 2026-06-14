@@ -132,6 +132,7 @@
 | `ccheap_size` | 读锁 | N 路 | 读取 `data.len` |
 | `ccheap_insert` | 写锁 | 1 路 | 可能触发 resize；上浮调整 |
 | `ccheap_pop` | 写锁 | 1 路 | 下沉调整；可能触发缩容（当前实现不缩容） |
+| `ccheap_clear` | 写锁 | 1 路 | `len=0`，不释放数组 |
 | `ccheap_destroy` | 写锁 | 1 路 | 释放内部数组 |
 | `ccheap_init` | — | — | 初始化调用 |
 

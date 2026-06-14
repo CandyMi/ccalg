@@ -421,6 +421,10 @@ int  ccheap_init(ccheap_t *heap, ccheap_compare_t f);
 // 返回 0 成功，-1 失败（heap NULL 或分配失败）。
 // 若定义了 CCHEAP_COMPARE，f 被忽略。
 
+void ccheap_clear(ccheap_t *heap);
+// 重置为空堆（len=0）。保留内部数组，不释放内存。
+// NULL 安全。
+
 void ccheap_destroy(ccheap_t *heap);
 // 释放内部数组。不释放节点（指针模式）。
 // NULL 安全。

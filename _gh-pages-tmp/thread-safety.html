@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ccalg - 线程安全</title>
+<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+<script>
+tailwind.config = {
+  darkMode: 'media',
+  theme: {
+    extend: {
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+            'code::before': { content: 'none' },
+            'code::after': { content: 'none' },
+            'blockquote p:first-of-type::before': { content: 'none' },
+            'blockquote p:last-of-type::after': { content: 'none' },
+          }
+        }
+      }
+    }
+  }
+}
+</script>
+<style>
+/* ── sidebar collapse (spanning multiple elements — CSS is cleaner than JS class toggling) ── */
+.sidebar-collapsed .sidebar { width: 44px !important; padding: 8px 4px !important; }
+.sidebar-collapsed .sidebar h2,
+.sidebar-collapsed .sidebar nav { display: none; }
+.sidebar-collapsed .main { margin-left: 44px !important; max-width: none; }
+@media (max-width: 767px) {
+  .sidebar-collapsed .sidebar { width: 100% !important; padding: 1rem !important; }
+  .sidebar-collapsed .sidebar h2,
+  .sidebar-collapsed .sidebar nav { display: block; }
+  .sidebar-collapsed .main { margin-left: 0 !important; }
+}
+/* ── TOC collapse ── */
+.toc-collapsed .toc { display: none; }
+.toc-collapsed .toc-icon { transform: rotate(180deg); }
+/* ── TOC scrollbar ── */
+.toc-links { scrollbar-width: none; }
+.toc-links::-webkit-scrollbar { display: none; }
+/* ── TOC active link (Tailwind prose overrides need !important) ── */
+.toc a.active { color: #2563eb !important; border-left-color: #2563eb !important; font-weight: 500; }
+@media (prefers-color-scheme: dark) {
+  .toc a.active { color: #60a5fa !important; border-left-color: #60a5fa !important; }
+}
+/* ── citation links inside prose ── */
+a.citation {
+  text-decoration: none; color: inherit; font-weight: 500;
+  border: 1px solid #d1d5db; border-radius: 3px;
+  padding: 0 0.25em; font-size: 0.9em; vertical-align: super;
+  line-height: 1; transition: background 0.15s;
+}
+a.citation:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+@media (prefers-color-scheme: dark) {
+  a.citation { border-color: #475569; }
+  a.citation:hover { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+}
+li[id^="ref-"] { scroll-margin-top: 80px; }
+/* ── responsive: hide TOC on narrow screens ── */
+@media (max-width: 1100px) {
+  .toc, .toc-toggle { display: none !important; }
+}
+</style>
+</head>
+<body class="flex min-h-screen bg-white dark:bg-teal-950 text-teal-900 dark:text-teal-100 font-sans antialiased">
+<aside class="sidebar w-full h-auto static border-b border-teal-200 dark:border-teal-800 p-4
+              md:fixed md:left-0 md:top-0 md:h-full md:w-[220px] md:border-r md:border-b-0 md:p-8
+              bg-teal-50 dark:bg-teal-900 overflow-hidden hover:overflow-y-auto z-30
+              transition-[width,padding] duration-300"
+       id="sidebar">
+  <button class="block w-8 h-8 ml-auto border border-teal-300 dark:border-teal-700
+                 rounded-md bg-white dark:bg-teal-800 text-teal-600 dark:text-teal-300
+                 text-lg cursor-pointer leading-7 text-center
+                 hover:bg-blue-600 hover:text-white hover:border-blue-600
+                 dark:hover:bg-blue-600 dark:hover:text-white
+                 transition-colors duration-200 flex-shrink-0"
+          id="toggleSidebar" title="收起侧边栏">☰</button>
+  <h2 class="text-2xl font-bold mt-3 mb-4 pb-2 border-b border-teal-200 dark:border-teal-700
+             text-teal-800 dark:text-teal-100 text-center">目录</h2>
+  <nav class="flex flex-wrap gap-1 md:flex-col md:gap-0.5">
+      <a href="index.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">一、基本介绍</a>
+      <a href="getting-started.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">二、快速开始</a>
+      <a href="api-reference.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">三、接口参考</a>
+      <a href="algorithms.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">四、算法原理</a>
+      <a href="building.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">五、构建指南</a>
+      <a href="benchmarks.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">六、性能基准</a>
+      <a href="thread-safety.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150 bg-blue-600 text-white hover:bg-blue-700 hover:text-white dark:bg-blue-600 dark:text-white">七、线程安全</a>
+      <a href="random.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">八、伪随机数</a>
+      <a href="contributing.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">九、参与贡献</a>
+  </nav>
+</aside>
+<main class="main flex-1 px-4 py-6 md:ml-[220px] md:px-10 md:py-8 max-w-[900px]
+             transition-[margin] duration-300" id="main">
+  <article class="prose prose-slate dark:prose-invert max-w-none
+                  prose-headings:scroll-mt-20
+                  prose-pre:rounded-lg prose-pre:border prose-pre:border-teal-200
+                  dark:prose-pre:border-teal-800
+                  prose-img:rounded-lg
+                  prose-table:block prose-table:overflow-x-auto
+                  md:prose-table:table">
+<h1 id="_1">线程安全分析</h1>
+<blockquote>
+<p>在外部读写锁 (rwlock) 保护下，各容器的操作分类与可达并行度。读锁 = 共享锁（多读并发），写锁 = 独占锁。</p>
+</blockquote>
+<hr />
+<h2 id="_2">汇总</h2>
+<table>
+<thead>
+<tr>
+<th>容器</th>
+<th>内部分配</th>
+<th>读操作数</th>
+<th>写操作数</th>
+<th>读并行度</th>
+<th>写并行度</th>
+<th>关键注意</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ccmap</code></td>
+<td>无</td>
+<td>8</td>
+<td>3</td>
+<td>N 路</td>
+<td>1 路</td>
+<td>只读安全，操作期间不改变结构</td>
+</tr>
+<tr>
+<td><code>cchashmap</code></td>
+<td>桶数组</td>
+<td>2</td>
+<td>4</td>
+<td>N 路</td>
+<td>1 路</td>
+<td><strong><code>set</code> 可能触发 resize</strong>——必须持写锁</td>
+</tr>
+<tr>
+<td><code>cclink</code></td>
+<td>无</td>
+<td>9</td>
+<td>5</td>
+<td>N 路</td>
+<td>1 路</td>
+<td>只读安全；<code>verify</code> 仅调试用</td>
+</tr>
+<tr>
+<td><code>cclist</code></td>
+<td>无</td>
+<td>11</td>
+<td>11</td>
+<td>N 路</td>
+<td>1 路</td>
+<td>只读安全；<code>verify</code> 仅调试用</td>
+</tr>
+<tr>
+<td><code>ccheap</code></td>
+<td>指针数组</td>
+<td>2</td>
+<td>3</td>
+<td>N 路</td>
+<td>1 路</td>
+<td><code>peek</code> 返回内部指针，并发写使指针悬空</td>
+</tr>
+<tr>
+<td><code>ccvector</code></td>
+<td>元素数组</td>
+<td>6</td>
+<td>7</td>
+<td>N 路†</td>
+<td>1 路</td>
+<td><strong>† 读锁期间指针有效；写锁 resize 后指针全部失效</strong></td>
+</tr>
+<tr>
+<td><code>ccflatmap</code></td>
+<td>元素数组</td>
+<td>10</td>
+<td>10</td>
+<td>N 路†</td>
+<td>1 路</td>
+<td><strong>† 同 ccvector——二分查找结果在写锁 resize 后悬空</strong></td>
+</tr>
+<tr>
+<td><code>cctreap</code></td>
+<td>无</td>
+<td>12</td>
+<td>3</td>
+<td>N 路</td>
+<td>1 路</td>
+<td>只读安全，kth/rank 遍历 size 字段不修改状态</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="ccmap">ccmap — 侵入式红黑树</h2>
+<p><strong>无内部分配</strong>。树结构修改仅发生于 insert/erase。</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>锁类型</th>
+<th>并行度</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ccmap_find</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>只读遍历，不修改任何字段</td>
+</tr>
+<tr>
+<td><code>ccmap_begin</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>返回 <code>first</code> 指针（insert/erase 维护）</td>
+</tr>
+<tr>
+<td><code>ccmap_first</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td><code>begin</code> 的同义词</td>
+</tr>
+<tr>
+<td><code>ccmap_end</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>总是返回 <code>NULL</code></td>
+</tr>
+<tr>
+<td><code>ccmap_rbegin</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>O(1) 返回 m-&gt;last</td>
+</tr>
+<tr>
+<td><code>ccmap_next</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>只读 <code>child[]</code> 和 <code>pc</code> 字段</td>
+</tr>
+<tr>
+<td><code>ccmap_prev</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>只读 <code>child[]</code> 和 <code>pc</code> 字段</td>
+</tr>
+<tr>
+<td><code>ccmap_size</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>原子读取 <code>size</code> 字段</td>
+</tr>
+<tr>
+<td><code>ccmap_insert</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>修改树结构 + <code>size</code> + 可能更新 <code>first</code></td>
+</tr>
+<tr>
+<td><code>ccmap_erase</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>修改树结构 + <code>size</code> + 可能更新 <code>first</code></td>
+</tr>
+<tr>
+<td><code>ccmap_clear</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>重置 root/first/size</td>
+</tr>
+<tr>
+<td><code>ccmap_init</code></td>
+<td>—</td>
+<td>—</td>
+<td>初始化调用，通常在锁创建之前</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>并行度总结</strong>：所有读操作可完全并发（N 路），写操作串行化。适合读多写少场景。</p>
+</blockquote>
+<hr />
+<h2 id="cchashmap">cchashmap — 侵入式链式哈希表</h2>
+<p><strong>内部管理桶数组（<code>cchashmap_node_t **</code>）</strong>。<code>set</code> 可能在负载因子超过 <code>CCHASHMAP_MAX_LOAD</code> 时触发 2× resize（<code>realloc</code> 桶数组）。</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>锁类型</th>
+<th>并行度</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cchashmap_get</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>只读遍历桶链表，不修改状态</td>
+</tr>
+<tr>
+<td><code>cchashmap_find</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td><code>get</code> 的别名</td>
+</tr>
+<tr>
+<td><code>cchashmap_size</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>原子读取 <code>size</code> 字段</td>
+</tr>
+<tr>
+<td><code>cchashmap_set</code></td>
+<td><strong>写锁</strong></td>
+<td>1 路</td>
+<td>⚠️ 即使 key 重复（插入失败），也可能先触发 resize</td>
+</tr>
+<tr>
+<td><code>cchashmap_del</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>修改链表 + <code>size</code></td>
+</tr>
+<tr>
+<td><code>cchashmap_clear</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>重置桶数组</td>
+</tr>
+<tr>
+<td><code>cchashmap_destroy</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>释放桶数组；调用前须确保无其他线程访问</td>
+</tr>
+<tr>
+<td><code>cchashmap_init</code></td>
+<td>—</td>
+<td>—</td>
+<td>初始化调用，通常在锁创建之前</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>关键警告</strong>：<code>set</code> 看似是"写操作"，但即使只是检查重复也需要写锁——因为 resize 可能在任何 <code>set</code> 调用中发生。<strong>不能</strong>先持读锁检查再升级为写锁（<code>pthread_rwlock</code> 不支持锁升级，会导致死锁或竞态）。</p>
+<p><strong>并行度总结</strong>：读 2 路（<code>get</code> + <code>size</code>），写 1 路。适合极高读频率的缓存场景。</p>
+</blockquote>
+<hr />
+<h2 id="cclink">cclink — 侵入式单向链表</h2>
+<p><strong>无内部分配</strong>。链表仅通过节点指针操作。</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>锁类型</th>
+<th>并行度</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cclink_begin</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>返回 <code>head</code></td>
+</tr>
+<tr>
+<td><code>cclink_end</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>总是 <code>NULL</code></td>
+</tr>
+<tr>
+<td><code>cclink_next</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>跟随 <code>node-&gt;next</code></td>
+</tr>
+<tr>
+<td><code>cclink_front</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>返回 <code>head</code></td>
+</tr>
+<tr>
+<td><code>cclink_back</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>返回 <code>tail</code></td>
+</tr>
+<tr>
+<td><code>cclink_size</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>读取 <code>size</code></td>
+</tr>
+<tr>
+<td><code>cclink_empty</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td><code>size == 0</code></td>
+</tr>
+<tr>
+<td><code>cclink_has_cycle</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>调试用；遍历整个链表</td>
+</tr>
+<tr>
+<td><code>cclink_verify</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>调试用；并发写时结果无意义</td>
+</tr>
+<tr>
+<td><code>cclink_push</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>头部插入，修改 head/size</td>
+</tr>
+<tr>
+<td><code>cclink_push_back</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>尾部追加，修改 tail/size</td>
+</tr>
+<tr>
+<td><code>cclink_remove</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>O(n) 删除，修改链表 + size</td>
+</tr>
+<tr>
+<td><code>cclink_pop_front</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>弹出头部</td>
+</tr>
+<tr>
+<td><code>cclink_clear</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>重置 head/tail/size</td>
+</tr>
+<tr>
+<td><code>cclink_init</code></td>
+<td>—</td>
+<td>—</td>
+<td>初始化调用</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>并行度总结</strong>：只读安全，可 N 路读并发。写操作串行化。</p>
+</blockquote>
+<hr />
+<h2 id="cclist">cclist — 侵入式双向链表</h2>
+<p><strong>无内部分配</strong>。含 head/tail 哨兵和 size 计数器。</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>锁类型</th>
+<th>并行度</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cclist_begin</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>返回 <code>head</code></td>
+</tr>
+<tr>
+<td><code>cclist_end</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>总是 <code>NULL</code></td>
+</tr>
+<tr>
+<td><code>cclist_rbegin</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>返回 <code>tail</code></td>
+</tr>
+<tr>
+<td><code>cclist_next</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>跟随 <code>node-&gt;next</code></td>
+</tr>
+<tr>
+<td><code>cclist_prev</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>跟随 <code>node-&gt;prev</code></td>
+</tr>
+<tr>
+<td><code>cclist_front</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>返回 <code>head</code></td>
+</tr>
+<tr>
+<td><code>cclist_back</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>返回 <code>tail</code></td>
+</tr>
+<tr>
+<td><code>cclist_size</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>读取 <code>size</code></td>
+</tr>
+<tr>
+<td><code>cclist_empty</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td><code>size == 0</code></td>
+</tr>
+<tr>
+<td><code>cclist_has_cycle</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>调试用</td>
+</tr>
+<tr>
+<td><code>cclist_verify</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>调试用；并发写时结果无意义</td>
+</tr>
+<tr>
+<td><code>cclist_push_front</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>修改 head/size</td>
+</tr>
+<tr>
+<td><code>cclist_push_back</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>修改 tail/size</td>
+</tr>
+<tr>
+<td><code>cclist_pop_front</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>修改 head/size</td>
+</tr>
+<tr>
+<td><code>cclist_pop_back</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>修改 tail/size</td>
+</tr>
+<tr>
+<td><code>cclist_insert_before</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>修改节点链接</td>
+</tr>
+<tr>
+<td><code>cclist_insert_after</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>修改节点链接</td>
+</tr>
+<tr>
+<td><code>cclist_remove</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>修改节点链接 + size</td>
+</tr>
+<tr>
+<td><code>cclist_splice_back</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>批量移动节点</td>
+</tr>
+<tr>
+<td><code>cclist_move</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>内部调用 <code>splice_back</code></td>
+</tr>
+<tr>
+<td><code>cclist_clear</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>重置 head/tail/size</td>
+</tr>
+<tr>
+<td><code>cclist_init</code></td>
+<td>—</td>
+<td>—</td>
+<td>初始化调用</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>并行度总结</strong>：只读安全，N 路读并发。写操作串行化。</p>
+</blockquote>
+<hr />
+<h2 id="ccheap-d-ary">ccheap — D-ary 堆</h2>
+<p><strong>内部管理指针数组（<code>ccheap_node_t **</code>）</strong>。<code>peek</code> 返回数组内部指针。</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>锁类型</th>
+<th>并行度</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ccheap_peek</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>返回 <code>data.buckets[0]</code> 指针——读锁期间有效</td>
+</tr>
+<tr>
+<td><code>ccheap_size</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>读取 <code>data.len</code></td>
+</tr>
+<tr>
+<td><code>ccheap_insert</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>可能触发 resize；上浮调整</td>
+</tr>
+<tr>
+<td><code>ccheap_pop</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>下沉调整；可能触发缩容（当前实现不缩容）</td>
+</tr>
+<tr>
+<td><code>ccheap_destroy</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>释放内部数组</td>
+</tr>
+<tr>
+<td><code>ccheap_init</code></td>
+<td>—</td>
+<td>—</td>
+<td>初始化调用</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>并行度总结</strong>：读操作极少（仅 <code>peek</code> + <code>size</code>），N 路并发。写操作串行化。</p>
+<p><strong><code>peek</code> 指针有效性</strong>：读锁释放后，<code>peek</code> 返回的指针<strong>不应再使用</strong>——后续的写操作可能触发 resize 使指针失效。如需长期持有，调用方应在读锁内拷贝数据。</p>
+</blockquote>
+<hr />
+<h2 id="ccvector">ccvector — 动态数组</h2>
+<p><strong>值存储</strong>，内部管理连续内存。读操作返回内部数组指针。</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>锁类型</th>
+<th>并行度</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ccvector_at</code></td>
+<td>读锁</td>
+<td>N 路†</td>
+<td>返回 <code>&amp;buckets[i]</code>——读锁期间有效</td>
+</tr>
+<tr>
+<td><code>ccvector_front</code></td>
+<td>读锁</td>
+<td>N 路†</td>
+<td>返回 <code>&amp;buckets[0]</code></td>
+</tr>
+<tr>
+<td><code>ccvector_back</code></td>
+<td>读锁</td>
+<td>N 路†</td>
+<td>返回 <code>&amp;buckets[len-1]</code></td>
+</tr>
+<tr>
+<td><code>ccvector_size</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>读取 <code>len</code></td>
+</tr>
+<tr>
+<td><code>ccvector_capacity</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>读取 <code>cap</code></td>
+</tr>
+<tr>
+<td><code>ccvector_empty</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td><code>len == 0</code></td>
+</tr>
+<tr>
+<td><code>ccvector_push_back</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>可能触发 2× resize——<strong>所有现存指针失效</strong></td>
+</tr>
+<tr>
+<td><code>ccvector_pop_back</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td><code>len--</code>，不触发 resize</td>
+</tr>
+<tr>
+<td><code>ccvector_reserve</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>预分配，可能触发 resize</td>
+</tr>
+<tr>
+<td><code>ccvector_clear</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td><code>len = 0</code>，不释放内存</td>
+</tr>
+<tr>
+<td><code>ccvector_destroy</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>释放内部数组</td>
+</tr>
+<tr>
+<td><code>ccvector_init</code></td>
+<td>—</td>
+<td>—</td>
+<td>初始化调用</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>† 关键警告</strong>：<code>at</code>/<code>front</code>/<code>back</code> 返回内部数组指针。读锁释放后或任何 <code>push_back</code>/<code>reserve</code> 写操作后，这些指针<strong>立即失效</strong>。如需跨锁使用数据，应在读锁内拷贝值。</p>
+<p><strong>并行度总结</strong>：读 N 路（指针在读锁内有效），写 1 路。适合只读快照或读锁内即用即弃的模式。</p>
+</blockquote>
+<hr />
+<h2 id="ccflatmap">ccflatmap — 排序数组映射</h2>
+<p><strong>值存储</strong>，内部管理连续内存，二分查找。与 <code>ccvector</code> 有相同的指针失效风险。</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>锁类型</th>
+<th>并行度</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ccflatmap_find</code></td>
+<td>读锁</td>
+<td>N 路†</td>
+<td>二分查找，返回内部数组指针</td>
+</tr>
+<tr>
+<td><code>ccflatmap_begin</code></td>
+<td>读锁</td>
+<td>N 路†</td>
+<td>返回 <code>&amp;buckets[0]</code></td>
+</tr>
+<tr>
+<td><code>ccflatmap_end</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>总是 <code>NULL</code></td>
+</tr>
+<tr>
+<td><code>ccflatmap_rbegin</code></td>
+<td>读锁</td>
+<td>N 路†</td>
+<td>返回 <code>&amp;buckets[len-1]</code></td>
+</tr>
+<tr>
+<td><code>ccflatmap_next</code></td>
+<td>读锁</td>
+<td>N 路†</td>
+<td><code>p + 1</code>（指针算术）</td>
+</tr>
+<tr>
+<td><code>ccflatmap_prev</code></td>
+<td>读锁</td>
+<td>N 路†</td>
+<td><code>p - 1</code></td>
+</tr>
+<tr>
+<td><code>ccflatmap_at</code></td>
+<td>读锁</td>
+<td>N 路†</td>
+<td>返回 <code>&amp;buckets[i]</code></td>
+</tr>
+<tr>
+<td><code>ccflatmap_size</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>读取 <code>len</code></td>
+</tr>
+<tr>
+<td><code>ccflatmap_empty</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td><code>len == 0</code></td>
+</tr>
+<tr>
+<td><code>ccflatmap_capacity</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>读取 <code>cap</code></td>
+</tr>
+<tr>
+<td><code>ccflatmap_insert</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>二分查找 + memmove；可能 resize</td>
+</tr>
+<tr>
+<td><code>ccflatmap_erase</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>二分查找 + memmove</td>
+</tr>
+<tr>
+<td><code>ccflatmap_erase_at</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>跳过查找，直接 memmove</td>
+</tr>
+<tr>
+<td><code>ccflatmap_erase_unordered</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>swap-with-last，破坏排序</td>
+</tr>
+<tr>
+<td><code>ccflatmap_push_back</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>无序追加，可能 resize</td>
+</tr>
+<tr>
+<td><code>ccflatmap_sort</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>原地快速排序</td>
+</tr>
+<tr>
+<td><code>ccflatmap_reserve</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>可能触发 resize</td>
+</tr>
+<tr>
+<td><code>ccflatmap_clear</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td><code>len = 0</code></td>
+</tr>
+<tr>
+<td><code>ccflatmap_destroy</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>释放内部数组</td>
+</tr>
+<tr>
+<td><code>ccflatmap_init</code></td>
+<td>—</td>
+<td>—</td>
+<td>初始化调用</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>† 指针失效警告</strong>：同 <code>ccvector</code>——所有读操作返回的内部指针在读锁释放后或写锁 resize 后失效。</p>
+<p><strong>并行度总结</strong>：读 N 路（指针在读锁内有效），写 1 路。批量操作（<code>push_back</code> 循环 + <code>sort</code>）应在单个写锁临界区内完成。</p>
+</blockquote>
+<hr />
+<h2 id="cctreap-treap">cctreap — 侵入式 Treap</h2>
+<p><strong>无内部分配</strong>。树结构修改仅发生于 insert/erase。节点含 <code>size</code> 字段，kth/rank 只读遍历不修改。</p>
+<table>
+<thead>
+<tr>
+<th>操作</th>
+<th>锁类型</th>
+<th>并行度</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cctreap_find</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>只读 BST 遍历，不修改任何字段</td>
+</tr>
+<tr>
+<td><code>cctreap_kth</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>利用 <code>size</code> 字段二分，不修改结构</td>
+</tr>
+<tr>
+<td><code>cctreap_rank</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>下降累加 <code>size</code>，不修改状态</td>
+</tr>
+<tr>
+<td><code>cctreap_begin</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>返回 <code>first</code> 指针（insert/erase 维护）</td>
+</tr>
+<tr>
+<td><code>cctreap_first</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td><code>begin</code> 的同义词</td>
+</tr>
+<tr>
+<td><code>cctreap_end</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>总是返回 <code>NULL</code></td>
+</tr>
+<tr>
+<td><code>cctreap_rbegin</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>返回 <code>last</code> 指针 O(1)</td>
+</tr>
+<tr>
+<td><code>cctreap_last</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td><code>rbegin</code> 的同义词</td>
+</tr>
+<tr>
+<td><code>cctreap_next</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>只读 <code>child[]</code> 和 <code>pc</code> 字段</td>
+</tr>
+<tr>
+<td><code>cctreap_prev</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>只读 <code>child[]</code> 和 <code>pc</code> 字段</td>
+</tr>
+<tr>
+<td><code>cctreap_size</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>原子读取 <code>size</code> 字段</td>
+</tr>
+<tr>
+<td><code>cctreap_height</code></td>
+<td>读锁</td>
+<td>N 路</td>
+<td>仅读取 <code>m-&gt;size</code></td>
+</tr>
+<tr>
+<td><code>cctreap_insert</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>修改树结构 + <code>size</code> + 可能更新 <code>first</code>/<code>last</code></td>
+</tr>
+<tr>
+<td><code>cctreap_erase</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>旋转下沉至叶 + 修改树结构 + <code>size</code> + 边界更新</td>
+</tr>
+<tr>
+<td><code>cctreap_clear</code></td>
+<td>写锁</td>
+<td>1 路</td>
+<td>重置 root/first/last/size</td>
+</tr>
+<tr>
+<td><code>cctreap_init</code></td>
+<td>—</td>
+<td>—</td>
+<td>初始化调用，通常在锁创建之前</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>并行度总结</strong>：所有读操作（包括 kth/rank）可完全并发（N 路），写操作串行化。kth/rank 不修改节点 <code>size</code> 字段——仅读取。适合需要频繁排名的读多写少场景。</p>
+</blockquote>
+<hr />
+<h2 id="_3">使用模式建议</h2>
+<h3 id="1-rwlock">模式 1：标准 rwlock 包装</h3>
+<pre><code class="language-c">pthread_rwlock_t lock = PTHREAD_RWLOCK_INITIALIZER;
+ccmap_t map;
+ccmap_init(&amp;map, my_cmp);
+
+// 读操作
+pthread_rwlock_rdlock(&amp;lock);
+ccmap_node_t *n = ccmap_find(&amp;map, &amp;probe);
+// ... 使用 n ...
+pthread_rwlock_unlock(&amp;lock);
+
+// 写操作
+pthread_rwlock_wrlock(&amp;lock);
+ccmap_insert(&amp;map, &amp;node, NULL);
+pthread_rwlock_unlock(&amp;lock);
+</code></pre>
+<h3 id="2ccvector-ccflatmap">模式 2：值拷贝避免指针失效（ccvector / ccflatmap）</h3>
+<pre><code class="language-c">pthread_rwlock_rdlock(&amp;lock);
+CCFLATMAP_NODE_T *p = ccflatmap_find(&amp;m, &amp;probe);
+CCFLATMAP_NODE_T copy = *p;  // 读锁内拷贝
+pthread_rwlock_unlock(&amp;lock);
+// 此后使用 copy——不受后续写操作影响
+</code></pre>
+<h3 id="3">模式 3：批量写入</h3>
+<pre><code class="language-c">pthread_rwlock_wrlock(&amp;lock);
+ccflatmap_reserve(&amp;m, N);
+for (int i = 0; i &lt; N; i++)
+    ccflatmap_push_back(&amp;m, items[i]);
+ccflatmap_sort(&amp;m);
+pthread_rwlock_unlock(&amp;lock);
+</code></pre>
+<h3 id="_4">不推荐的模式</h3>
+<pre><code class="language-c">// ❌ 锁升级——pthread_rwlock 不支持
+pthread_rwlock_rdlock(&amp;lock);
+if (!cchashmap_get(&amp;m, &amp;probe)) {
+    pthread_rwlock_unlock(&amp;lock);      // 窗口期！
+    pthread_rwlock_wrlock(&amp;lock);      // 其他线程可能已插入
+    cchashmap_set(&amp;m, &amp;node, NULL);
+}
+pthread_rwlock_unlock(&amp;lock);
+
+// ✅ 正确：直接持写锁
+pthread_rwlock_wrlock(&amp;lock);
+if (!cchashmap_get(&amp;m, &amp;probe))
+    cchashmap_set(&amp;m, &amp;node, NULL);
+pthread_rwlock_unlock(&amp;lock);
+</code></pre>
+<hr />
+<h2 id="_5">内部依赖的线程安全性</h2>
+<table>
+<thead>
+<tr>
+<th>内部依赖</th>
+<th>线程安全性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>桶/指针数组（内联于 cchashmap / ccheap）</td>
+<td>无锁——由外层容器的写锁保护</td>
+</tr>
+<tr>
+<td>用户提供的比较/哈希回调</td>
+<td>调用方保证——回调不应有副作用或访问共享状态</td>
+</tr>
+<tr>
+<td>用户提供的分配器（<code>CCXXX_REALLOC</code> 等）</td>
+<td>调用方保证——自定义分配器需自行保证线程安全</td>
+</tr>
+</tbody>
+</table>
+<p>cchashmap 和 ccheap 内部自管桶/指针数组，线程安全完全由外层容器的锁保证。</p>
+  </article>
+  <footer class="mt-12 pt-4 border-t border-teal-200 dark:border-teal-800
+                 text-sm text-teal-500 dark:text-teal-400">
+    <p>ccalg — header-only C data-structure library · BSD 3-Clause ·
+    <a href="https://github.com/CandyMi/ccalg" class="text-blue-600 dark:text-blue-400 hover:underline">GitHub</a></p>
+  </footer>
+</main>
+<button class="toc-toggle fixed right-3 top-[50px] z-[101] px-2.5 py-1
+               border border-teal-300 dark:border-teal-700 rounded-t-md
+               bg-white dark:bg-teal-900 text-teal-600 dark:text-teal-300
+               text-sm cursor-pointer whitespace-nowrap
+               hover:bg-blue-600 hover:text-white hover:border-blue-600
+               dark:hover:bg-blue-600 dark:hover:text-white
+               transition-colors duration-200"
+        id="tocToggle" title="折叠目录">点击收起 <span class="toc-icon inline-block transition-transform duration-300">▶</span></button>
+<nav class="toc fixed right-3 top-20 w-[210px] max-h-[calc(100vh-120px)]
+            flex flex-col text-sm z-[100] bg-white dark:bg-teal-900
+            border border-teal-200 dark:border-teal-800 rounded-xl
+            shadow-lg shadow-teal-200/50 dark:shadow-teal-950/50
+            opacity-90 hover:opacity-100 transition-opacity duration-200"
+     id="toc">
+  <div class="flex justify-between items-center flex-shrink-0 font-semibold
+              text-teal-800 dark:text-teal-100 text-sm
+              px-3 py-2.5 border-b border-teal-200 dark:border-teal-800">
+    <span>本页目录</span>
+    <a href="#" class="text-teal-400 dark:text-teal-500 text-base font-normal
+                       no-underline hover:text-blue-600 dark:hover:text-blue-400 px-1"
+       title="回到顶部">↑</a>
+  </div>
+  <div class="toc-links overflow-y-auto flex-1 px-3 py-2">
+<a href="#_2" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="_2">汇总</a>
+<a href="#ccmap" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="ccmap">ccmap — 侵入式红黑树</a>
+<a href="#cchashmap" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="cchashmap">cchashmap — 侵入式链式哈希表</a>
+<a href="#cclink" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="cclink">cclink — 侵入式单向链表</a>
+<a href="#cclist" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="cclist">cclist — 侵入式双向链表</a>
+<a href="#ccheap-d-ary" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="ccheap-d-ary">ccheap — D-ary 堆</a>
+<a href="#ccvector" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="ccvector">ccvector — 动态数组</a>
+<a href="#ccflatmap" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="ccflatmap">ccflatmap — 排序数组映射</a>
+<a href="#cctreap-treap" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="cctreap-treap">cctreap — 侵入式 Treap</a>
+<a href="#_3" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="_3">使用模式建议</a>
+<a href="#1-rwlock" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="1-rwlock">模式 1：标准 rwlock 包装</a>
+<a href="#2ccvector-ccflatmap" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="2ccvector-ccflatmap">模式 2：值拷贝避免指针失效（ccvector / ccflatmap）</a>
+<a href="#3" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="3">模式 3：批量写入</a>
+<a href="#_4" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_4">不推荐的模式</a>
+<a href="#_5" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="_5">内部依赖的线程安全性</a>
+  </div>
+</nav>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+mermaid.initialize({ startOnLoad: false, theme: 'base' });
+// protect mermaid blocks from highlight.js — convert before hljs runs
+document.querySelectorAll('pre code.language-mermaid').forEach(function(el) {
+  el.parentElement.classList.add('mermaid');
+  el.parentElement.innerHTML = el.textContent;
+});
+hljs.highlightAll();
+mermaid.run();
+
+// ── sidebar toggle ─────────────────────────────────────────────────
+(function() {
+  var btn = document.getElementById('toggleSidebar');
+  var body = document.body;
+  if (!btn) return;
+
+  function apply(state) {
+    body.classList.toggle('sidebar-collapsed', state);
+    btn.title = state ? '展开侧边栏' : '收起侧边栏';
+    btn.innerHTML = state ? '☰' : '☰';
+  }
+
+  btn.addEventListener('click', function() {
+    var collapsed = !body.classList.contains('sidebar-collapsed');
+    apply(collapsed);
+    try { localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0'); } catch(e) {}
+  });
+
+  // restore saved state
+  try {
+    if (localStorage.getItem('sidebar-collapsed') === '1') apply(true);
+  } catch(e) {}
+})();
+
+// ── TOC collapse toggle ──────────────────────────────────────────────
+(function() {
+  var btn = document.getElementById('tocToggle');
+  var toc = document.getElementById('toc');
+  if (!btn || !toc) return;
+
+  function apply(state) {
+    document.body.classList.toggle('toc-collapsed', state);
+    btn.innerHTML = state ? '点击展开 <span class="toc-icon inline-block transition-transform duration-300">▶</span>' : '点击收起 <span class="toc-icon inline-block transition-transform duration-300">▶</span>';
+    btn.title = state ? '展开目录' : '折叠目录';
+  }
+
+  btn.addEventListener('click', function() {
+    var collapsed = !document.body.classList.contains('toc-collapsed');
+    apply(collapsed);
+    try { localStorage.setItem('toc-collapsed', collapsed ? '1' : '0'); } catch(e) {}
+  });
+
+  try {
+    if (localStorage.getItem('toc-collapsed') === '1') apply(true);
+  } catch(e) {}
+})();
+
+// ── TOC scroll-spy (midpoint activation) ────────────────────────────
+(function() {
+  var toc = document.getElementById('toc');
+  if (!toc) return;
+  var links = toc.querySelectorAll('.toc-links a');
+  if (!links.length) { toc.style.display = 'none'; return; }
+
+  // collect heading targets
+  var headings = [];
+  links.forEach(function(a) {
+    var el = document.getElementById(a.getAttribute('data-target'));
+    if (el) headings.push({ el: el, link: a });
+  });
+
+  // find which heading's midpoint is active
+  function updateActive() {
+    var mid = window.scrollY + window.innerHeight / 2;
+    var activeIdx = -1;
+    for (var i = headings.length - 1; i >= 0; i--) {
+      if (headings[i].el.offsetTop <= mid) { activeIdx = i; break; }
+    }
+
+    links.forEach(function(a, idx) {
+      a.classList.toggle('active', idx === activeIdx);
+    });
+
+    if (activeIdx >= 0 && headings[activeIdx]) {
+      headings[activeIdx].link.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+    }
+  }
+
+  updateActive();
+
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() { ticking = false; updateActive(); });
+      ticking = true;
+    }
+  }, { passive: true });
+})();
+</script>
+<script>
+// Load HLJS theme CSS AFTER Tailwind CDN has injected its styles.
+// Tailwind CDN injects styles async (DOMContentLoaded / rAF) — we use
+// double rAF to guarantee HLJS loads last and wins cascade ties.
+requestAnimationFrame(function() {
+  requestAnimationFrame(function() {
+    var light = document.createElement('link');
+    light.rel = 'stylesheet';
+    light.media = '(prefers-color-scheme: light)';
+    light.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs.min.css';
+    document.head.appendChild(light);
+    var dark = document.createElement('link');
+    dark.rel = 'stylesheet';
+    dark.media = '(prefers-color-scheme: dark)';
+    dark.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs2015.min.css';
+    document.head.appendChild(dark);
+  });
+});
+</script>
+</body>
+</html>

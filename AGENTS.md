@@ -78,7 +78,7 @@ When a macro is defined, the matching `init()` parameter is suppressed with `(vo
 | `cchashmap` | `cchashmap_hash_t`: `uint64_t (*)(const cchashmap_node_t*, size_t)` <br> `cchashmap_equal_t`: `bool (*)(const cchashmap_node_t*, const cchashmap_node_t*)` | `#define CCHASHMAP_HASH(n, seed)` <br> `#define CCHASHMAP_EQUAL(a, b)` |
 | `ccheap` | `ccheap_compare_t`: `int64_t (*)(const ccheap_node_t*, const ccheap_node_t*)` | `#define CCHEAP_COMPARE(a, b)` |
 | `ccflatmap` | `ccflatmap_cmp_t`: `int64_t (*)(const CCFLATMAP_NODE_T*, const CCFLATMAP_NODE_T*)` | `#define CCFLATMAP_COMPARE(a, b)` |
-| `cctreap` | `cctreap_cmp_t`: `int64_t (*)(const cctreap_node_t*, const cctreap_node_t*)` (key) | `#define CCTREAP_COMPARE(a, b)` (key) <br> `#define CCTREAP_RAND(state)` (RNG) |
+| `cctreap` | `cctreap_cmp_t`: `int64_t (*)(const cctreap_node_t*, const cctreap_node_t*)` (key) | `#define CCTREAP_COMPARE(a, b)` (key) <br> `#define CCTREAP_RAND_NEXT(state)` (RNG) |
 | `cclist` / `cclink` | none needed | none |
 
 #### Comparison semantics
@@ -280,7 +280,7 @@ Each header defines its own `CCXXX_INLINE` macro (pattern: `#define CCXXX_INLINE
 
 ---
 
-Internal constants: `CCMAP_RED=0`, `CCMAP_BLACK=1`, `CCMAP_LEFT=0`, `CCMAP_RIGHT=1`.
+Internal constants: `CCMAP_RED=0`, `CCMAP_BLACK=1`, `CCMAP_LEFT=0`, `CCMAP_RIGHT=1`; `CCTREAP_LEFT=0`, `CCTREAP_RIGHT=1`.
 
 ---
 
@@ -322,6 +322,9 @@ cmake --install build --prefix /usr/local
 | `bench_ccvector.cpp` | ccvector vs `std::vector` | 500K |
 | `bench_ccflatmap.cpp` | ccflatmap vs ccmap vs `std::map` | 50K |
 | `bench_cctreap.cpp` | cctreap vs `std::map` (incl. kth/rank) | 100K |
+| `bench_ccrandom.cpp` | ccrandom128/ccrandom256 vs `std::mt19937` | 20M draws |
+| `bench_ccunicode.cpp` | ccunicode UTF-8 encode/decode throughput | ASCII / CJK / 4-byte |
+| `bench_ccmap_prefetch.cpp` | ccmap with/without CCMAP_PREFETCH | 100K |
 
 ---
 
@@ -340,7 +343,7 @@ cmake --install build --prefix /usr/local
 11. [ ] Allocator hooks if the container allocates internally
 12. [ ] Internal helpers prefixed `_xxx_`
 13. [ ] BSD license header
-14. [ ] Matching `tests/test_ccxxx.c` + `bench/bench_ccxxx.cpp`
+14. [ ] Matching `tests/test_ccxxx.c` + `bench/bench_ccxxx.cpp` (benchmarks required for all modules, including utilities like ccrandom/ccunicode)
 15. [ ] Update `AGENTS.md`, `docs/api-reference.md`, `docs/algorithms.md`, `docs/index.md`
 
 ---
@@ -352,7 +355,7 @@ cmake --install build --prefix /usr/local
 
 ### 1. File header — License
 
-Every source file (`*.h`, `*.c`, `*.cpp`) MUST include the BSD 3-Clause license header:
+Every source file (`*.h`, `*.c`, `*.cpp`) MUST include the BSD license header:
 
 ```c
 /*

@@ -39,7 +39,8 @@ workspace "ccalg"
   -- ── benchmarks (C++) ──────────────────────────────────────────────────
   local benches = {
     "bench_ccmap", "bench_cchashmap", "bench_cclink", "bench_cclist",
-    "bench_ccheap", "bench_ccvector", "bench_ccflatmap", "bench_cctreap"
+    "bench_ccheap", "bench_ccvector", "bench_ccflatmap", "bench_cctreap",
+    "bench_ccrandom", "bench_ccunicode"
   }
   for _, name in ipairs(benches) do
     project(name)
@@ -109,6 +110,12 @@ workspace "ccalg"
       'echo ""',
       'echo "=== ccflatmap vs std::map ==="',
       '%{cfg.buildcfg}/bench_ccflatmap',
+      'echo ""',
+      'echo "=== ccrandom128 / ccrandom256 vs std::mt19937 ==="',
+      '%{cfg.buildcfg}/bench_ccrandom',
+      'echo ""',
+      'echo "=== ccunicode encode/decode throughput ==="',
+      '%{cfg.buildcfg}/bench_ccunicode',
       'echo ""',
       'echo "=== cctreap vs std::map ==="',
       '%{cfg.buildcfg}/bench_cctreap',

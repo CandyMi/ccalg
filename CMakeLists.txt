@@ -61,6 +61,8 @@ add_ccalg_bench(bench_ccheap)
 add_ccalg_bench(bench_ccvector)
 add_ccalg_bench(bench_ccflatmap)
 add_ccalg_bench(bench_cctreap)
+add_ccalg_bench(bench_ccrandom)
+add_ccalg_bench(bench_ccunicode)
 
 # prefetch benchmark — needs two compilations (with / without CCMAP_PREFETCH)
 add_executable(bench_ccmap_prefetch      bench/bench_ccmap_prefetch.cpp)
@@ -106,12 +108,18 @@ add_custom_target(bench
   COMMAND ${CMAKE_COMMAND} -E echo "=== ccflatmap vs std::map ==="
   COMMAND $<TARGET_FILE:bench_ccflatmap>
   COMMAND ${CMAKE_COMMAND} -E echo ""
+  COMMAND ${CMAKE_COMMAND} -E echo "=== ccrandom128 / ccrandom256 vs std::mt19937 ==="
+  COMMAND $<TARGET_FILE:bench_ccrandom>
+  COMMAND ${CMAKE_COMMAND} -E echo ""
+  COMMAND ${CMAKE_COMMAND} -E echo "=== ccunicode encode/decode throughput ==="
+  COMMAND $<TARGET_FILE:bench_ccunicode>
+  COMMAND ${CMAKE_COMMAND} -E echo ""
   COMMAND ${CMAKE_COMMAND} -E echo "=== ccmap prefetch OFF ==="
   COMMAND $<TARGET_FILE:bench_ccmap_prefetch>
   COMMAND ${CMAKE_COMMAND} -E echo ""
   COMMAND ${CMAKE_COMMAND} -E echo "=== ccmap prefetch ON  ==="
   COMMAND $<TARGET_FILE:bench_ccmap_prefetch_on>
-  DEPENDS bench_ccmap bench_cchashmap bench_cclink bench_cclist bench_ccheap bench_ccvector bench_ccflatmap bench_cctreap bench_ccmap_prefetch bench_ccmap_prefetch_on
+  DEPENDS bench_ccmap bench_cchashmap bench_cclink bench_cclist bench_ccheap bench_ccvector bench_ccflatmap bench_cctreap bench_ccrandom bench_ccunicode bench_ccmap_prefetch bench_ccmap_prefetch_on
   USES_TERMINAL
   COMMENT "Running all benchmarks"
 )

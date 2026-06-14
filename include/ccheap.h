@@ -117,11 +117,6 @@
 #define CCHEAP_PARENT(i)    (((i) - 1) / CCHEAP_ARITY_N)
 #define CCHEAP_CHILD(i, k)  (CCHEAP_ARITY_N * (i) + (k) + 1)
 
-#if CCHEAP_ARITY == 2
-  #define CCHEAP_LEFT(i)   CCHEAP_CHILD((i), 0)
-  #define CCHEAP_RIGHT(i)  CCHEAP_CHILD((i), 1)
-#endif
-
 /* ── memory allocation hooks ──────────────────────────────────────────── */
 
 #ifndef CCHEAP_REALLOC
@@ -173,7 +168,6 @@ typedef struct ccheap {
 
 /* ── internal: direct array access (no bounds check, for hot path) ───── */
 
-#define _HDATA(h)      ((h)->data[0])
 #define CCHEAP_AT(h, i) ((h)->data[i])
 #define CCHEAP_PEEK(h)   CCHEAP_AT(h, 0)
 

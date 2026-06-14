@@ -30,6 +30,7 @@
 | [ccflatmap.h](include/ccflatmap.h) | `ccflatmap_t` / `ccflatmap_node_t` | Sorted-array map (value-based) |
 | [cctreap.h](include/cctreap.h) | `cctreap_t` / `cctreap_node_t` | Intrusive treap (BST + max-heap, order statistics) |
 | [ccunicode.h](include/ccunicode.h) | — | UTF-8 ↔ UCS-4 codec |
+| [ccrandom.h](include/ccrandom.h) | `ccrandom128_t` / `ccrandom256_t` | Non-cryptographic PRNG (Xoroshiro128++ / Xoshiro256**) |
 
 ---
 
@@ -100,6 +101,7 @@ Each container owns its namespace. Prefix = container abbreviation. No macros ar
 | `ccflatmap` | `CCFLATMAP_` | `CCFLATMAP_INLINE`, `CCFLATMAP_COMPARE`, `CCFLATMAP_REALLOC` |
 | `cctreap` | `CCTREAP_` | `CCTREAP_INLINE`, `CCTREAP_CONTAINER`, `CCTREAP_COMPARE`, `CCTREAP_RAND` |
 | `ccunicode` | `CCUNICODE_` | `CCUNICODE_INLINE` |
+| `ccrandom` | `CCRANDOM_` | `CCRANDOM_INLINE` |
 
 ### Allocation hooks
 
@@ -250,6 +252,32 @@ Each header defines its own `CCXXX_INLINE` macro (pattern: `#define CCXXX_INLINE
 - `first`/`last` recomputed from root after erase (bubble-down alters topology).
 - Internal helpers prefixed `_tp_` (`_tp_p`, `_tp_sp`, `_tp_spc`, `_tp_sz`, `_tp_upd_sz`, `_tp_min`, `_tp_max`, `_tp_transplant`, `_tp_rot_left`, `_tp_rot_right`, `_tp_ins_fix`, `_tp_del_fix`).
 
+### ccunicode — UTF-8 Codec
+
+- **Zero state** — pure functions, no struct/state type to embed.
+- `ccunicode_to_codepoint(str, len, &val)` → bytes consumed (1–4), 0 on error.
+- `ccunicode_from_codepoint(val, str, &len)` → `bool` success.
+- ASCII fast path (~70–90% of typical text) returns without touching lookup table.
+- 256-byte `seq_len[]` table classifies first byte in one access — replaces if-else chain.
+- Overlong encoding rejection, surrogate-half rejection (U+D800–U+DFFF), >U+10FFFF rejection.
+- Branchless byte-count in encoder (compiler emits SETcc/CMOV).
+- Fall-through switch for continuation bytes — eliminates loop overhead.
+- Unicode 17.0 / RFC 3629 compliant.
+
+### ccrandom — PRNG
+
+- Two engines, value-based (no intrusive node):
+  - `ccrandom128_t` — Xoroshiro128++, 2×u64 state, 2^128−1 period, fastest.
+  - `ccrandom256_t` — Xoshiro256**, 4×u64 state, 2^256−1 period, higher statistical quality.
+- Both pass BigCrush (TestU01) and PractRand ≥ 32 TiB.
+- **Seeding**: `ccrandom128_init(&rng, seed)` / `ccrandom256_init(&rng, seed)` — 64-bit seed expanded via SplitMix64.  Any 64-bit value valid (zero included); seed is consumed, not stored.
+- **u64 output**: `ccrandom128_next(&rng)` / `ccrandom256_next(&rng)` → [0, 2^64−1].
+- **f32 output**: `ccrandom128_f32next(&rng)` / `ccrandom256_f32next(&rng)` → float [0, 1), 24-bit mantissa.
+- **f64 output**: `ccrandom128_f64next(&rng)` / `ccrandom256_f64next(&rng)` → double [0, 1), 53-bit mantissa.
+- Zero internal allocation.  Bit-identical across platforms for the same seed.
+- Not cryptographic — predictable from ~2^64 outputs.
+- No thread safety — one instance per thread.
+
 ---
 
 Internal constants: `CCMAP_RED=0`, `CCMAP_BLACK=1`, `CCMAP_LEFT=0`, `CCMAP_RIGHT=1`.
@@ -279,6 +307,7 @@ cmake --install build --prefix /usr/local
 | `test_ccvector.c` | Dynamic array |
 | `test_ccflatmap.c` | Sorted-array map |
 | `test_cctreap.c` | Treap |
+| `test_ccrandom.c` | PRNG (Xoroshiro128++ / Xoshiro256**) |
 
 ### Benchmarks (C++ vs STL)
 

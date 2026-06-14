@@ -138,26 +138,26 @@ TEST(clear) {
 
 TEST(verify_valid) {
   cclink_t l; cclink_init(&l);
-  ASSERT(cclink_verify(&l) == CLINK_NOERROR);
+  ASSERT(cclink_verify(&l) == CCLINK_NOERROR);
   struct entry e[3] = {{1},{2},{3}};
   for (int i = 0; i < 3; i++) cclink_push_back(&l, &e[i].node);
-  ASSERT(cclink_verify(&l) == CLINK_NOERROR);
+  ASSERT(cclink_verify(&l) == CCLINK_NOERROR);
 }
 
 TEST(error_strings) {
   const cclink_error_t *err;
 
-  err = cclink_get_error(CLINK_NOERROR);
-  ASSERT(err != NULL && err->code == CLINK_NOERROR);
+  err = cclink_get_error(CCLINK_NOERROR);
+  ASSERT(err != NULL && err->code == CCLINK_NOERROR);
 
-  err = cclink_get_error(CLINK_ISNULL);
-  ASSERT(err != NULL && err->code == CLINK_ISNULL);
+  err = cclink_get_error(CCLINK_ISNULL);
+  ASSERT(err != NULL && err->code == CCLINK_ISNULL);
 
-  err = cclink_get_error(CLINK_HASCYCLE);
-  ASSERT(err != NULL && err->code == CLINK_HASCYCLE);
+  err = cclink_get_error(CCLINK_HASCYCLE);
+  ASSERT(err != NULL && err->code == CCLINK_HASCYCLE);
 
-  err = cclink_get_error(CLINK_SIZEERROR);
-  ASSERT(err != NULL && err->code == CLINK_SIZEERROR);
+  err = cclink_get_error(CCLINK_SIZEERROR);
+  ASSERT(err != NULL && err->code == CCLINK_SIZEERROR);
 
   /* out of range */
   err = cclink_get_error((cclink_ecode_t)999);
@@ -200,7 +200,7 @@ TEST(null_safety) {
   cclink_remove(NULL, NULL);
   cclink_clear(NULL);
   ASSERT(!cclink_has_cycle(NULL));
-  ASSERT(cclink_verify(NULL) == CLINK_ISNULL);
+  ASSERT(cclink_verify(NULL) == CCLINK_ISNULL);
 }
 
 TEST(large_push_remove) {
@@ -210,7 +210,7 @@ TEST(large_push_remove) {
   ASSERT(e != NULL);
   for (int i = 0; i < N; i++) { e[i].val = i; cclink_push(&l, &e[i].node); }
   ASSERT(cclink_size(&l) == (size_t)N);
-  ASSERT(cclink_verify(&l) == CLINK_NOERROR);
+  ASSERT(cclink_verify(&l) == CCLINK_NOERROR);
   /* remove all */
   for (int i = 0; i < N; i++) cclink_remove(&l, &e[i].node);
   ASSERT(cclink_empty(&l));

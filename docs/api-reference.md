@@ -262,13 +262,13 @@ bool cclist_has_cycle(const cclist_t *l);
 // Floyd 龟兔算法，O(N) 时间 O(1) 空间。
 
 cclist_ecode_t cclist_verify(const cclist_t *l);
-// 返回 0 (NOERROR) 或错误码:
-//   ISNULL(1) — l 为 NULL 或 head/tail 不一致
-//   NOHEAD(2) — head->prev != NULL
-//   NONEXT(3) — tail->next != NULL
-//   HASCYCLE(4) — 检测到环
-//   MISSPREV(5) — 前向指针不一致
-//   SIZEERROR(6) — size 与实际节点数不符
+// 返回 0 (CCLIST_NOERROR) 或错误码:
+//   CCLIST_ISNULL(1) — l 为 NULL 或 head/tail 不一致
+//   CCLIST_NOHEAD(2) — head->prev != NULL
+//   CCLIST_NONEXT(3) — tail->next != NULL
+//   CCLIST_HASCYCLE(4) — 检测到环
+//   CCLIST_MISSPREV(5) — 前向指针不一致
+//   CCLIST_SIZEERROR(6) — size 与实际节点数不符
 ```
 
 ---
@@ -355,7 +355,7 @@ bool cclink_has_cycle(const cclink_t *l);
 // Floyd 龟兔算法，O(N) O(1)。
 
 cclink_ecode_t cclink_verify(const cclink_t *l);
-// 返回 0 或: ISNULL(1) / HASCYCLE(2) / SIZEERROR(3)
+// 返回 0 或: CCLIST_ISNULL(1) / CCLIST_HASCYCLE(2) / CCLIST_SIZEERROR(3)
 ```
 
 ---

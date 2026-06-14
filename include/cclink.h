@@ -196,21 +196,21 @@ CCLINK_INLINE bool cclink_has_cycle(const cclink_t *l) {
 }
 
 typedef enum {
-  CLINK_UNKNOWN    = -1,
-  CLINK_NOERROR    = 0,
-  CLINK_ISNULL     = 1,
-  CLINK_HASCYCLE   = 2,
-  CLINK_SIZEERROR  = 3,
-  CLINK_ERRMAX     = 4,
+  CCLINK_UNKNOWN    = -1,
+  CCLINK_NOERROR    = 0,
+  CCLINK_ISNULL     = 1,
+  CCLINK_HASCYCLE   = 2,
+  CCLINK_SIZEERROR  = 3,
+  CCLINK_ERRMAX     = 4,
 } cclink_ecode_t;
 
 CCLINK_INLINE cclink_ecode_t cclink_verify(const cclink_t *l) {
-  if (!l)                    return CLINK_ISNULL;
-  if (cclink_has_cycle(l))   return CLINK_HASCYCLE;
+  if (!l)                    return CCLINK_ISNULL;
+  if (cclink_has_cycle(l))   return CCLINK_HASCYCLE;
   size_t count = 0;
   for (const cclink_node_t *n = l->head; n; n = n->next) count++;
-  if (count != l->size)      return CLINK_SIZEERROR;
-  return CLINK_NOERROR;
+  if (count != l->size)      return CCLINK_SIZEERROR;
+  return CCLINK_NOERROR;
 }
 
 /* ── error → string ──────────────────────────────────────────────────── */
@@ -221,15 +221,15 @@ typedef struct cclink_error {
 } cclink_error_t;
 
 static const cclink_error_t cclink_errors[] = {
-  {CLINK_UNKNOWN,   "Unknown error."},
-  {CLINK_NOERROR,   "No error."},
-  {CLINK_ISNULL,    "is nullptr."},
-  {CLINK_HASCYCLE,  "cycle detected."},
-  {CLINK_SIZEERROR, "size != actual count."},
+  {CCLINK_UNKNOWN,   "Unknown error."},
+  {CCLINK_NOERROR,   "No error."},
+  {CCLINK_ISNULL,    "is nullptr."},
+  {CCLINK_HASCYCLE,  "cycle detected."},
+  {CCLINK_SIZEERROR, "size != actual count."},
 };
 
 CCLINK_INLINE const cclink_error_t *cclink_get_error(cclink_ecode_t code) {
-  int idx = (int)code + 1;  /* CLINK_UNKNOWN = -1 → index 0 */
+  int idx = (int)code + 1;  /* CCLINK_UNKNOWN = -1 → index 0 */
   if (idx < 0 || (size_t)idx >= sizeof(cclink_errors) / sizeof(cclink_errors[0]))
     return NULL;
   return &cclink_errors[idx];

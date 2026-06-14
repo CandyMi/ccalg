@@ -377,6 +377,7 @@ CCMAP_INLINE ccmap_node_t *ccmap_first(ccmap_t *m)  { return m ? m->first : NULL
 CCMAP_INLINE ccmap_node_t *ccmap_begin(ccmap_t *m)   { return m ? m->first : NULL; }
 CCMAP_INLINE ccmap_node_t *ccmap_end(ccmap_t *m)     { (void)m; return NULL; }
 CCMAP_INLINE ccmap_node_t *ccmap_rbegin(ccmap_t *m)  { return m ? m->last : NULL; }
+CCMAP_INLINE ccmap_node_t *ccmap_last(ccmap_t *m)    { return ccmap_rbegin(m); }
 
 CCMAP_INLINE ccmap_node_t *ccmap_next(ccmap_node_t *x) {
   if (!x) return NULL;

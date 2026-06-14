@@ -169,7 +169,7 @@ int main() {
     cclist_splice_back(&l, &src);  // src 变空, l = [1,2,3,4,5]
 
     /* 验证双向不变量 */
-    if (cclist_verify(&l) == NOERROR)
+    if (cclist_verify(&l) == CCLIST_NOERROR)
         printf("list is valid\n");
 
     return 0;

@@ -164,7 +164,7 @@ typedef struct ccheap {
 /* ── container_of ─────────────────────────────────────────────────────── */
 
 #define CCHEAP_CONTAINER(ptr, type, member) \
-    ((type *)((char *)(ptr) - offsetof(type, member)))
+    ((type *)((uint8_t *)(ptr) - offsetof(type, member)))
 
 /* ── internal: direct array access (no bounds check, for hot path) ───── */
 

@@ -145,12 +145,12 @@ TEST(move) {
 
 TEST(verify_valid) {
   cclist_t l; cclist_init(&l);
-  ASSERT(cclist_verify(&l) == NOERROR); /* empty list is valid */
+  ASSERT(cclist_verify(&l) == CCLIST_NOERROR); /* empty list is valid */
 
   struct entry e1 = {1}, e2 = {2};
   cclist_push_back(&l, &e1.node);
   cclist_push_back(&l, &e2.node);
-  ASSERT(cclist_verify(&l) == NOERROR);
+  ASSERT(cclist_verify(&l) == CCLIST_NOERROR);
 }
 
 TEST(has_cycle) {

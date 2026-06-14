@@ -186,7 +186,9 @@ typedef struct cctreap {
   cctreap_node_t    *first;
   cctreap_node_t    *last;
   size_t             size;
+#ifndef CCTREAP_COMPARE
   cctreap_cmp_t      key_cmp;
+#endif
   CCTREAP_RAND_T     state;   /* RNG state (default uint64_t, overridable) */
 } cctreap_t;
 
@@ -274,7 +276,11 @@ CCTREAP_INLINE void cctreap_init(cctreap_t *m, cctreap_cmp_t key_cmp) {
   m->first     = NULL;
   m->last      = NULL;
   m->size      = 0;
+#ifndef CCTREAP_COMPARE
   m->key_cmp   = key_cmp;
+#else
+  (void)key_cmp;
+#endif
   CCTREAP_RAND_INIT(m, (uint64_t)(uintptr_t)m);
 }
 

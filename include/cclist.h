@@ -203,16 +203,16 @@ CCLIST_INLINE bool cclist_has_cycle(const cclist_t *l) {
 }
 
 typedef enum {
-  UNKNOWN = -1,
-  NOERROR,
-  ISNULL,
-  NOHEAD,
-  NONEXT,
-  HASCYCLE,
-  MISSPREV,
-  SIZEERROR,
+  CCLIST_UNKNOWN = -1,
+  CCLIST_NOERROR,
+  CCLIST_ISNULL,
+  CCLIST_NOHEAD,
+  CCLIST_NONEXT,
+  CCLIST_HASCYCLE,
+  CCLIST_MISSPREV,
+  CCLIST_SIZEERROR,
   /* ERROR MAX VALUE */
-  ERRMAX,
+  CCLIST_ERRMAX,
 } cclist_ecode_t ;
 
 typedef struct cclist_error {
@@ -221,17 +221,17 @@ typedef struct cclist_error {
 } cclist_error_t;
 
 static const cclist_error_t cclist_errors[] = {
-  {NOERROR,     "No Error."},
-  {ISNULL,      "it's nullptr."},
-  {NOHEAD,      "head->prev != NULL"},
-  {NONEXT,      "tail->next != NULL"},
-  {HASCYCLE,    "cycle detected"},
-  {MISSPREV,    "prev-link mismatch (n->prev != previous node)"},
-  {SIZEERROR,   "size != actual count"},
+  {CCLIST_NOERROR,     "No Error."},
+  {CCLIST_ISNULL,      "it's nullptr."},
+  {CCLIST_NOHEAD,      "head->prev != NULL"},
+  {CCLIST_NONEXT,      "tail->next != NULL"},
+  {CCLIST_HASCYCLE,    "cycle detected"},
+  {CCLIST_MISSPREV,    "prev-link mismatch (n->prev != previous node)"},
+  {CCLIST_SIZEERROR,   "size != actual count"},
 };
 
 CCLIST_INLINE const cclist_error_t *cclist_get_error(cclist_ecode_t code) {
-  if (code <= UNKNOWN || code >= ERRMAX) return NULL;
+  if (code <= CCLIST_UNKNOWN || code >= CCLIST_ERRMAX) return NULL;
   return &cclist_errors[code];
 }
 
@@ -244,19 +244,19 @@ CCLIST_INLINE const cclist_error_t *cclist_get_error(cclist_ecode_t code) {
      5 — prev-link mismatch (n->prev != previous node)
      6 — size != actual count                          */
 CCLIST_INLINE cclist_ecode_t cclist_verify(const cclist_t *l) {
-  if (!l) return ISNULL;
-  if (!l->head != !l->tail) return ISNULL;  /* one NULL, the other not */
-  if (l->head && l->head->prev) return NOHEAD;
-  if (l->tail && l->tail->next) return NONEXT;
-  if (cclist_has_cycle(l))     return HASCYCLE;
+  if (!l) return CCLIST_ISNULL;
+  if (!l->head != !l->tail) return CCLIST_ISNULL;  /* one NULL, the other not */
+  if (l->head && l->head->prev) return CCLIST_NOHEAD;
+  if (l->tail && l->tail->next) return CCLIST_NONEXT;
+  if (cclist_has_cycle(l))     return CCLIST_HASCYCLE;
   size_t count = 0;
   const cclist_node_t *prev = NULL;
   for (const cclist_node_t *n = l->head; n; prev = n, n = n->next) {
-    if (n->prev != prev) return MISSPREV;
+    if (n->prev != prev) return CCLIST_MISSPREV;
     count++;
   }
-  if (count != l->size) return SIZEERROR;
-  return NOERROR;
+  if (count != l->size) return CCLIST_SIZEERROR;
+  return CCLIST_NOERROR;
 }
 
 #endif /* CCLIST_H */

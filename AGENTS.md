@@ -386,7 +386,9 @@ If a file mixes styles, STOP and ask which style to unify to before proceeding.
 ### 5. Test requirement
 
 - Every new public function or container MUST have a matching test in `tests/test_ccxxx.c`.
-- The test MUST be registered in `CMakeLists.txt` so `cmake --build build --target check` runs it.
+- The test MUST be registered in `CMakeLists.txt` (via `add_ccalg_test()`) AND in the `check` target's DEPENDS list.
+- **All testing MUST use the cmake/ctest workflow** — writing code → registering in CMakeLists.txt → `cmake --build build --target check`.  
+  **Do NOT compile or run individual test files via `gcc`/`clang` command line.**  If single-file compilation is needed for debugging, ask first.
 - Benchmarks (`.cpp` under `bench/`) are strongly recommended for new containers.
 
 ### 6. Commit message format

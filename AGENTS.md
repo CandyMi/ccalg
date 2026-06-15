@@ -436,6 +436,13 @@ header change → tests → benchmarks → docs → gh-pages deploy
 - **Macro prefixes are per-container.** No cross-container shared macros.
 - Do not use internal helper functions (`_rb_*`, `_tp_*`, `_cclist_*`) outside their owning header — use only the public API.
 
+### 11. Encapsulation — public API boundary
+
+- **External code (tests, benchmarks, examples, users) MUST NOT access struct fields directly.** Use only the public API functions (`xxx_init`, `xxx_size`, `xxx_at`, etc.).
+- **Internal implementation code SHOULD delegate to the public API** when it already provides the needed operation (e.g. `ccvector_front` delegates to `ccvector_at(v, 0)`) — this avoids duplicating NULL/bounds checks and keeps a single maintenance point.
+- Exception: lifecycle functions (`init`, `destroy`, `clear`) and core operations (`push_back`, `pop_back`, `at`, `reserve`) necessarily write to internal fields. All other functions should prefer delegation.
+- **Rule of thumb:** if a public getter/accessor exists for a field, use it — don't read `m->len` when `xxx_size(m)` is available.
+
 ---
 
 *Generated from `include/*.h`.*

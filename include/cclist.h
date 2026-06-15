@@ -99,7 +99,7 @@ CCLIST_INLINE void cclist_init(cclist_t *l) {
 }
 
 CCLIST_INLINE size_t cclist_size(const cclist_t *l) { return l ? l->size : 0; }
-CCLIST_INLINE bool   cclist_empty(const cclist_t *l) { return !l || l->size == 0; }
+CCLIST_INLINE bool   cclist_empty(const cclist_t *l) { return !l || cclist_size(l) == 0; }
 
 CCLIST_INLINE cclist_node_t *cclist_begin(const cclist_t *l)  { return l ? l->head : NULL; }
 CCLIST_INLINE cclist_node_t *cclist_end(const cclist_t *l)    { (void)l; return NULL; }

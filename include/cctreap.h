@@ -437,7 +437,7 @@ CCTREAP_INLINE cctreap_node_t *cctreap_prev(cctreap_node_t *x) {
   return p;
 }
 
-CCTREAP_INLINE size_t cctreap_size(cctreap_t *m) { return m ? m->size : 0; }
+CCTREAP_INLINE size_t cctreap_size(const cctreap_t *m) { return m ? m->size : 0; }
 CCTREAP_INLINE void cctreap_clear(cctreap_t *m) {
   if (m) { m->root = NULL; m->first = NULL; m->last = NULL; m->size = 0; }
 }
@@ -453,11 +453,11 @@ static int _tp_height(const cctreap_node_t *n) {
 #endif
 
 CCTREAP_INLINE int cctreap_height(const cctreap_t *m) {
-  if (!m || !m->size) return 0;
+  if (!m || !cctreap_size(m)) return 0;
 #ifndef NDEBUG
   return _tp_height(m->root);
 #else
-  size_t n = m->size;
+  size_t n = cctreap_size(m);
   int h = 0;
   do { h++; } while (n >>= 1);
   return h * 2;

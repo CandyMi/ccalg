@@ -290,7 +290,7 @@ ccheap_peek(ccheap_t *heap)
 }
 
 CCHEAP_INLINE size_t
-ccheap_size(ccheap_t *heap)
+ccheap_size(const ccheap_t *heap)
 {
   if (!heap) return 0;
   return heap->len;

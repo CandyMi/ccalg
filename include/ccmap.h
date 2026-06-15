@@ -400,7 +400,7 @@ CCMAP_INLINE ccmap_node_t *ccmap_prev(ccmap_node_t *x) {
   return p;
 }
 
-CCMAP_INLINE size_t ccmap_size(ccmap_t *m) { return m ? m->size : 0; }
+CCMAP_INLINE size_t ccmap_size(const ccmap_t *m) { return m ? m->size : 0; }
 CCMAP_INLINE void   ccmap_clear(ccmap_t *m) { if (m) { m->root = NULL; m->first = NULL; m->last = NULL; m->size = 0; } }
 
 /* ── diagnostic ───────────────────────────────────────────────────────── */
@@ -419,11 +419,11 @@ static int _rb_height(const ccmap_node_t *n) {
 ** Debug (NDEBUG not defined): actual tree traversal.
 ** Release (NDEBUG defined): O(1) estimate from size — no tree traversal. */
 CCMAP_INLINE int ccmap_height(const ccmap_t *m) {
-  if (!m || !m->size) return 0;
+  if (!m || !ccmap_size(m)) return 0;
 #ifndef NDEBUG
   return _rb_height(m->root);
 #else
-  size_t n = m->size;
+  size_t n = ccmap_size(m);
   int h = 0;
   do { h++; } while (n >>= 1);
   return h * 2;

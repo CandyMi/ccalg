@@ -178,7 +178,7 @@ CCLINK_INLINE size_t cclink_size(const cclink_t *l) {
   return l ? l->size : 0;
 }
 CCLINK_INLINE bool cclink_empty(const cclink_t *l) {
-  return !l || l->size == 0;
+  return !l || cclink_size(l) == 0;
 }
 
 /* ── debug ────────────────────────────────────────────────────────────── */

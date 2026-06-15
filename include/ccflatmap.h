@@ -321,7 +321,7 @@ ccflatmap_prev(ccflatmap_t *m, CCFLATMAP_NODE_T *p) {
 /* ── query ────────────────────────────────────────────────────────────── */
 
 CCFLATMAP_INLINE size_t
-ccflatmap_size(ccflatmap_t *m) {
+ccflatmap_size(const ccflatmap_t *m) {
   return m ? m->len : 0;
 }
 
@@ -441,11 +441,11 @@ _ccflatmap_qsort(CCFLATMAP_NODE_T *lo, CCFLATMAP_NODE_T *hi
 
 CCFLATMAP_INLINE void
 ccflatmap_sort(ccflatmap_t *m) {
-  if (!m || m->len <= 1) return;
+  if (!m || ccflatmap_size(m) <= 1) return;
 #ifndef CCFLATMAP_COMPARE
   ccflatmap_cmp_t cmp_fn = m->cmp;
 #endif
-  _ccflatmap_qsort(m->buckets, m->buckets + m->len - 1
+  _ccflatmap_qsort(m->buckets, m->buckets + ccflatmap_size(m) - 1
 #ifndef CCFLATMAP_COMPARE
     , cmp_fn
 #endif

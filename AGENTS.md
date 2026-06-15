@@ -171,7 +171,7 @@ Both capture `is_first`/`is_last` flags **before** any structural modification.
 | Operation | Naming |
 | --- | --- |
 | Size | `xxx_size(m)` |
-| Height | `ccmap_height(m)` / `cctreap_height(m)` — O(log n) estimate from `size` |
+| Height | `ccmap_height(m)` / `cctreap_height(m)` — Debug: actual DFS traversal; Release: O(log n) estimate from `size` |
 | Empty | `xxx_empty(m)` (cclist / cclink / ccvector / ccflatmap) |
 
 ### Error handling

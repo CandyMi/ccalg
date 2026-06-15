@@ -89,7 +89,8 @@ size_t ccmap_size(ccmap_t *m);
 // 元素数量。NULL 返回 0。
 
 int ccmap_height(const ccmap_t *m);
-// 树高估值。红黑树上界 ≤ 2·⌊log₂(n+1)⌋，由 size 推算 O(log n)。
+// 树高。Debug 模式（NDEBUG 未定义）遍历树返回实际高度；
+// Release 模式（NDEBUG 已定义）返回 ≤ 2·⌊log₂(n+1)⌋ 估值，O(1)。
 // 空树返回 0。
 ```
 
@@ -750,7 +751,8 @@ size_t cctreap_size(cctreap_t *m);
 // 元素数量。NULL 返回 0。
 
 int cctreap_height(const cctreap_t *m);
-// 树高估值。O(log n)，由 size 推算。
+// 树高。Debug 模式（NDEBUG 未定义）遍历树返回实际高度；
+// Release 模式（NDEBUG 已定义）返回 O(log n) 估值，O(1)。
 ```
 
 ---

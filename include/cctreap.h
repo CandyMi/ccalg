@@ -442,12 +442,26 @@ CCTREAP_INLINE void cctreap_clear(cctreap_t *m) {
   if (m) { m->root = NULL; m->first = NULL; m->last = NULL; m->size = 0; }
 }
 
+#ifndef NDEBUG
+/* Actual tree height via DFS traversal (debug mode). */
+static int _tp_height(const cctreap_node_t *n) {
+  if (!n) return 0;
+  int l = _tp_height(n->child[CCTREAP_LEFT]);
+  int r = _tp_height(n->child[CCTREAP_RIGHT]);
+  return 1 + (l > r ? l : r);
+}
+#endif
+
 CCTREAP_INLINE int cctreap_height(const cctreap_t *m) {
   if (!m || !m->size) return 0;
+#ifndef NDEBUG
+  return _tp_height(m->root);
+#else
   size_t n = m->size;
   int h = 0;
   do { h++; } while (n >>= 1);
   return h * 2;
+#endif
 }
 
 #endif /* CCTREAP_H */

@@ -217,7 +217,7 @@
 | `cctreap_next` | 读锁 | N 路 | 只读 `child[]` 和 `pc` 字段 |
 | `cctreap_prev` | 读锁 | N 路 | 只读 `child[]` 和 `pc` 字段 |
 | `cctreap_size` | 读锁 | N 路 | 原子读取 `size` 字段 |
-| `cctreap_height` | 读锁 | N 路 | 仅读取 `m->size` |
+| `cctreap_height` | 读锁 | N 路 | Debug 遍历 `child[]`；Release 仅读 `m->size` |
 | `cctreap_insert` | 写锁 | 1 路 | 修改树结构 + `size` + 可能更新 `first`/`last` |
 | `cctreap_erase` | 写锁 | 1 路 | 旋转下沉至叶 + 修改树结构 + `size` + 边界更新 |
 | `cctreap_clear` | 写锁 | 1 路 | 重置 root/first/last/size |

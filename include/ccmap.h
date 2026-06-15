@@ -405,14 +405,29 @@ CCMAP_INLINE void   ccmap_clear(ccmap_t *m) { if (m) { m->root = NULL; m->first 
 
 /* ── diagnostic ───────────────────────────────────────────────────────── */
 
+#ifndef NDEBUG
+/* Actual tree height via DFS traversal (debug mode). */
+static int _rb_height(const ccmap_node_t *n) {
+  if (!n) return 0;
+  int l = _rb_height(n->child[CCMAP_LEFT]);
+  int r = _rb_height(n->child[CCMAP_RIGHT]);
+  return 1 + (l > r ? l : r);
+}
+#endif
+
 /* Red-black tree worst-case height bound: ≤ 2·⌊log₂(n+1)⌋.
-** Compute an O(1) estimate from size — no tree traversal. */
+** Debug (NDEBUG not defined): actual tree traversal.
+** Release (NDEBUG defined): O(1) estimate from size — no tree traversal. */
 CCMAP_INLINE int ccmap_height(const ccmap_t *m) {
   if (!m || !m->size) return 0;
+#ifndef NDEBUG
+  return _rb_height(m->root);
+#else
   size_t n = m->size;
   int h = 0;
   do { h++; } while (n >>= 1);
   return h * 2;
+#endif
 }
 
 #endif /* CCMAP_H */

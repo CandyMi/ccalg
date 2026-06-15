@@ -168,8 +168,7 @@ ccvector_front(ccvector_t *v) {
 
 CCVECTOR_INLINE CCVECTOR_NODE_T *
 ccvector_back(ccvector_t *v) {
-  if (!v || v->len == 0) return NULL;
-  return &v->buckets[v->len - 1];
+  return v ? ccvector_at(v, v->len - 1) : NULL;
 }
 
 /* ── query ────────────────────────────────────────────────────────────── */
@@ -190,7 +189,10 @@ ccvector_empty(ccvector_t *v) {
 }
 
 /* ── sort ──────────────────────────────────────────────────────────────── */
+
+/* sort compare function type */
 typedef int (*ccvector_qsort_cmp_t)(const void *, const void *);
+
 CCVECTOR_INLINE void
 ccvector_sort(ccvector_t *v, ccvector_qsort_cmp_t cmp) {
   if (!v || !v->buckets || v->len < 2) return;

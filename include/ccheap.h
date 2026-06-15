@@ -96,6 +96,12 @@
   #define CCHEAP_INLINE static
 #endif
 
+#if defined(__cplusplus) && __cplusplus >= 201703L
+  #define CCHEAP_NOEXCEPT noexcept
+#else
+  #define CCHEAP_NOEXCEPT
+#endif
+
 /* ── D-ary heap configuration ─────────────────────────────────────────── */
 
 #ifndef CCHEAP_ARITY
@@ -140,6 +146,10 @@
   #define CCHEAP_CMP(h, a, b) ((h)->f((a), (b)))
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* ── types ────────────────────────────────────────────────────────────── */
 
 #define CCHEAP_NODE_T ccheap_node_t
@@ -150,7 +160,7 @@ typedef struct ccheap_node {
   };
 } ccheap_node_t;
 
-typedef int64_t (*ccheap_compare_t)(const CCHEAP_NODE_T *, const CCHEAP_NODE_T *);
+typedef int64_t (*ccheap_compare_t)(const CCHEAP_NODE_T *, const CCHEAP_NODE_T *) CCHEAP_NOEXCEPT;
 
 typedef struct ccheap {
   ccheap_node_t   **data;   /* pointer array     */
@@ -180,7 +190,7 @@ CCHEAP_INLINE void _hswap(ccheap_t *h, size_t a, size_t b) {
 /* ── public API ───────────────────────────────────────────────────────── */
 
 CCHEAP_INLINE int
-ccheap_init(ccheap_t *heap, ccheap_compare_t f)
+ccheap_init(ccheap_t *heap, ccheap_compare_t f) CCHEAP_NOEXCEPT
 {
   if (ccheap_unlikely(!heap)) return -1;
   heap->data = (ccheap_node_t **)CCHEAP_MALLOC(
@@ -198,7 +208,7 @@ ccheap_init(ccheap_t *heap, ccheap_compare_t f)
 
 #define ccheap_push(h, n) ccheap_insert((h), (n))
 CCHEAP_INLINE int
-ccheap_insert(ccheap_t *heap, CCHEAP_NODE_T *n)
+ccheap_insert(ccheap_t *heap, CCHEAP_NODE_T *n) CCHEAP_NOEXCEPT
 {
   if (ccheap_unlikely(!heap || !n)) return -1;
 
@@ -228,7 +238,7 @@ ccheap_insert(ccheap_t *heap, CCHEAP_NODE_T *n)
 }
 
 CCHEAP_INLINE CCHEAP_NODE_T *
-ccheap_pop(ccheap_t *heap)
+ccheap_pop(ccheap_t *heap) CCHEAP_NOEXCEPT
 {
   if (ccheap_unlikely(!heap || heap->len == 0)) return NULL;
 
@@ -283,28 +293,28 @@ ccheap_pop(ccheap_t *heap)
 }
 
 CCHEAP_INLINE CCHEAP_NODE_T *
-ccheap_peek(ccheap_t *heap)
+ccheap_peek(ccheap_t *heap) CCHEAP_NOEXCEPT
 {
   if (ccheap_unlikely(!heap || heap->len == 0)) return NULL;
   return CCHEAP_PEEK(heap);
 }
 
 CCHEAP_INLINE size_t
-ccheap_size(const ccheap_t *heap)
+ccheap_size(const ccheap_t *heap) CCHEAP_NOEXCEPT
 {
   if (!heap) return 0;
   return heap->len;
 }
 
 CCHEAP_INLINE void
-ccheap_clear(ccheap_t *heap)
+ccheap_clear(ccheap_t *heap) CCHEAP_NOEXCEPT
 {
   if (!heap) return;
   heap->len = 0;
 }
 
 CCHEAP_INLINE void
-ccheap_destroy(ccheap_t *heap)
+ccheap_destroy(ccheap_t *heap) CCHEAP_NOEXCEPT
 {
   if (!heap) return;
   if (heap->data) CCHEAP_FREE(heap->data);
@@ -314,5 +324,9 @@ ccheap_destroy(ccheap_t *heap)
   heap->f = NULL;
 #endif
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CCHEAP_H */

@@ -45,6 +45,12 @@
   #define CCLIST_INLINE static
 #endif
 
+#if defined(__cplusplus) && __cplusplus >= 201703L
+  #define CCLIST_NOEXCEPT noexcept
+#else
+  #define CCLIST_NOEXCEPT
+#endif
+
 #ifndef offsetof
   #define offsetof(type, member) \
       ((size_t) &(((type *)0)->member))
@@ -56,6 +62,10 @@
 #endif
 
 #define CCLIST_CONTAINER container_of
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* ── types ────────────────────────────────────────────────────────────── */
 
@@ -92,45 +102,45 @@ CCLIST_INLINE void _cclist_unlink(cclist_t *l, cclist_node_t *n) {
 
 /* ── read-only API ────────────────────────────────────────────────────── */
 
-CCLIST_INLINE void cclist_init(cclist_t *l) {
+CCLIST_INLINE void cclist_init(cclist_t *l) CCLIST_NOEXCEPT {
   if (!l) return;
   l->head = l->tail = NULL;
   l->size = 0;
 }
 
-CCLIST_INLINE size_t cclist_size(const cclist_t *l) { return l ? l->size : 0; }
-CCLIST_INLINE bool   cclist_empty(const cclist_t *l) { return !l || cclist_size(l) == 0; }
+CCLIST_INLINE size_t cclist_size(const cclist_t *l) CCLIST_NOEXCEPT { return l ? l->size : 0; }
+CCLIST_INLINE bool   cclist_empty(const cclist_t *l) CCLIST_NOEXCEPT { return !l || cclist_size(l) == 0; }
 
-CCLIST_INLINE cclist_node_t *cclist_begin(const cclist_t *l)  { return l ? l->head : NULL; }
-CCLIST_INLINE cclist_node_t *cclist_end(const cclist_t *l)    { (void)l; return NULL; }
-CCLIST_INLINE cclist_node_t *cclist_rbegin(const cclist_t *l) { return l ? l->tail : NULL; }
+CCLIST_INLINE cclist_node_t *cclist_begin(const cclist_t *l) CCLIST_NOEXCEPT  { return l ? l->head : NULL; }
+CCLIST_INLINE cclist_node_t *cclist_end(const cclist_t *l) CCLIST_NOEXCEPT    { (void)l; return NULL; }
+CCLIST_INLINE cclist_node_t *cclist_rbegin(const cclist_t *l) CCLIST_NOEXCEPT { return l ? l->tail : NULL; }
 
-CCLIST_INLINE cclist_node_t *cclist_next(const cclist_node_t *n) { return n ? n->next : NULL; }
-CCLIST_INLINE cclist_node_t *cclist_prev(const cclist_node_t *n) { return n ? n->prev : NULL; }
+CCLIST_INLINE cclist_node_t *cclist_next(const cclist_node_t *n) CCLIST_NOEXCEPT { return n ? n->next : NULL; }
+CCLIST_INLINE cclist_node_t *cclist_prev(const cclist_node_t *n) CCLIST_NOEXCEPT { return n ? n->prev : NULL; }
 
-CCLIST_INLINE cclist_node_t *cclist_front(const cclist_t *l) { return l ? l->head : NULL; }
-CCLIST_INLINE cclist_node_t *cclist_back(const cclist_t *l)  { return l ? l->tail : NULL; }
+CCLIST_INLINE cclist_node_t *cclist_front(const cclist_t *l) CCLIST_NOEXCEPT { return l ? l->head : NULL; }
+CCLIST_INLINE cclist_node_t *cclist_back(const cclist_t *l) CCLIST_NOEXCEPT  { return l ? l->tail : NULL; }
 
 /* ── push / pop ───────────────────────────────────────────────────────── */
 
-CCLIST_INLINE void cclist_push_front(cclist_t *l, cclist_node_t *n) {
+CCLIST_INLINE void cclist_push_front(cclist_t *l, cclist_node_t *n) CCLIST_NOEXCEPT {
   if (cclist_unlikely(!l || !n)) return;
   _cclist_link(l, n, NULL, l->head);
 }
 
-CCLIST_INLINE void cclist_push_back(cclist_t *l, cclist_node_t *n) {
+CCLIST_INLINE void cclist_push_back(cclist_t *l, cclist_node_t *n) CCLIST_NOEXCEPT {
   if (cclist_unlikely(!l || !n)) return;
   _cclist_link(l, n, l->tail, NULL);
 }
 
-CCLIST_INLINE cclist_node_t *cclist_pop_front(cclist_t *l) {
+CCLIST_INLINE cclist_node_t *cclist_pop_front(cclist_t *l) CCLIST_NOEXCEPT {
   if (cclist_unlikely(!l || !l->head)) return NULL;
   cclist_node_t *n = l->head;
   _cclist_unlink(l, n);
   return n;
 }
 
-CCLIST_INLINE cclist_node_t *cclist_pop_back(cclist_t *l) {
+CCLIST_INLINE cclist_node_t *cclist_pop_back(cclist_t *l) CCLIST_NOEXCEPT {
   if (cclist_unlikely(!l || !l->tail)) return NULL;
   cclist_node_t *n = l->tail;
   _cclist_unlink(l, n);
@@ -139,17 +149,17 @@ CCLIST_INLINE cclist_node_t *cclist_pop_back(cclist_t *l) {
 
 /* ── insert / remove ──────────────────────────────────────────────────── */
 
-CCLIST_INLINE void cclist_insert_before(cclist_t *l, cclist_node_t *pos, cclist_node_t *n) {
+CCLIST_INLINE void cclist_insert_before(cclist_t *l, cclist_node_t *pos, cclist_node_t *n) CCLIST_NOEXCEPT {
   if (cclist_unlikely(!l || !pos || !n)) return;
   _cclist_link(l, n, pos->prev, pos);
 }
 
-CCLIST_INLINE void cclist_insert_after(cclist_t *l, cclist_node_t *pos, cclist_node_t *n) {
+CCLIST_INLINE void cclist_insert_after(cclist_t *l, cclist_node_t *pos, cclist_node_t *n) CCLIST_NOEXCEPT {
   if (cclist_unlikely(!l || !pos || !n)) return;
   _cclist_link(l, n, pos, pos->next);
 }
 
-CCLIST_INLINE void cclist_remove(cclist_t *l, cclist_node_t *n) {
+CCLIST_INLINE void cclist_remove(cclist_t *l, cclist_node_t *n) CCLIST_NOEXCEPT {
   if (cclist_unlikely(!l || !n)) return;
   _cclist_unlink(l, n);
 }
@@ -157,7 +167,7 @@ CCLIST_INLINE void cclist_remove(cclist_t *l, cclist_node_t *n) {
 /* ── splice / move ────────────────────────────────────────────────────── */
 
 /* Move all nodes from src to the end of dst. src becomes empty. */
-CCLIST_INLINE void cclist_splice_back(cclist_t *dst, cclist_t *src) {
+CCLIST_INLINE void cclist_splice_back(cclist_t *dst, cclist_t *src) CCLIST_NOEXCEPT {
   if (!dst || !src || cclist_empty(src)) return;
   if (cclist_empty(dst)) {
     dst->head = src->head;
@@ -174,7 +184,7 @@ CCLIST_INLINE void cclist_splice_back(cclist_t *dst, cclist_t *src) {
 /* Transfer all nodes from `from` to the end of `to`, then reset `from`.
    Returns 0 on success, -1 if either list is NULL, -2 if `from` is empty,
    -3 if `to == from` (self-move). */
-CCLIST_INLINE int cclist_move(cclist_t *to, cclist_t *from) {
+CCLIST_INLINE int cclist_move(cclist_t *to, cclist_t *from) CCLIST_NOEXCEPT {
   if (!to || !from)       return -1;
   if (to == from)         return -3;
   if (cclist_empty(from)) return -2;
@@ -185,12 +195,12 @@ CCLIST_INLINE int cclist_move(cclist_t *to, cclist_t *from) {
 /* ── clear ────────────────────────────────────────────────────────────── */
 
 /* Reset list to empty. Does NOT free nodes — caller owns memory. */
-CCLIST_INLINE void cclist_clear(cclist_t *l) { cclist_init(l); }
+CCLIST_INLINE void cclist_clear(cclist_t *l) CCLIST_NOEXCEPT { cclist_init(l); }
 
 /* ── debug ────────────────────────────────────────────────────────────── */
 
 /* Floyd's algorithm — O(N) time, O(1) space. */
-CCLIST_INLINE bool cclist_has_cycle(const cclist_t *l) {
+CCLIST_INLINE bool cclist_has_cycle(const cclist_t *l) CCLIST_NOEXCEPT {
   if (!l || !l->head) return false;
   cclist_node_t *slow = l->head;
   cclist_node_t *fast = l->head;
@@ -230,7 +240,7 @@ static const cclist_error_t cclist_errors[] = {
   {CCLIST_SIZEERROR,   "size != actual count"},
 };
 
-CCLIST_INLINE const cclist_error_t *cclist_get_error(cclist_ecode_t code) {
+CCLIST_INLINE const cclist_error_t *cclist_get_error(cclist_ecode_t code) CCLIST_NOEXCEPT {
   if (code <= CCLIST_UNKNOWN || code >= CCLIST_ERRMAX) return NULL;
   return &cclist_errors[code];
 }
@@ -243,7 +253,7 @@ CCLIST_INLINE const cclist_error_t *cclist_get_error(cclist_ecode_t code) {
      4 — cycle detected
      5 — prev-link mismatch (n->prev != previous node)
      6 — size != actual count                          */
-CCLIST_INLINE cclist_ecode_t cclist_verify(const cclist_t *l) {
+CCLIST_INLINE cclist_ecode_t cclist_verify(const cclist_t *l) CCLIST_NOEXCEPT {
   if (!l) return CCLIST_ISNULL;
   if (!l->head != !l->tail) return CCLIST_ISNULL;  /* one NULL, the other not */
   if (l->head && l->head->prev) return CCLIST_NOHEAD;
@@ -258,5 +268,9 @@ CCLIST_INLINE cclist_ecode_t cclist_verify(const cclist_t *l) {
   if (count != l->size) return CCLIST_SIZEERROR;
   return CCLIST_NOERROR;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CCLIST_H */

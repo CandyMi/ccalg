@@ -19,7 +19,7 @@ struct treap_entry {
 static treap_entry *te(const cctreap_node_t *n) {
   return CCTREAP_CONTAINER(n, treap_entry, node);
 }
-static int64_t key_cmp(const cctreap_node_t *a, const cctreap_node_t *b) {
+static int64_t key_cmp(const cctreap_node_t *a, const cctreap_node_t *b) noexcept {
   return (int64_t)te(a)->key - (int64_t)te(b)->key;
 }
 /* ── std::map counterpart ──────────────────────────────────────────────── */

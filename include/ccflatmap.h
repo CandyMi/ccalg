@@ -65,6 +65,12 @@
   #define CCFLATMAP_INLINE static
 #endif
 
+#if defined(__cplusplus) && __cplusplus >= 201703L
+  #define CCFLATMAP_NOEXCEPT noexcept
+#else
+  #define CCFLATMAP_NOEXCEPT
+#endif
+
 /* ── allocator hooks ──────────────────────────────────────────────────── */
 
 #ifndef CCFLATMAP_REALLOC
@@ -80,6 +86,10 @@
   #define CCFLATMAP_DEFAULT_CAP 8
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* ── types ────────────────────────────────────────────────────────────── */
 
 #ifndef CCFLATMAP_NODE_T
@@ -91,7 +101,7 @@
 #endif
 
 typedef int64_t (*ccflatmap_cmp_t)(const CCFLATMAP_NODE_T *a,
-                                   const CCFLATMAP_NODE_T *b);
+                                   const CCFLATMAP_NODE_T *b) CCFLATMAP_NOEXCEPT;
 
 typedef struct ccflatmap {
   CCFLATMAP_NODE_T *buckets;
@@ -152,7 +162,7 @@ _ccflatmap_grow(ccflatmap_t *m) {
 /* ── lifecycle ────────────────────────────────────────────────────────── */
 
 CCFLATMAP_INLINE int
-ccflatmap_init(ccflatmap_t *m, ccflatmap_cmp_t cmp) {
+ccflatmap_init(ccflatmap_t *m, ccflatmap_cmp_t cmp) CCFLATMAP_NOEXCEPT {
   if (ccflatmap_unlikely(!m)) return -1;
   m->buckets = (CCFLATMAP_NODE_T *)CCFLATMAP_MALLOC(
       sizeof(CCFLATMAP_NODE_T) * CCFLATMAP_DEFAULT_CAP);
@@ -168,7 +178,7 @@ ccflatmap_init(ccflatmap_t *m, ccflatmap_cmp_t cmp) {
 }
 
 CCFLATMAP_INLINE void
-ccflatmap_destroy(ccflatmap_t *m) {
+ccflatmap_destroy(ccflatmap_t *m) CCFLATMAP_NOEXCEPT {
   if (!m) return;
   CCFLATMAP_FREE(m->buckets);
   m->buckets = NULL;
@@ -176,7 +186,7 @@ ccflatmap_destroy(ccflatmap_t *m) {
 }
 
 CCFLATMAP_INLINE void
-ccflatmap_clear(ccflatmap_t *m) {
+ccflatmap_clear(ccflatmap_t *m) CCFLATMAP_NOEXCEPT {
   if (m) m->len = 0;
 }
 
@@ -184,7 +194,7 @@ ccflatmap_clear(ccflatmap_t *m) {
 
 CCFLATMAP_INLINE int
 ccflatmap_insert(ccflatmap_t *m, CCFLATMAP_NODE_T elem,
-                 CCFLATMAP_NODE_T **out) {
+                 CCFLATMAP_NODE_T **out) CCFLATMAP_NOEXCEPT {
   if (ccflatmap_unlikely(!m || !m->buckets)) return -1;
 
 #ifndef CCFLATMAP_COMPARE
@@ -218,7 +228,7 @@ ccflatmap_insert(ccflatmap_t *m, CCFLATMAP_NODE_T elem,
 /* ── find ─────────────────────────────────────────────────────────────── */
 
 CCFLATMAP_INLINE CCFLATMAP_NODE_T *
-ccflatmap_find(ccflatmap_t *m, const CCFLATMAP_NODE_T *probe) {
+ccflatmap_find(ccflatmap_t *m, const CCFLATMAP_NODE_T *probe) CCFLATMAP_NOEXCEPT {
   if (ccflatmap_unlikely(!m || !probe || !m->len)) return NULL;
 #ifndef CCFLATMAP_COMPARE
   ccflatmap_cmp_t cmp_fn = m->cmp;
@@ -232,7 +242,7 @@ ccflatmap_find(ccflatmap_t *m, const CCFLATMAP_NODE_T *probe) {
 /* ── erase ────────────────────────────────────────────────────────────── */
 
 CCFLATMAP_INLINE void
-ccflatmap_erase(ccflatmap_t *m, const CCFLATMAP_NODE_T *probe) {
+ccflatmap_erase(ccflatmap_t *m, const CCFLATMAP_NODE_T *probe) CCFLATMAP_NOEXCEPT {
   if (ccflatmap_unlikely(!m || !probe || !m->len)) return;
 #ifndef CCFLATMAP_COMPARE
   ccflatmap_cmp_t cmp_fn = m->cmp;
@@ -249,7 +259,7 @@ ccflatmap_erase(ccflatmap_t *m, const CCFLATMAP_NODE_T *probe) {
 /* Erase by index — skips binary search when position is already known
 ** (e.g. from a prior find).  O(n) memmove, same as erase-by-key. */
 CCFLATMAP_INLINE void
-ccflatmap_erase_at(ccflatmap_t *m, size_t pos) {
+ccflatmap_erase_at(ccflatmap_t *m, size_t pos) CCFLATMAP_NOEXCEPT {
   if (ccflatmap_unlikely(!m || pos >= m->len)) return;
   CCFLATMAP_NODE_T *b = m->buckets;
   if (pos < m->len - 1)
@@ -267,7 +277,7 @@ ccflatmap_erase_at(ccflatmap_t *m, size_t pos) {
 **   ccflatmap_sort(&m);   // restore order, O(n log n) once   */
 CCFLATMAP_INLINE void
 ccflatmap_erase_unordered(ccflatmap_t *m,
-                          const CCFLATMAP_NODE_T *probe) {
+                          const CCFLATMAP_NODE_T *probe) CCFLATMAP_NOEXCEPT {
   if (ccflatmap_unlikely(!m || !probe || !m->len)) return;
 #ifndef CCFLATMAP_COMPARE
   ccflatmap_cmp_t cmp_fn = m->cmp;
@@ -283,7 +293,7 @@ ccflatmap_erase_unordered(ccflatmap_t *m,
 /* ── access ───────────────────────────────────────────────────────────── */
 
 CCFLATMAP_INLINE CCFLATMAP_NODE_T *
-ccflatmap_at(ccflatmap_t *m, size_t i) {
+ccflatmap_at(ccflatmap_t *m, size_t i) CCFLATMAP_NOEXCEPT {
   if (ccflatmap_unlikely(!m || i >= m->len)) return NULL;
   return &m->buckets[i];
 }
@@ -291,29 +301,29 @@ ccflatmap_at(ccflatmap_t *m, size_t i) {
 /* ── iteration ────────────────────────────────────────────────────────── */
 
 CCFLATMAP_INLINE CCFLATMAP_NODE_T *
-ccflatmap_begin(ccflatmap_t *m) {
+ccflatmap_begin(ccflatmap_t *m) CCFLATMAP_NOEXCEPT {
   return (m && m->len) ? &m->buckets[0] : NULL;
 }
 
 CCFLATMAP_INLINE CCFLATMAP_NODE_T *
-ccflatmap_end(ccflatmap_t *m) {
+ccflatmap_end(ccflatmap_t *m) CCFLATMAP_NOEXCEPT {
   (void)m;
   return NULL;
 }
 
 CCFLATMAP_INLINE CCFLATMAP_NODE_T *
-ccflatmap_rbegin(ccflatmap_t *m) {
+ccflatmap_rbegin(ccflatmap_t *m) CCFLATMAP_NOEXCEPT {
   return (m && m->len) ? &m->buckets[m->len - 1] : NULL;
 }
 
 CCFLATMAP_INLINE CCFLATMAP_NODE_T *
-ccflatmap_next(ccflatmap_t *m, CCFLATMAP_NODE_T *p) {
+ccflatmap_next(ccflatmap_t *m, CCFLATMAP_NODE_T *p) CCFLATMAP_NOEXCEPT {
   if (!m || !p || (size_t)(p - m->buckets) >= m->len - 1) return NULL;
   return p + 1;
 }
 
 CCFLATMAP_INLINE CCFLATMAP_NODE_T *
-ccflatmap_prev(ccflatmap_t *m, CCFLATMAP_NODE_T *p) {
+ccflatmap_prev(ccflatmap_t *m, CCFLATMAP_NODE_T *p) CCFLATMAP_NOEXCEPT {
   if (!m || !p || p <= m->buckets) return NULL;
   return p - 1;
 }
@@ -321,24 +331,24 @@ ccflatmap_prev(ccflatmap_t *m, CCFLATMAP_NODE_T *p) {
 /* ── query ────────────────────────────────────────────────────────────── */
 
 CCFLATMAP_INLINE size_t
-ccflatmap_size(const ccflatmap_t *m) {
+ccflatmap_size(const ccflatmap_t *m) CCFLATMAP_NOEXCEPT {
   return m ? m->len : 0;
 }
 
 CCFLATMAP_INLINE int
-ccflatmap_empty(ccflatmap_t *m) {
+ccflatmap_empty(ccflatmap_t *m) CCFLATMAP_NOEXCEPT {
   return !m || m->len == 0;
 }
 
 CCFLATMAP_INLINE size_t
-ccflatmap_capacity(ccflatmap_t *m) {
+ccflatmap_capacity(ccflatmap_t *m) CCFLATMAP_NOEXCEPT {
   return m ? m->cap : 0;
 }
 
 /* ── reserve ──────────────────────────────────────────────────────────── */
 
 CCFLATMAP_INLINE int
-ccflatmap_reserve(ccflatmap_t *m, size_t new_cap) {
+ccflatmap_reserve(ccflatmap_t *m, size_t new_cap) CCFLATMAP_NOEXCEPT {
   if (!m || !m->buckets || new_cap <= m->cap) return -1;
   CCFLATMAP_NODE_T *nd = (CCFLATMAP_NODE_T *)CCFLATMAP_REALLOC(
       m->buckets, sizeof(CCFLATMAP_NODE_T) * new_cap);
@@ -358,7 +368,7 @@ ccflatmap_reserve(ccflatmap_t *m, size_t new_cap) {
 **   for (...) ccflatmap_push_back(&m, elem);
 **   ccflatmap_sort(&m);   // O(N log N) instead of O(N²)      */
 CCFLATMAP_INLINE int
-ccflatmap_push_back(ccflatmap_t *m, CCFLATMAP_NODE_T elem) {
+ccflatmap_push_back(ccflatmap_t *m, CCFLATMAP_NODE_T elem) CCFLATMAP_NOEXCEPT {
   if (ccflatmap_unlikely(!m || !m->buckets)) return -1;
   if (ccflatmap_unlikely(m->len == m->cap)) {
     if (_ccflatmap_grow(m) != 0) return -1;
@@ -440,7 +450,7 @@ _ccflatmap_qsort(CCFLATMAP_NODE_T *lo, CCFLATMAP_NODE_T *hi
 /* ── sort ─────────────────────────────────────────────────────────────── */
 
 CCFLATMAP_INLINE void
-ccflatmap_sort(ccflatmap_t *m) {
+ccflatmap_sort(ccflatmap_t *m) CCFLATMAP_NOEXCEPT {
   if (!m || ccflatmap_size(m) <= 1) return;
 #ifndef CCFLATMAP_COMPARE
   ccflatmap_cmp_t cmp_fn = m->cmp;
@@ -451,5 +461,9 @@ ccflatmap_sort(ccflatmap_t *m) {
 #endif
   );
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CCFLATMAP_H */

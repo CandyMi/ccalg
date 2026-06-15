@@ -43,7 +43,7 @@ struct task {
 /* ── comparison (function-pointer mode, uses container_of) ──────────── */
 
 #ifndef BENCH_MACRO
-static int64_t min_cmp(const ccheap_node_t *a, const ccheap_node_t *b) {
+static int64_t min_cmp(const ccheap_node_t *a, const ccheap_node_t *b) noexcept {
   const struct task *ta = CCHEAP_CONTAINER(a, struct task, node);
   const struct task *tb = CCHEAP_CONTAINER(b, struct task, node);
   return (int64_t)tb->node.priority - (int64_t)ta->node.priority;

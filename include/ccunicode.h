@@ -33,6 +33,12 @@
   #define CCUNICODE_FALLTHROUGH /* fall through */
 #endif
 
+#if defined(__cplusplus) && __cplusplus >= 201703L
+  #define CCUNICODE_NOEXCEPT noexcept
+#else
+  #define CCUNICODE_NOEXCEPT
+#endif
+
 #define CCUNICODE_INLINE static inline
 
 #include <stdint.h>
@@ -78,6 +84,10 @@ static const uint8_t seq_len[256] = {
   4,4,4,4,4,                                                          /* F0-F4 */
   0,0,0,0,0,0,0,0, 0,0,0,                                             /* F5-FF: >U+10FFFF */
 };
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Internal: validate one UTF-8 sequence and (optionally) return its codepoint.
@@ -135,7 +145,7 @@ int ccunicode_validate_seq(const uint8_t *p, int len, uint32_t *code)
  *            0 on failure (invalid encoding, incomplete sequence, or invalid code point).
  */
 CCUNICODE_INLINE
-int ccunicode_to_codepoint(const char *str, int len, uint32_t *val)
+int ccunicode_to_codepoint(const char *str, int len, uint32_t *val) CCUNICODE_NOEXCEPT
 {
   if (CCUNICODE_UNLIKELY(!str || len <= 0 || !val)) return 0;
   return ccunicode_validate_seq((const uint8_t *)str, len, val);
@@ -157,7 +167,7 @@ int ccunicode_to_codepoint(const char *str, int len, uint32_t *val)
  *             (surrogates, > U+10FFFF, or null parameters).
  */
 CCUNICODE_INLINE
-bool ccunicode_from_codepoint(uint32_t val, char str[4], int *len)
+bool ccunicode_from_codepoint(uint32_t val, char str[4], int *len) CCUNICODE_NOEXCEPT
 {
   if (CCUNICODE_UNLIKELY(!str || !len)) return false;
 
@@ -215,7 +225,7 @@ bool ccunicode_from_codepoint(uint32_t val, char str[4], int *len)
  * @return     true if the entire buffer is valid UTF-8, false otherwise.
  */
 CCUNICODE_INLINE
-bool ccunicode_verify(const char *str, size_t len)
+bool ccunicode_verify(const char *str, size_t len) CCUNICODE_NOEXCEPT
 {
   size_t offset = 0;
 
@@ -250,5 +260,9 @@ bool ccunicode_verify(const char *str, size_t len)
 
   return true;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CCUNICODE_H */

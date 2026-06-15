@@ -81,6 +81,12 @@
   #define CCTREAP_INLINE static
 #endif
 
+#if defined(__cplusplus) && __cplusplus >= 201703L
+  #define CCTREAP_NOEXCEPT noexcept
+#else
+  #define CCTREAP_NOEXCEPT
+#endif
+
 #ifndef offsetof
   #define offsetof(type, member) \
       ((size_t) &(((type *)0)->member))
@@ -102,6 +108,10 @@
   #define CCTREAP_CMP(a, b) CCTREAP_COMPARE((a), (b))
 #else
   #define CCTREAP_CMP(a, b) (key_cmp((a), (b)))
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 /* ── node ─────────────────────────────────────────────────────────────── */
@@ -179,7 +189,7 @@ CCTREAP_INLINE uint64_t _tp_xorshift64(uint64_t *state) {
 
 /* ── types ────────────────────────────────────────────────────────────── */
 
-typedef int64_t (*cctreap_cmp_t) (const cctreap_node_t *a, const cctreap_node_t *b);
+typedef int64_t (*cctreap_cmp_t) (const cctreap_node_t *a, const cctreap_node_t *b) CCTREAP_NOEXCEPT;
 
 typedef struct cctreap {
   cctreap_node_t    *root;
@@ -270,7 +280,7 @@ CCTREAP_INLINE void _tp_del_fix(cctreap_t *m, cctreap_node_t *z) {
 
 /* ── public API ───────────────────────────────────────────────────────── */
 
-CCTREAP_INLINE void cctreap_init(cctreap_t *m, cctreap_cmp_t key_cmp) {
+CCTREAP_INLINE void cctreap_init(cctreap_t *m, cctreap_cmp_t key_cmp) CCTREAP_NOEXCEPT {
   if (cctreap_unlikely(!m)) return;
   m->root      = NULL;
   m->first     = NULL;
@@ -284,7 +294,7 @@ CCTREAP_INLINE void cctreap_init(cctreap_t *m, cctreap_cmp_t key_cmp) {
   CCTREAP_RAND_INIT(m, (uint64_t)(uintptr_t)m);
 }
 
-CCTREAP_INLINE int cctreap_insert(cctreap_t *m, cctreap_node_t *node, cctreap_node_t **out) {
+CCTREAP_INLINE int cctreap_insert(cctreap_t *m, cctreap_node_t *node, cctreap_node_t **out) CCTREAP_NOEXCEPT {
   if (cctreap_unlikely(!m || !node)) return -1;
   node->child[CCTREAP_LEFT] = node->child[CCTREAP_RIGHT] = NULL;
   node->size     = 1;
@@ -343,7 +353,7 @@ CCTREAP_INLINE int cctreap_insert(cctreap_t *m, cctreap_node_t *node, cctreap_no
   return 0;
 }
 
-CCTREAP_INLINE cctreap_node_t *cctreap_find(cctreap_t *m, const cctreap_node_t *probe) {
+CCTREAP_INLINE cctreap_node_t *cctreap_find(cctreap_t *m, const cctreap_node_t *probe) CCTREAP_NOEXCEPT {
   if (cctreap_unlikely(!m || !probe)) return NULL;
   cctreap_node_t *x = m->root;
 #ifndef CCTREAP_COMPARE
@@ -359,7 +369,7 @@ CCTREAP_INLINE cctreap_node_t *cctreap_find(cctreap_t *m, const cctreap_node_t *
   return NULL;
 }
 
-CCTREAP_INLINE void cctreap_erase(cctreap_t *m, cctreap_node_t *z) {
+CCTREAP_INLINE void cctreap_erase(cctreap_t *m, cctreap_node_t *z) CCTREAP_NOEXCEPT {
   if (cctreap_unlikely(!m || !z)) return;
   int is_first = (z == m->first);
   int is_last  = (z == m->last);
@@ -380,7 +390,7 @@ CCTREAP_INLINE void cctreap_erase(cctreap_t *m, cctreap_node_t *z) {
   m->size--;
 }
 
-CCTREAP_INLINE cctreap_node_t *cctreap_kth(cctreap_t *m, size_t k) {
+CCTREAP_INLINE cctreap_node_t *cctreap_kth(cctreap_t *m, size_t k) CCTREAP_NOEXCEPT {
   if (cctreap_unlikely(!m || !m->root || k >= m->size)) return NULL;
   cctreap_node_t *x = m->root;
   while (x) {
@@ -392,7 +402,7 @@ CCTREAP_INLINE cctreap_node_t *cctreap_kth(cctreap_t *m, size_t k) {
   return NULL;
 }
 
-CCTREAP_INLINE int64_t cctreap_rank(cctreap_t *m, const cctreap_node_t *probe) {
+CCTREAP_INLINE int64_t cctreap_rank(cctreap_t *m, const cctreap_node_t *probe) CCTREAP_NOEXCEPT {
   if (cctreap_unlikely(!m || !probe || !m->root)) return -1;
   cctreap_node_t *x = m->root;
 #ifndef CCTREAP_COMPARE
@@ -409,13 +419,13 @@ CCTREAP_INLINE int64_t cctreap_rank(cctreap_t *m, const cctreap_node_t *probe) {
   return -1;
 }
 
-CCTREAP_INLINE cctreap_node_t *cctreap_first(cctreap_t *m)  { return m ? m->first  : NULL; }
-CCTREAP_INLINE cctreap_node_t *cctreap_begin(cctreap_t *m)  { return m ? m->first  : NULL; }
-CCTREAP_INLINE cctreap_node_t *cctreap_end(cctreap_t *m)    { (void)m; return NULL; }
-CCTREAP_INLINE cctreap_node_t *cctreap_last(cctreap_t *m)   { return m ? m->last   : NULL; }
-CCTREAP_INLINE cctreap_node_t *cctreap_rbegin(cctreap_t *m) { return m ? m->last   : NULL; }
+CCTREAP_INLINE cctreap_node_t *cctreap_first(cctreap_t *m) CCTREAP_NOEXCEPT  { return m ? m->first  : NULL; }
+CCTREAP_INLINE cctreap_node_t *cctreap_begin(cctreap_t *m) CCTREAP_NOEXCEPT  { return m ? m->first  : NULL; }
+CCTREAP_INLINE cctreap_node_t *cctreap_end(cctreap_t *m) CCTREAP_NOEXCEPT    { (void)m; return NULL; }
+CCTREAP_INLINE cctreap_node_t *cctreap_last(cctreap_t *m) CCTREAP_NOEXCEPT   { return m ? m->last   : NULL; }
+CCTREAP_INLINE cctreap_node_t *cctreap_rbegin(cctreap_t *m) CCTREAP_NOEXCEPT { return m ? m->last   : NULL; }
 
-CCTREAP_INLINE cctreap_node_t *cctreap_next(cctreap_node_t *x) {
+CCTREAP_INLINE cctreap_node_t *cctreap_next(cctreap_node_t *x) CCTREAP_NOEXCEPT {
   if (!x) return NULL;
   if (x->child[CCTREAP_RIGHT]) return _tp_min(x->child[CCTREAP_RIGHT]);
   cctreap_node_t *p = _tp_p(x);
@@ -426,7 +436,7 @@ CCTREAP_INLINE cctreap_node_t *cctreap_next(cctreap_node_t *x) {
   return p;
 }
 
-CCTREAP_INLINE cctreap_node_t *cctreap_prev(cctreap_node_t *x) {
+CCTREAP_INLINE cctreap_node_t *cctreap_prev(cctreap_node_t *x) CCTREAP_NOEXCEPT {
   if (!x) return NULL;
   if (x->child[CCTREAP_LEFT]) { x = x->child[CCTREAP_LEFT]; while (x->child[CCTREAP_RIGHT]) { CCTREAP_PREFETCH_R(x->child[CCTREAP_RIGHT]); x = x->child[CCTREAP_RIGHT]; } return x; }
   cctreap_node_t *p = _tp_p(x);
@@ -437,8 +447,8 @@ CCTREAP_INLINE cctreap_node_t *cctreap_prev(cctreap_node_t *x) {
   return p;
 }
 
-CCTREAP_INLINE size_t cctreap_size(const cctreap_t *m) { return m ? m->size : 0; }
-CCTREAP_INLINE void cctreap_clear(cctreap_t *m) {
+CCTREAP_INLINE size_t cctreap_size(const cctreap_t *m) CCTREAP_NOEXCEPT { return m ? m->size : 0; }
+CCTREAP_INLINE void cctreap_clear(cctreap_t *m) CCTREAP_NOEXCEPT {
   if (m) { m->root = NULL; m->first = NULL; m->last = NULL; m->size = 0; }
 }
 
@@ -452,7 +462,7 @@ static int _tp_height(const cctreap_node_t *n) {
 }
 #endif
 
-CCTREAP_INLINE int cctreap_height(const cctreap_t *m) {
+CCTREAP_INLINE int cctreap_height(const cctreap_t *m) CCTREAP_NOEXCEPT {
   if (!m || !cctreap_size(m)) return 0;
 #ifndef NDEBUG
   return _tp_height(m->root);
@@ -463,5 +473,9 @@ CCTREAP_INLINE int cctreap_height(const cctreap_t *m) {
   return h * 2;
 #endif
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CCTREAP_H */

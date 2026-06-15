@@ -55,6 +55,12 @@
   #define CCVECTOR_INLINE static
 #endif
 
+#if defined(__cplusplus) && __cplusplus >= 201703L
+  #define CCVECTOR_NOEXCEPT noexcept
+#else
+  #define CCVECTOR_NOEXCEPT
+#endif
+
 /* ── allocator hooks ──────────────────────────────────────────────────── */
 
 #ifndef CCVECTOR_REALLOC
@@ -68,6 +74,10 @@
 #endif
 #ifndef CCVECTOR_DEFAULT_CAP
   #define CCVECTOR_DEFAULT_CAP 8
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 /* ── types ────────────────────────────────────────────────────────────── */
@@ -88,7 +98,7 @@ typedef struct ccvector {
 /* ── lifecycle ────────────────────────────────────────────────────────── */
 
 CCVECTOR_INLINE int
-ccvector_init(ccvector_t *v) {
+ccvector_init(ccvector_t *v) CCVECTOR_NOEXCEPT {
   if (!v) return -1;
   v->buckets = (CCVECTOR_NODE_T *)CCVECTOR_MALLOC(
       sizeof(CCVECTOR_NODE_T) * CCVECTOR_DEFAULT_CAP);
@@ -101,7 +111,7 @@ ccvector_init(ccvector_t *v) {
 /* Init with explicit capacity — avoids changing CCVECTOR_DEFAULT_CAP
 ** for one-off use cases.  cap=0 falls back to CCVECTOR_DEFAULT_CAP. */
 CCVECTOR_INLINE int
-ccvector_init_cap(ccvector_t *v, size_t cap) {
+ccvector_init_cap(ccvector_t *v, size_t cap) CCVECTOR_NOEXCEPT {
   if (!v) return -1;
   size_t c = cap > 0 ? cap : CCVECTOR_DEFAULT_CAP;
   v->buckets = (CCVECTOR_NODE_T *)CCVECTOR_MALLOC(
@@ -113,7 +123,7 @@ ccvector_init_cap(ccvector_t *v, size_t cap) {
 }
 
 CCVECTOR_INLINE void
-ccvector_destroy(ccvector_t *v) {
+ccvector_destroy(ccvector_t *v) CCVECTOR_NOEXCEPT {
   if (!v) return;
   (void)CCVECTOR_FREE(v->buckets);
   v->buckets = NULL;
@@ -121,7 +131,7 @@ ccvector_destroy(ccvector_t *v) {
 }
 
 CCVECTOR_INLINE void
-ccvector_clear(ccvector_t *v) {
+ccvector_clear(ccvector_t *v) CCVECTOR_NOEXCEPT {
   if (!v) return;
   v->len = 0;
 }
@@ -129,7 +139,7 @@ ccvector_clear(ccvector_t *v) {
 /* ── push / pop ───────────────────────────────────────────────────────── */
 
 CCVECTOR_INLINE int
-ccvector_push_back(ccvector_t *v, CCVECTOR_NODE_T elem) {
+ccvector_push_back(ccvector_t *v, CCVECTOR_NODE_T elem) CCVECTOR_NOEXCEPT {
   if (!v || !v->buckets) return -1;
 
   if (v->len == v->cap) {
@@ -147,7 +157,7 @@ ccvector_push_back(ccvector_t *v, CCVECTOR_NODE_T elem) {
 }
 
 CCVECTOR_INLINE int
-ccvector_pop_back(ccvector_t *v) {
+ccvector_pop_back(ccvector_t *v) CCVECTOR_NOEXCEPT {
   if (!v || v->len == 0) return -1;
   v->len--;
   return 0;
@@ -156,45 +166,45 @@ ccvector_pop_back(ccvector_t *v) {
 /* ── access ───────────────────────────────────────────────────────────── */
 
 CCVECTOR_INLINE CCVECTOR_NODE_T *
-ccvector_at(ccvector_t *v, size_t i) {
+ccvector_at(ccvector_t *v, size_t i) CCVECTOR_NOEXCEPT {
   if (ccvector_unlikely(!v || i >= v->len)) return NULL;
   return &v->buckets[i];
 }
 
 CCVECTOR_INLINE CCVECTOR_NODE_T *
-ccvector_front(ccvector_t *v) {
+ccvector_front(ccvector_t *v) CCVECTOR_NOEXCEPT {
   return ccvector_at(v, 0);
 }
 
 CCVECTOR_INLINE CCVECTOR_NODE_T *
-ccvector_back(ccvector_t *v) {
+ccvector_back(ccvector_t *v) CCVECTOR_NOEXCEPT {
   return v ? ccvector_at(v, v->len - 1) : NULL;
 }
 
 /* ── query ────────────────────────────────────────────────────────────── */
 
 CCVECTOR_INLINE size_t
-ccvector_size(const ccvector_t *v) {
+ccvector_size(const ccvector_t *v) CCVECTOR_NOEXCEPT {
   return v ? v->len : 0;
 }
 
 CCVECTOR_INLINE size_t
-ccvector_capacity(ccvector_t *v) {
+ccvector_capacity(ccvector_t *v) CCVECTOR_NOEXCEPT {
   return v ? v->cap : 0;
 }
 
 CCVECTOR_INLINE int
-ccvector_empty(ccvector_t *v) {
+ccvector_empty(ccvector_t *v) CCVECTOR_NOEXCEPT {
   return !v || ccvector_size(v) == 0;
 }
 
 /* ── sort ──────────────────────────────────────────────────────────────── */
 
 /* sort compare function type */
-typedef int (*ccvector_qsort_cmp_t)(const void *, const void *);
+typedef int (*ccvector_qsort_cmp_t)(const void *, const void *) CCVECTOR_NOEXCEPT;
 
 CCVECTOR_INLINE void
-ccvector_sort(ccvector_t *v, ccvector_qsort_cmp_t cmp) {
+ccvector_sort(ccvector_t *v, ccvector_qsort_cmp_t cmp) CCVECTOR_NOEXCEPT {
   if (!v || !v->buckets || ccvector_size(v) < 2) return;
   qsort(v->buckets, ccvector_size(v), sizeof(CCVECTOR_NODE_T), cmp);
 }
@@ -202,7 +212,7 @@ ccvector_sort(ccvector_t *v, ccvector_qsort_cmp_t cmp) {
 /* ── reserve ──────────────────────────────────────────────────────────── */
 
 CCVECTOR_INLINE int
-ccvector_reserve(ccvector_t *v, size_t new_cap) {
+ccvector_reserve(ccvector_t *v, size_t new_cap) CCVECTOR_NOEXCEPT {
   if (!v || !v->buckets || new_cap <= v->cap) return -1;
   CCVECTOR_NODE_T *nd = (CCVECTOR_NODE_T *)CCVECTOR_REALLOC(
       v->buckets, sizeof(CCVECTOR_NODE_T) * new_cap);
@@ -211,5 +221,9 @@ ccvector_reserve(ccvector_t *v, size_t new_cap) {
   v->cap = new_cap;
   return 0;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CCVECTOR_H */

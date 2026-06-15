@@ -62,6 +62,12 @@
   #define CCLINK_INLINE static
 #endif
 
+#if defined(__cplusplus) && __cplusplus >= 201703L
+  #define CCLINK_NOEXCEPT noexcept
+#else
+  #define CCLINK_NOEXCEPT
+#endif
+
 #ifndef offsetof
   #define offsetof(type, member) \
       ((size_t) &(((type *)0)->member))
@@ -73,6 +79,10 @@
 #endif
 
 #define CCLINK_CONTAINER container_of
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* ── types ────────────────────────────────────────────────────────────── */
 
@@ -109,17 +119,17 @@ CCLINK_INLINE cclink_node_t *_cclink_prev(const cclink_t *l,
 
 /* ── lifecycle ────────────────────────────────────────────────────────── */
 
-CCLINK_INLINE void cclink_init(cclink_t *l) {
+CCLINK_INLINE void cclink_init(cclink_t *l) CCLINK_NOEXCEPT {
   if (!l) return;
   l->head = l->tail = NULL;
   l->size = 0;
 }
 
-CCLINK_INLINE void cclink_clear(cclink_t *l) { cclink_init(l); }
+CCLINK_INLINE void cclink_clear(cclink_t *l) CCLINK_NOEXCEPT { cclink_init(l); }
 
 /* ── push (O(1) at head) ──────────────────────────────────────────────── */
 
-CCLINK_INLINE void cclink_push(cclink_t *l, cclink_node_t *n) {
+CCLINK_INLINE void cclink_push(cclink_t *l, cclink_node_t *n) CCLINK_NOEXCEPT {
   if (cclink_unlikely(!l || !n)) return;
   n->next = l->head;
   l->head = n;
@@ -129,7 +139,7 @@ CCLINK_INLINE void cclink_push(cclink_t *l, cclink_node_t *n) {
 
 /* ── push_back (O(1)) ────────────────────────────────────────────────── */
 
-CCLINK_INLINE void cclink_push_back(cclink_t *l, cclink_node_t *n) {
+CCLINK_INLINE void cclink_push_back(cclink_t *l, cclink_node_t *n) CCLINK_NOEXCEPT {
   if (cclink_unlikely(!l || !n)) return;
   n->next = NULL;
   if (l->tail) { l->tail->next = n; l->tail = n; }
@@ -139,7 +149,7 @@ CCLINK_INLINE void cclink_push_back(cclink_t *l, cclink_node_t *n) {
 
 /* ── remove (O(n)) ────────────────────────────────────────────────────── */
 
-CCLINK_INLINE void cclink_remove(cclink_t *l, cclink_node_t *n) {
+CCLINK_INLINE void cclink_remove(cclink_t *l, cclink_node_t *n) CCLINK_NOEXCEPT {
   if (cclink_unlikely(!l || !n)) return;
   cclink_node_t *prev = _cclink_prev(l, n);
   if (!prev && l->head != n) return;  /* not in list */
@@ -147,7 +157,7 @@ CCLINK_INLINE void cclink_remove(cclink_t *l, cclink_node_t *n) {
 }
 
 /* remove and return head (O(1)).  Returns NULL if list is empty. */
-CCLINK_INLINE cclink_node_t *cclink_pop_front(cclink_t *l) {
+CCLINK_INLINE cclink_node_t *cclink_pop_front(cclink_t *l) CCLINK_NOEXCEPT {
   if (cclink_unlikely(!l || !l->head)) return NULL;
   cclink_node_t *n = l->head;
   _cclink_unlink(l, NULL, n);
@@ -156,34 +166,34 @@ CCLINK_INLINE cclink_node_t *cclink_pop_front(cclink_t *l) {
 
 /* ── iteration ────────────────────────────────────────────────────────── */
 
-CCLINK_INLINE cclink_node_t *cclink_begin(const cclink_t *l) {
+CCLINK_INLINE cclink_node_t *cclink_begin(const cclink_t *l) CCLINK_NOEXCEPT {
   return l ? l->head : NULL;
 }
-CCLINK_INLINE cclink_node_t *cclink_end(const cclink_t *l) {
+CCLINK_INLINE cclink_node_t *cclink_end(const cclink_t *l) CCLINK_NOEXCEPT {
   (void)l; return NULL;
 }
-CCLINK_INLINE cclink_node_t *cclink_next(const cclink_node_t *n) {
+CCLINK_INLINE cclink_node_t *cclink_next(const cclink_node_t *n) CCLINK_NOEXCEPT {
   return n ? n->next : NULL;
 }
-CCLINK_INLINE cclink_node_t *cclink_front(const cclink_t *l) {
+CCLINK_INLINE cclink_node_t *cclink_front(const cclink_t *l) CCLINK_NOEXCEPT {
   return l ? l->head : NULL;
 }
-CCLINK_INLINE cclink_node_t *cclink_back(const cclink_t *l) {
+CCLINK_INLINE cclink_node_t *cclink_back(const cclink_t *l) CCLINK_NOEXCEPT {
   return l ? l->tail : NULL;
 }
 
 /* ── query ────────────────────────────────────────────────────────────── */
 
-CCLINK_INLINE size_t cclink_size(const cclink_t *l) {
+CCLINK_INLINE size_t cclink_size(const cclink_t *l) CCLINK_NOEXCEPT {
   return l ? l->size : 0;
 }
-CCLINK_INLINE bool cclink_empty(const cclink_t *l) {
+CCLINK_INLINE bool cclink_empty(const cclink_t *l) CCLINK_NOEXCEPT {
   return !l || cclink_size(l) == 0;
 }
 
 /* ── debug ────────────────────────────────────────────────────────────── */
 
-CCLINK_INLINE bool cclink_has_cycle(const cclink_t *l) {
+CCLINK_INLINE bool cclink_has_cycle(const cclink_t *l) CCLINK_NOEXCEPT {
   if (!l || !l->head) return false;
   const cclink_node_t *slow = l->head;
   const cclink_node_t *fast = l->head;
@@ -204,7 +214,7 @@ typedef enum {
   CCLINK_ERRMAX     = 4,
 } cclink_ecode_t;
 
-CCLINK_INLINE cclink_ecode_t cclink_verify(const cclink_t *l) {
+CCLINK_INLINE cclink_ecode_t cclink_verify(const cclink_t *l) CCLINK_NOEXCEPT {
   if (!l)                    return CCLINK_ISNULL;
   if (cclink_has_cycle(l))   return CCLINK_HASCYCLE;
   size_t count = 0;
@@ -228,11 +238,15 @@ static const cclink_error_t cclink_errors[] = {
   {CCLINK_SIZEERROR, "size != actual count."},
 };
 
-CCLINK_INLINE const cclink_error_t *cclink_get_error(cclink_ecode_t code) {
+CCLINK_INLINE const cclink_error_t *cclink_get_error(cclink_ecode_t code) CCLINK_NOEXCEPT {
   int idx = (int)code + 1;  /* CCLINK_UNKNOWN = -1 → index 0 */
   if (idx < 0 || (size_t)idx >= sizeof(cclink_errors) / sizeof(cclink_errors[0]))
     return NULL;
   return &cclink_errors[idx];
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CCLINK_H */

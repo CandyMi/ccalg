@@ -19,7 +19,7 @@ struct ccmap_entry {
 static ccmap_entry *me(const ccmap_node_t *n) {
   return CCMAP_CONTAINER(n, ccmap_entry, node);
 }
-static int64_t cmp_fn(const ccmap_node_t *a, const ccmap_node_t *b) {
+static int64_t cmp_fn(const ccmap_node_t *a, const ccmap_node_t *b) noexcept {
   return (int64_t)me(a)->key - (int64_t)me(b)->key;
 }
 

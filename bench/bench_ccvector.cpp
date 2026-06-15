@@ -92,7 +92,7 @@ int main() {
       ccvector_push_back(&v2, e);
     }
 
-    auto qcmp = [](const void *a, const void *b) -> int {
+    auto qcmp = [](const void *a, const void *b) noexcept -> int {
       uint32_t va = ((const ccvector_node_t *)a)->value;
       uint32_t vb = ((const ccvector_node_t *)b)->value;
       return (va > vb) - (va < vb);

@@ -63,6 +63,12 @@
   #define CCHASHMAP_INLINE static
 #endif
 
+#if defined(__cplusplus) && __cplusplus >= 201703L
+  #define CCHASHMAP_NOEXCEPT noexcept
+#else
+  #define CCHASHMAP_NOEXCEPT
+#endif
+
 /* ── container-of ─────────────────────────────────────────────────────── */
 
 #ifndef offsetof
@@ -113,10 +119,14 @@ typedef struct cchashmap_node {
   #define CCHASHMAP_EQUAL_CALL(a,b)       (equal_fn((a), (b)))
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* ── callback types ───────────────────────────────────────────────────── */
 
-typedef uint64_t (*cchashmap_hash_t) (const cchashmap_node_t *n, size_t seed);
-typedef bool     (*cchashmap_equal_t)(const cchashmap_node_t *a, const cchashmap_node_t *b);
+typedef uint64_t (*cchashmap_hash_t) (const cchashmap_node_t *n, size_t seed) CCHASHMAP_NOEXCEPT;
+typedef bool     (*cchashmap_equal_t)(const cchashmap_node_t *a, const cchashmap_node_t *b) CCHASHMAP_NOEXCEPT;
 
 /* ── container ────────────────────────────────────────────────────────── */
 
@@ -170,7 +180,7 @@ CCHASHMAP_INLINE void _cchashmap_resize(cchashmap_t *m) {
 /* ── lifecycle ────────────────────────────────────────────────────────── */
 
 CCHASHMAP_INLINE void cchashmap_init(cchashmap_t *m, cchashmap_hash_t hfn,
-                                     cchashmap_equal_t efn) {
+                                     cchashmap_equal_t efn) CCHASHMAP_NOEXCEPT {
   if (cchashmap_unlikely(!m)) return;
   m->buckets = NULL;
   m->cap = 0;
@@ -184,7 +194,7 @@ CCHASHMAP_INLINE void cchashmap_init(cchashmap_t *m, cchashmap_hash_t hfn,
 #endif
 }
 
-CCHASHMAP_INLINE void cchashmap_destroy(cchashmap_t *m) {
+CCHASHMAP_INLINE void cchashmap_destroy(cchashmap_t *m) CCHASHMAP_NOEXCEPT {
   if (cchashmap_unlikely(!m)) return;
   if (m->buckets) CCHASHMAP_FREE(m->buckets);
   m->buckets = NULL;
@@ -192,7 +202,7 @@ CCHASHMAP_INLINE void cchashmap_destroy(cchashmap_t *m) {
   m->size = 0;
 }
 
-CCHASHMAP_INLINE void cchashmap_clear(cchashmap_t *m) {
+CCHASHMAP_INLINE void cchashmap_clear(cchashmap_t *m) CCHASHMAP_NOEXCEPT {
   if (!m || !m->buckets) return;
   for (size_t i = 0; i < m->cap; i++)
     m->buckets[i] = NULL;
@@ -203,7 +213,7 @@ CCHASHMAP_INLINE void cchashmap_clear(cchashmap_t *m) {
 
 #define cchashmap_insert(m, n, o) cchashmap_set((m), (n), (o))
 CCHASHMAP_INLINE bool cchashmap_set(cchashmap_t *m, cchashmap_node_t *node,
-                                    cchashmap_node_t **old) {
+                                    cchashmap_node_t **old) CCHASHMAP_NOEXCEPT {
   if (cchashmap_unlikely(!m || !node)) return false;
   if (!m->buckets) _cchashmap_resize(m);
 #ifndef CCHASHMAP_HASH
@@ -233,7 +243,7 @@ CCHASHMAP_INLINE bool cchashmap_set(cchashmap_t *m, cchashmap_node_t *node,
 
 #define cchashmap_find(m, n) cchashmap_get((m), (n))
 CCHASHMAP_INLINE cchashmap_node_t *cchashmap_get(cchashmap_t *m,
-                                                  cchashmap_node_t *probe) {
+                                                  cchashmap_node_t *probe) CCHASHMAP_NOEXCEPT {
   if (cchashmap_unlikely(!m || !probe || !m->buckets))
     return NULL;
 #ifndef CCHASHMAP_HASH
@@ -254,7 +264,7 @@ CCHASHMAP_INLINE cchashmap_node_t *cchashmap_get(cchashmap_t *m,
 /* ── erase ────────────────────────────────────────────────────────────── */
 
 #define cchashmap_erase(m, n) cchashmap_del((m), (n))
-CCHASHMAP_INLINE void cchashmap_del(cchashmap_t *m, cchashmap_node_t *node) {
+CCHASHMAP_INLINE void cchashmap_del(cchashmap_t *m, cchashmap_node_t *node) CCHASHMAP_NOEXCEPT {
   if (cchashmap_unlikely(!m || !node || !m->buckets))
     return;
   size_t idx = node->hash & (m->cap - 1);
@@ -267,8 +277,12 @@ CCHASHMAP_INLINE void cchashmap_del(cchashmap_t *m, cchashmap_node_t *node) {
 
 /* ── size ─────────────────────────────────────────────────────────────── */
 
-CCHASHMAP_INLINE size_t cchashmap_size(cchashmap_t *m) {
+CCHASHMAP_INLINE size_t cchashmap_size(cchashmap_t *m) CCHASHMAP_NOEXCEPT {
   return m ? m->size : 0;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CCHASHMAP_H */

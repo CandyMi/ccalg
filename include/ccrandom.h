@@ -135,6 +135,12 @@ extern "C" {
 # define CCRANDOM_INLINE static
 #endif
 
+#if defined(__cplusplus) && __cplusplus >= 201703L
+  #define CCRANDOM_NOEXCEPT noexcept
+#else
+  #define CCRANDOM_NOEXCEPT
+#endif
+
 /* ── data types ─────────────────────────────────────────────────────────── */
 
 typedef struct ccrandom128 { uint64_t seed[2]; } ccrandom128_t;
@@ -177,7 +183,7 @@ ccr_sm64_next(uint64_t *state) {
  *  @param state  Generator state to initialize (must not be NULL).
  *  @param seed   Any 64-bit value; zero is valid. */
 CCRANDOM_INLINE void
-ccrandom128_init(ccrandom128_t *state, uint64_t seed) {
+ccrandom128_init(ccrandom128_t *state, uint64_t seed) CCRANDOM_NOEXCEPT {
   /* Map a user seed to a 128-bit state via two iterations of SplitMix64.
   ** The seed is consumed (modified in-place) so zero-initialized seeds work. */
   state->seed[0] = ccr_sm64_next(&seed);
@@ -196,7 +202,7 @@ ccrandom128_init(ccrandom128_t *state, uint64_t seed) {
  *  @param state  Generator state to initialize (must not be NULL).
  *  @param seed   Any 64-bit value; zero is valid. */
 CCRANDOM_INLINE void
-ccrandom256_init(ccrandom256_t *state, uint64_t seed) {
+ccrandom256_init(ccrandom256_t *state, uint64_t seed) CCRANDOM_NOEXCEPT {
   state->seed[0] = ccr_sm64_next(&seed);
   state->seed[1] = ccr_sm64_next(&seed);
   state->seed[2] = ccr_sm64_next(&seed);
@@ -214,7 +220,7 @@ ccrandom256_init(ccrandom256_t *state, uint64_t seed) {
  *
  *  @return A uniformly-distributed value in [0, 2^64−1]. */
 CCRANDOM_INLINE uint64_t
-ccrandom128_next(ccrandom128_t *state) {
+ccrandom128_next(ccrandom128_t *state) CCRANDOM_NOEXCEPT {
   /* Xoroshiro128++  —  the "++" scrambler provides a small decorrelation
   ** improvement over the plain "+" variant (fails only linearity tests
   ** reversed from the output, which no realistic workload triggers). */
@@ -239,7 +245,7 @@ ccrandom128_next(ccrandom128_t *state) {
  *
  *  @return A uniformly-distributed value in [0, 2^64−1]. */
 CCRANDOM_INLINE uint64_t
-ccrandom256_next(ccrandom256_t *state) {
+ccrandom256_next(ccrandom256_t *state) CCRANDOM_NOEXCEPT {
   /* Xoshiro256**  —  the "**" scrambler (multiply-rotate-multiply) yields
   ** excellent statistical quality. */
   const uint64_t result = ccr_rotl(state->seed[1] * 5, 7) * 9;
@@ -296,7 +302,7 @@ ccrandom256_next(ccrandom256_t *state) {
  *
  *  @return A uniformly-distributed float in [0, 1). */
 CCRANDOM_INLINE float
-ccrandom128_f32next(ccrandom128_t *state) {
+ccrandom128_f32next(ccrandom128_t *state) CCRANDOM_NOEXCEPT {
   return (float)((ccrandom128_next(state) >> 40) * CCRANDOM_F32_MUL);
 }
 
@@ -310,7 +316,7 @@ ccrandom128_f32next(ccrandom128_t *state) {
  *
  *  @return A uniformly-distributed float in [0, 1). */
 CCRANDOM_INLINE float
-ccrandom256_f32next(ccrandom256_t *state) {
+ccrandom256_f32next(ccrandom256_t *state) CCRANDOM_NOEXCEPT {
   return (float)((ccrandom256_next(state) >> 40) * CCRANDOM_F32_MUL);
 }
 
@@ -324,7 +330,7 @@ ccrandom256_f32next(ccrandom256_t *state) {
  *
  *  @return A uniformly-distributed double in [0, 1). */
 CCRANDOM_INLINE double
-ccrandom128_f64next(ccrandom128_t *state) {
+ccrandom128_f64next(ccrandom128_t *state) CCRANDOM_NOEXCEPT {
   return (double)((ccrandom128_next(state) >> 11) * CCRANDOM_F64_MUL);
 }
 
@@ -338,7 +344,7 @@ ccrandom128_f64next(ccrandom128_t *state) {
  *
  *  @return A uniformly-distributed double in [0, 1). */
 CCRANDOM_INLINE double
-ccrandom256_f64next(ccrandom256_t *state) {
+ccrandom256_f64next(ccrandom256_t *state) CCRANDOM_NOEXCEPT {
   return (double)((ccrandom256_next(state) >> 11) * CCRANDOM_F64_MUL);
 }
 

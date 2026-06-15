@@ -541,6 +541,15 @@ int    ccvector_empty(ccvector_t *v);
 // NULL 或空返回非零。
 ```
 
+### 排序
+
+```c
+void ccvector_sort(ccvector_t *v, int (*cmp)(const void *, const void *));
+// 对元素进行原地排序。使用 C 标准库 qsort。
+// cmp 签名与 qsort 一致：返回负数 → a 在前，正数 → b 在前，0 → 相等。
+// NULL / 空 / 单元素 均为安全无操作。
+```
+
 ### 预留
 
 ```c

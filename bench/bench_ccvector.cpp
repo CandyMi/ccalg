@@ -74,5 +74,50 @@ int main() {
   printf("              ratio      %8.2fx\n", ms(t0, t1) / ms(t2, t3));
 
   ccvector_destroy(&v);
+
+  /* ── sort (qsort vs std::sort) ──────────────────────────────────────── */
+  {
+    enum { SN = 200000 };
+    std::vector<uint32_t> sv_sorted;
+    for (int i = 0; i < SN; i++) sv_sorted.push_back((uint32_t)i);
+
+    std::mt19937 rng2(42);
+    std::vector<uint32_t> sv_shuffled = sv_sorted;
+    std::shuffle(sv_shuffled.begin(), sv_shuffled.end(), rng2);
+
+    /* fill ccvector with shuffled data */
+    ccvector_t v2; ccvector_init_cap(&v2, (size_t)SN);
+    for (int i = 0; i < SN; i++) {
+      ccvector_node_t e = {.value = sv_shuffled[i]};
+      ccvector_push_back(&v2, e);
+    }
+
+    auto qcmp = [](const void *a, const void *b) -> int {
+      uint32_t va = ((const ccvector_node_t *)a)->value;
+      uint32_t vb = ((const ccvector_node_t *)b)->value;
+      return (va > vb) - (va < vb);
+    };
+
+    t0 = clk::now();
+    ccvector_sort(&v2, qcmp);
+    t1 = clk::now();
+    printf("  sort:       ccvector   %8.2f ms\n", ms(t0, t1));
+
+    std::vector<uint32_t> sv2 = sv_shuffled;
+    t2 = clk::now();
+    std::sort(sv2.begin(), sv2.end());
+    t3 = clk::now();
+    printf("              stl        %8.2f ms\n", ms(t2, t3));
+    printf("              ratio      %8.2fx\n\n", ms(t0, t1) / ms(t2, t3));
+
+    /* verify correctness */
+    int ok = 1;
+    for (int i = 0; i < SN; i++)
+      if (ccvector_at(&v2, (size_t)i)->value != sv2[i]) { ok = 0; break; }
+    printf("  sort correct: %s\n\n", ok ? "yes" : "NO");
+
+    ccvector_destroy(&v2);
+  }
+
   return 0;
 }

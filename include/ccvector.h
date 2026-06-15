@@ -189,6 +189,14 @@ ccvector_empty(ccvector_t *v) {
   return !v || v->len == 0;
 }
 
+/* ── sort ──────────────────────────────────────────────────────────────── */
+typedef int (*ccvector_qsort_cmp_t)(const void *, const void *);
+CCVECTOR_INLINE void
+ccvector_sort(ccvector_t *v, ccvector_qsort_cmp_t cmp) {
+  if (!v || !v->buckets || v->len < 2) return;
+  qsort(v->buckets, v->len, sizeof(CCVECTOR_NODE_T), cmp);
+}
+
 /* ── reserve ──────────────────────────────────────────────────────────── */
 
 CCVECTOR_INLINE int

@@ -334,6 +334,26 @@ flowchart TD
 
 扩容策略：初始 cap=8，每次翻倍，均摊 O(1)。
 
+### 排序
+
+`ccvector_sort` 使用 C 标准库 `qsort` 对元素进行原地排序，O(n log n)。
+
+```c
+ccvector_sort(&v, my_compare);
+```
+
+比较器签名与 `qsort` 一致：
+
+```c
+int my_compare(const void *a, const void *b) {
+    // 返回负数 → a 排在 b 前面
+    // 返回正数 → b 排在 a 前面
+    // 返回 0   → 相等
+}
+```
+
+`qsort` 是 C89 标准函数，所有平台（MSVC / GCC / Clang / 嵌入式）均可使用，实现真正的跨平台排序支持。
+
 ---
 
 ## ccflatmap — 排序数组映射

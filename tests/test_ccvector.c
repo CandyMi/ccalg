@@ -162,6 +162,140 @@ TEST(null_safety) {
   ccvector_destroy(NULL); /* should not crash */
 }
 
+/* ── sort ───────────────────────────────────────────────────────────────── */
+
+static int
+sort_asc(const void *a, const void *b) {
+  uint32_t va = ((const ccvector_node_t *)a)->value;
+  uint32_t vb = ((const ccvector_node_t *)b)->value;
+  return (va > vb) - (va < vb);
+}
+
+static int
+sort_desc(const void *a, const void *b) {
+  uint32_t va = ((const ccvector_node_t *)a)->value;
+  uint32_t vb = ((const ccvector_node_t *)b)->value;
+  return (vb > va) - (vb < va);
+}
+
+static int
+sort_by_mod3(const void *a, const void *b) {
+  uint32_t va = ((const ccvector_node_t *)a)->value % 3;
+  uint32_t vb = ((const ccvector_node_t *)b)->value % 3;
+  return (va > vb) - (va < vb);
+}
+
+TEST(sort_basic) {
+  ccvector_t v; ccvector_init(&v);
+  uint32_t vals[] = {5, 3, 9, 1, 7, 2, 8, 4, 6, 0};
+  for (size_t i = 0; i < 10; i++) {
+    ccvector_node_t e = {.value = vals[i]};
+    ccvector_push_back(&v, e);
+  }
+
+  ccvector_sort(&v, sort_asc);
+  ASSERT(ccvector_size(&v) == 10);
+  for (size_t i = 0; i < 10; i++)
+    ASSERT(ccvector_at(&v, i)->value == (uint32_t)i);
+
+  ccvector_destroy(&v);
+}
+
+TEST(sort_descending) {
+  ccvector_t v; ccvector_init(&v);
+  for (uint32_t i = 0; i < 10; i++) {
+    ccvector_node_t e = {.value = i};
+    ccvector_push_back(&v, e);
+  }
+
+  ccvector_sort(&v, sort_desc);
+  ASSERT(ccvector_size(&v) == 10);
+  for (size_t i = 0; i < 10; i++)
+    ASSERT(ccvector_at(&v, i)->value == (uint32_t)(9 - i));
+
+  ccvector_destroy(&v);
+}
+
+TEST(sort_already_sorted) {
+  ccvector_t v; ccvector_init(&v);
+  for (uint32_t i = 0; i < 100; i++) {
+    ccvector_node_t e = {.value = i};
+    ccvector_push_back(&v, e);
+  }
+
+  /* sort already-ascending data — must remain correct */
+  ccvector_sort(&v, sort_asc);
+  ASSERT(ccvector_size(&v) == 100);
+  for (size_t i = 0; i < 100; i++)
+    ASSERT(ccvector_at(&v, i)->value == (uint32_t)i);
+
+  ccvector_destroy(&v);
+}
+
+TEST(sort_single_element) {
+  ccvector_t v; ccvector_init(&v);
+  ccvector_node_t e = {.value = 42};
+  ccvector_push_back(&v, e);
+
+  /* single element — no-op */
+  ccvector_sort(&v, sort_asc);
+  ASSERT(ccvector_size(&v) == 1);
+  ASSERT(ccvector_at(&v, 0)->value == 42);
+
+  ccvector_destroy(&v);
+}
+
+TEST(sort_empty) {
+  ccvector_t v; ccvector_init(&v);
+
+  /* empty — no-op, must not crash */
+  ccvector_sort(&v, sort_asc);
+  ASSERT(ccvector_empty(&v));
+
+  ccvector_destroy(&v);
+}
+
+TEST(sort_custom_comparator) {
+  ccvector_t v; ccvector_init(&v);
+  uint32_t vals[] = {2, 5, 1, 4, 3, 0};
+  for (size_t i = 0; i < 6; i++) {
+    ccvector_node_t e = {.value = vals[i]};
+    ccvector_push_back(&v, e);
+  }
+
+  /* sort by value % 3 — stable groups: 0,3 / 1,4 / 2,5 */
+  ccvector_sort(&v, sort_by_mod3);
+  ASSERT(ccvector_size(&v) == 6);
+  /* after mod-3 sort: 3,0,1,4,2,5  (depends on qsort stability, just check ordering by mod3) */
+  for (size_t i = 1; i < 6; i++) {
+    uint32_t a = ccvector_at(&v, i - 1)->value % 3;
+    uint32_t b = ccvector_at(&v, i)->value % 3;
+    ASSERT(a <= b);
+  }
+
+  ccvector_destroy(&v);
+}
+
+TEST(sort_large) {
+  ccvector_t v; ccvector_init_cap(&v, 5000);
+  for (int32_t i = 4999; i >= 0; i--) {
+    ccvector_node_t e = {.value = (uint32_t)i};
+    ccvector_push_back(&v, e);
+  }
+
+  ccvector_sort(&v, sort_asc);
+  ASSERT(ccvector_size(&v) == 5000);
+  for (size_t i = 0; i < 5000; i++)
+    ASSERT(ccvector_at(&v, i)->value == (uint32_t)i);
+
+  ccvector_destroy(&v);
+}
+
+TEST(sort_null_safety) {
+  /* must not crash */
+  ccvector_sort(NULL, sort_asc);
+}
+
 /* ── main ─────────────────────────────────────────────────────────────── */
 int main(void) {
   printf("ccvector tests:\n");
@@ -173,6 +307,14 @@ int main(void) {
   RUN(reserve);
   RUN(init_cap);
   RUN(null_safety);
+  RUN(sort_basic);
+  RUN(sort_descending);
+  RUN(sort_already_sorted);
+  RUN(sort_single_element);
+  RUN(sort_empty);
+  RUN(sort_custom_comparator);
+  RUN(sort_large);
+  RUN(sort_null_safety);
   printf("\n  %d passed, %d failed\n", passed, failed);
   return failed ? 1 : 0;
 }

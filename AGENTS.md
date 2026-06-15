@@ -231,6 +231,7 @@ Each header defines its own `CCXXX_INLINE` macro (pattern: `#define CCXXX_INLINE
 
 - Value storage in contiguous `CCVECTOR_NODE_T *buckets`.  2× growth from `CCVECTOR_DEFAULT_CAP=8`.
 - `ccvector_at(v, i)` returns `NULL` on out-of-bounds (unlike `std::vector::operator[]`).
+- `ccvector_sort(v, cmp)` — in-place sort via `qsort`, cross-platform (C89 everywhere).  Comparator: `int (*)(const void*, const void*)`.
 
 ### ccflatmap — Sorted-Array Map
 

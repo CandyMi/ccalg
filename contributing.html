@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ccalg - 参与贡献</title>
+<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+<script>
+tailwind.config = {
+  darkMode: 'media',
+  theme: {
+    extend: {
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+            'code::before': { content: 'none' },
+            'code::after': { content: 'none' },
+            'blockquote p:first-of-type::before': { content: 'none' },
+            'blockquote p:last-of-type::after': { content: 'none' },
+          }
+        }
+      }
+    }
+  }
+}
+</script>
+<style>
+/* ── sidebar collapse (spanning multiple elements — CSS is cleaner than JS class toggling) ── */
+.sidebar-collapsed .sidebar { width: 44px !important; padding: 8px 4px !important; }
+.sidebar-collapsed .sidebar h2,
+.sidebar-collapsed .sidebar nav { display: none; }
+.sidebar-collapsed .main { margin-left: 44px !important; max-width: none; }
+@media (max-width: 767px) {
+  .sidebar-collapsed .sidebar { width: 100% !important; padding: 1rem !important; }
+  .sidebar-collapsed .sidebar h2,
+  .sidebar-collapsed .sidebar nav { display: block; }
+  .sidebar-collapsed .main { margin-left: 0 !important; }
+}
+/* ── TOC collapse ── */
+.toc-collapsed .toc { display: none; }
+.toc-collapsed .toc-icon { transform: rotate(180deg); }
+/* ── TOC scrollbar ── */
+.toc-links { scrollbar-width: none; }
+.toc-links::-webkit-scrollbar { display: none; }
+/* ── TOC active link (Tailwind prose overrides need !important) ── */
+.toc a.active { color: #2563eb !important; border-left-color: #2563eb !important; font-weight: 500; }
+@media (prefers-color-scheme: dark) {
+  .toc a.active { color: #60a5fa !important; border-left-color: #60a5fa !important; }
+}
+/* ── citation links inside prose ── */
+a.citation {
+  text-decoration: none; color: inherit; font-weight: 500;
+  border: 1px solid #d1d5db; border-radius: 3px;
+  padding: 0 0.25em; font-size: 0.9em; vertical-align: super;
+  line-height: 1; transition: background 0.15s;
+}
+a.citation:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+@media (prefers-color-scheme: dark) {
+  a.citation { border-color: #475569; }
+  a.citation:hover { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+}
+li[id^="ref-"] { scroll-margin-top: 80px; }
+/* ── responsive: hide TOC on narrow screens ── */
+@media (max-width: 1100px) {
+  .toc, .toc-toggle { display: none !important; }
+}
+</style>
+</head>
+<body class="flex min-h-screen bg-white dark:bg-teal-950 text-teal-900 dark:text-teal-100 font-sans antialiased">
+<aside class="sidebar w-full h-auto static border-b border-teal-200 dark:border-teal-800 p-4
+              md:fixed md:left-0 md:top-0 md:h-full md:w-[220px] md:border-r md:border-b-0 md:p-8
+              bg-teal-50 dark:bg-teal-900 overflow-hidden hover:overflow-y-auto z-30
+              transition-[width,padding] duration-300"
+       id="sidebar">
+  <button class="block w-8 h-8 ml-auto border border-teal-300 dark:border-teal-700
+                 rounded-md bg-white dark:bg-teal-800 text-teal-600 dark:text-teal-300
+                 text-lg cursor-pointer leading-7 text-center
+                 hover:bg-blue-600 hover:text-white hover:border-blue-600
+                 dark:hover:bg-blue-600 dark:hover:text-white
+                 transition-colors duration-200 flex-shrink-0"
+          id="toggleSidebar" title="收起侧边栏">☰</button>
+  <h2 class="text-2xl font-bold mt-3 mb-4 pb-2 border-b border-teal-200 dark:border-teal-700
+             text-teal-800 dark:text-teal-100 text-center">目录</h2>
+  <nav class="flex flex-wrap gap-1 md:flex-col md:gap-0.5">
+      <a href="index.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">一、基本介绍</a>
+      <a href="getting-started.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">二、快速开始</a>
+      <a href="api-reference.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">三、接口参考</a>
+      <a href="algorithms.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">四、算法原理</a>
+      <a href="building.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">五、构建指南</a>
+      <a href="benchmarks.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">六、性能基准</a>
+      <a href="thread-safety.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">七、线程安全</a>
+      <a href="random.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">八、伪随机数</a>
+      <a href="contributing.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150 bg-blue-600 text-white hover:bg-blue-700 hover:text-white dark:bg-blue-600 dark:text-white">九、参与贡献</a>
+  </nav>
+</aside>
+<main class="main flex-1 px-4 py-6 md:ml-[220px] md:px-10 md:py-8 max-w-[900px]
+             transition-[margin] duration-300" id="main">
+  <article class="prose prose-slate dark:prose-invert max-w-none
+                  prose-headings:scroll-mt-20
+                  prose-pre:rounded-lg prose-pre:border prose-pre:border-teal-200
+                  dark:prose-pre:border-teal-800
+                  prose-img:rounded-lg
+                  prose-table:block prose-table:overflow-x-auto
+                  md:prose-table:table">
+<h1 id="_1">参与贡献</h1>
+<p>感谢对 ccalg 的关注！</p>
+<h2 id="vcpkg">提交 vcpkg 官方注册表</h2>
+<h3 id="_2">前置条件</h3>
+<ul>
+<li>release tag 已创建并推送到 GitHub（当前: <code>v0.1.0</code>）</li>
+<li><code>ports/ccalg/portfile.cmake</code> 中 SHA512 已填入（已填充）</li>
+</ul>
+<h3 id="_3">操作步骤</h3>
+<pre><code class="language-bash"># 1. Fork 并克隆 vcpkg
+git clone https://github.com/&lt;你的用户名&gt;/vcpkg
+cd vcpkg
+
+# 2. 复制覆盖端口文件
+curl -o ports/ccalg/vcpkg.json \
+  https://raw.githubusercontent.com/CandyMi/ccalg/master/ports/ccalg/vcpkg.json
+curl -o ports/ccalg/portfile.cmake \
+  https://raw.githubusercontent.com/CandyMi/ccalg/master/ports/ccalg/portfile.cmake
+
+# 3. 本地验证
+./bootstrap-vcpkg.sh
+./vcpkg install ccalg
+ls -la installed/x64-linux/include/ccalg/   # 应看到 8 个 .h 文件
+
+# 4. 提交 PR
+git checkout -b add-ccalg
+git add ports/ccalg/
+git commit -m &quot;[ccalg] add new port (version 0.1.0)&quot;
+git push origin add-ccalg
+</code></pre>
+<h3 id="pr">PR 模板</h3>
+<p><strong>标题：</strong></p>
+<pre><code>[ccalg] Add new port (0.1.0)
+</code></pre>
+<p><strong>描述：</strong></p>
+<pre><code class="language-markdown">Add ccalg — header-only high-performance data-structure library for C/C++.
+
+- 8 intrusive/container types: RB-tree (ccmap), hashmap (cchashmap),
+  treap with order statistics (cctreap), d-ary heap (ccheap),
+  dynamic array (ccvector), sorted-array map (ccflatmap),
+  doubly/singly linked lists (cclist/cclink)
+- Compatible with C89 / C99 / C++ / MSVC
+- Zero internal node allocation (heap/vector/flatmap allocate)
+- BSD 3-Clause license
+
+Source: https://github.com/CandyMi/ccalg
+Homepage: https://ccalg.dev
+</code></pre>
+<h3 id="ci">CI 期望</h3>
+<table>
+<thead>
+<tr>
+<th>检查项</th>
+<th>预期</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>构建</td>
+<td>所有 triplet 通过</td>
+</tr>
+<tr>
+<td>安装检查</td>
+<td>header-only，无链接依赖</td>
+</tr>
+<tr>
+<td>许可证</td>
+<td>BSD-3-Clause 声明</td>
+</tr>
+<tr>
+<td>耗时</td>
+<td>约 20-40 分钟</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="conancenter">提交 ConanCenter</h2>
+<blockquote>
+<p>ConanCenter 使用 <strong>Conan 2.x</strong>，且 recipe 结构有严格规范。
+ConanCenter 对 header-only 库的 recipe 相对简单。</p>
+</blockquote>
+<h3 id="_4">前置条件</h3>
+<ul>
+<li>release tag 已推送到 GitHub（当前: <code>v0.1.0</code>）</li>
+<li>本地安装 Conan ≥ 2.x</li>
+</ul>
+<h3 id="recipe">recipe 文件结构</h3>
+<p>ConanCenter 中每个库的 recipe 按以下目录结构组织：</p>
+<pre><code>conan-center-index/recipes/ccalg/
+├── config.yml              # 版本 → 文件夹映射
+└── all/
+    ├── conanfile.py         # 主 recipe
+    ├── conandata.yml        # 源码下载地址 + checksum
+    ├── patches/             # （可选）补丁
+    └── test_package/
+        ├── conanfile.py     # 测试 recipe
+        ├── CMakeLists.txt
+        └── test_package.cpp
+</code></pre>
+<h3 id="_5">各文件说明</h3>
+<h4 id="configyml">config.yml</h4>
+<pre><code class="language-yaml">versions:
+  &quot;0.1.0&quot;:
+    folder: all
+</code></pre>
+<h4 id="conandatayml">conandata.yml</h4>
+<pre><code class="language-yaml">sources:
+  &quot;0.1.0&quot;:
+    url: &quot;https://github.com/CandyMi/ccalg/archive/refs/tags/v0.1.0.tar.gz&quot;
+    sha256: &quot;646fd3e0202948b696e7be33dc14c8c1543afe88f9bd0a9966c0e5a704df89b6&quot;
+</code></pre>
+<h4 id="conanfilepy">conanfile.py</h4>
+<p>参照 <a href="https://github.com/conan-io/conan-center-index/tree/master/recipes/parallel-hashmap">parallel-hashmap</a>（也是 header-only C/C++ 库）编写：</p>
+<pre><code class="language-python">from conan import ConanFile
+from conan.tools.files import copy, get
+from conan.tools.layout import basic_layout
+import os
+
+required_conan_version = &quot;&gt;=1.50.0&quot;
+
+class CcalgConan(ConanFile):
+    name = &quot;ccalg&quot;
+    description = &quot;Header-only high-performance data-structure library for C/C++&quot;
+    license = &quot;BSD-3-Clause&quot;
+    url = &quot;https://github.com/conan-io/conan-center-index&quot;
+    homepage = &quot;https://ccalg.dev&quot;
+    topics = (&quot;data-structures&quot;, &quot;header-only&quot;, &quot;intrusive&quot;, &quot;c&quot;, &quot;c-plus-plus&quot;)
+    package_type = &quot;header-library&quot;
+    settings = &quot;os&quot;, &quot;arch&quot;, &quot;compiler&quot;, &quot;build_type&quot;
+    no_copy_source = True
+
+    def layout(self):
+        basic_layout(self, src_folder=&quot;src&quot;)
+
+    def package_id(self):
+        self.info.clear()
+
+    def source(self):
+        get(self, **self.conan_data[&quot;sources&quot;][self.version],
+            strip_root=True)
+
+    def package(self):
+        copy(self, &quot;LICENSE&quot;, src=self.source_folder,
+             dst=os.path.join(self.package_folder, &quot;licenses&quot;))
+        # 安装 8 个头文件到 include/ccalg/
+        for h in [&quot;ccmap.h&quot;, &quot;cchashmap.h&quot;, &quot;cclink.h&quot;, &quot;cclist.h&quot;,
+                   &quot;ccheap.h&quot;, &quot;ccvector.h&quot;, &quot;ccflatmap.h&quot;, &quot;cctreap.h&quot;]:
+            copy(self, h, src=os.path.join(self.source_folder, &quot;include&quot;),
+                 dst=os.path.join(self.package_folder, &quot;include&quot;, &quot;ccalg&quot;))
+
+    def package_info(self):
+        self.cpp_info.set_property(&quot;cmake_file_name&quot;, &quot;ccalg&quot;)
+        self.cpp_info.set_property(&quot;cmake_target_name&quot;, &quot;ccalg::ccalg&quot;)
+        self.cpp_info.bindirs = []
+        self.cpp_info.libdirs = []
+        self.cpp_info.includedirs = [&quot;include&quot;]
+</code></pre>
+<h4 id="test_packageconanfilepy">test_package/conanfile.py</h4>
+<pre><code class="language-python">from conan import ConanFile
+from conan.tools.build import can_run
+from conan.tools.cmake import CMake, cmake_layout
+import os
+
+class TestPackageConan(ConanFile):
+    settings = &quot;os&quot;, &quot;arch&quot;, &quot;compiler&quot;, &quot;build_type&quot;
+    generators = &quot;CMakeToolchain&quot;, &quot;CMakeDeps&quot;, &quot;VirtualRunEnv&quot;
+    test_type = &quot;explicit&quot;
+
+    def layout(self):
+        cmake_layout(self)
+
+    def requirements(self):
+        self.requires(self.tested_reference_str)
+
+    def build(self):
+        cmake = CMake(self)
+        cmake.configure()
+        cmake.build()
+
+    def test(self):
+        if can_run(self):
+            bin_path = os.path.join(self.cpp.build.bindirs[0], &quot;test_package&quot;)
+            self.run(bin_path, env=&quot;conanrun&quot;)
+</code></pre>
+<h4 id="test_packagecmakeliststxt">test_package/CMakeLists.txt</h4>
+<pre><code class="language-cmake">cmake_minimum_required(VERSION 3.15)
+project(test_package LANGUAGES C)
+
+find_package(ccalg REQUIRED CONFIG)
+
+add_executable(${PROJECT_NAME} test_package.c)
+target_link_libraries(${PROJECT_NAME} PRIVATE ccalg::ccalg)
+target_compile_features(${PROJECT_NAME} PRIVATE c_std_99)
+</code></pre>
+<h4 id="test_packagetest_packagec">test_package/test_package.c</h4>
+<pre><code class="language-c">#include &lt;ccalg/ccmap.h&gt;
+
+int main() {
+    ccmap_t m;
+    ccmap_init(&amp;m, NULL);  // no comparison function needed for empty test
+    ccmap_destroy(&amp;m);
+    return 0;
+}
+</code></pre>
+<h3 id="_6">操作步骤</h3>
+<pre><code class="language-bash"># 1. Fork 并克隆 ConanCenter
+git clone https://github.com/&lt;你的用户名&gt;/conan-center-index
+cd conan-center-index
+
+# 2. 创建 recipe（从 ccalg 仓库的模板复制）
+mkdir -p recipes/ccalg/all/test_package
+
+# conandata.yml
+cat &gt; recipes/ccalg/all/conandata.yml &lt;&lt; 'EOF'
+sources:
+  &quot;0.1.0&quot;:
+    url: &quot;https://github.com/CandyMi/ccalg/archive/refs/tags/v0.1.0.tar.gz&quot;
+    sha256: &quot;646fd3e0202948b696e7be33dc14c8c1543afe88f9bd0a9966c0e5a704df89b6&quot;
+EOF
+
+# config.yml
+cat &gt; recipes/ccalg/config.yml &lt;&lt; 'EOF'
+versions:
+  &quot;0.1.0&quot;:
+    folder: all
+EOF
+
+# 3. 编写 conanfile.py、test_package/*（参考上方模板）
+#    … 粘贴 conanfile.py 内容 …
+#    … 粘贴 test_package/* 内容 …
+
+# 4. 本地验证
+conan create recipes/ccalg/all/conanfile.py --version=0.1.0
+
+# 5. 提交 PR
+git checkout -b add-ccalg
+git add recipes/ccalg/
+git commit -m &quot;ccalg: add new recipe (version 0.1.0)&quot;
+git push origin add-ccalg
+</code></pre>
+<h3 id="pr_1">PR 模板</h3>
+<p><strong>标题：</strong></p>
+<pre><code>ccalg: add new recipe (0.1.0)
+</code></pre>
+<p><strong>描述：</strong></p>
+<pre><code class="language-markdown">Add ccalg — header-only high-performance data-structure library for C/C++.
+
+- 8 intrusive/container types: RB-tree (ccmap), hashmap (cchashmap),
+  treap with order statistics (cctreap), d-ary heap (ccheap),
+  dynamic array (ccvector), sorted-array map (ccflatmap),
+  doubly/singly linked lists (cclist/cclink)
+- Compatible with C89 / C99 / C++ / MSVC
+- Zero internal node allocation (heap/vector/flatmap allocate)
+- BSD 3-Clause license
+
+Source: https://github.com/CandyMi/ccalg
+Homepage: https://ccalg.dev
+</code></pre>
+<h3 id="ci_1">CI 期望</h3>
+<table>
+<thead>
+<tr>
+<th>检查项</th>
+<th>预期</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>构建</td>
+<td>全平台矩阵通过（~30+ configurations）</td>
+</tr>
+<tr>
+<td>Hook 检查</td>
+<td><code>conan-center hooks</code> 零告警</td>
+</tr>
+<tr>
+<td>CLA</td>
+<td>需签署 CLA Assistant</td>
+</tr>
+<tr>
+<td>耗时</td>
+<td>约 30-60 分钟（取决于队列）</td>
+</tr>
+</tbody>
+</table>
+<p>ConanCenter 的 CI 会为每个支持的平台/编译器组合构建二进制包。
+header-only 库的构建耗时较短，但队列等待时间不定。</p>
+<hr />
+<h2 id="_7">代码规范</h2>
+<ul>
+<li>C89/C99 兼容，避免 C99-only 语法（如 <code>//</code> 注释用 <code>/* */</code>）</li>
+<li>MSVC 兼容，避免 GNU C 扩展</li>
+<li>每个 <code>.h</code> 自包含，无跨头文件依赖</li>
+<li>使用 <code>CCXXX_</code> 前缀空间，避免宏污染</li>
+<li>提交前运行 <code>cmake --build build --target check</code> 确保测试通过</li>
+</ul>
+  </article>
+  <footer class="mt-12 pt-4 border-t border-teal-200 dark:border-teal-800
+                 text-sm text-teal-500 dark:text-teal-400">
+    <p>ccalg — header-only C data-structure library · BSD 3-Clause ·
+    <a href="https://github.com/CandyMi/ccalg" class="text-blue-600 dark:text-blue-400 hover:underline">GitHub</a></p>
+  </footer>
+</main>
+<button class="toc-toggle fixed right-3 top-[50px] z-[101] px-2.5 py-1
+               border border-teal-300 dark:border-teal-700 rounded-t-md
+               bg-white dark:bg-teal-900 text-teal-600 dark:text-teal-300
+               text-sm cursor-pointer whitespace-nowrap
+               hover:bg-blue-600 hover:text-white hover:border-blue-600
+               dark:hover:bg-blue-600 dark:hover:text-white
+               transition-colors duration-200"
+        id="tocToggle" title="折叠目录">点击收起 <span class="toc-icon inline-block transition-transform duration-300">▶</span></button>
+<nav class="toc fixed right-3 top-20 w-[210px] max-h-[calc(100vh-120px)]
+            flex flex-col text-sm z-[100] bg-white dark:bg-teal-900
+            border border-teal-200 dark:border-teal-800 rounded-xl
+            shadow-lg shadow-teal-200/50 dark:shadow-teal-950/50
+            opacity-90 hover:opacity-100 transition-opacity duration-200"
+     id="toc">
+  <div class="flex justify-between items-center flex-shrink-0 font-semibold
+              text-teal-800 dark:text-teal-100 text-sm
+              px-3 py-2.5 border-b border-teal-200 dark:border-teal-800">
+    <span>本页目录</span>
+    <a href="#" class="text-teal-400 dark:text-teal-500 text-base font-normal
+                       no-underline hover:text-blue-600 dark:hover:text-blue-400 px-1"
+       title="回到顶部">↑</a>
+  </div>
+  <div class="toc-links overflow-y-auto flex-1 px-3 py-2">
+<a href="#vcpkg" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="vcpkg">提交 vcpkg 官方注册表</a>
+<a href="#_2" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_2">前置条件</a>
+<a href="#_3" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_3">操作步骤</a>
+<a href="#pr" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="pr">PR 模板</a>
+<a href="#ci" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="ci">CI 期望</a>
+<a href="#conancenter" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="conancenter">提交 ConanCenter</a>
+<a href="#_4" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_4">前置条件</a>
+<a href="#recipe" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="recipe">recipe 文件结构</a>
+<a href="#_5" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_5">各文件说明</a>
+<a href="#_6" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_6">操作步骤</a>
+<a href="#pr_1" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="pr_1">PR 模板</a>
+<a href="#ci_1" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="ci_1">CI 期望</a>
+<a href="#_7" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="_7">代码规范</a>
+  </div>
+</nav>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+mermaid.initialize({ startOnLoad: false, theme: 'base' });
+// protect mermaid blocks from highlight.js — convert before hljs runs
+document.querySelectorAll('pre code.language-mermaid').forEach(function(el) {
+  el.parentElement.classList.add('mermaid');
+  el.parentElement.innerHTML = el.textContent;
+});
+hljs.highlightAll();
+mermaid.run();
+
+// ── sidebar toggle ─────────────────────────────────────────────────
+(function() {
+  var btn = document.getElementById('toggleSidebar');
+  var body = document.body;
+  if (!btn) return;
+
+  function apply(state) {
+    body.classList.toggle('sidebar-collapsed', state);
+    btn.title = state ? '展开侧边栏' : '收起侧边栏';
+    btn.innerHTML = state ? '☰' : '☰';
+  }
+
+  btn.addEventListener('click', function() {
+    var collapsed = !body.classList.contains('sidebar-collapsed');
+    apply(collapsed);
+    try { localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0'); } catch(e) {}
+  });
+
+  // restore saved state
+  try {
+    if (localStorage.getItem('sidebar-collapsed') === '1') apply(true);
+  } catch(e) {}
+})();
+
+// ── TOC collapse toggle ──────────────────────────────────────────────
+(function() {
+  var btn = document.getElementById('tocToggle');
+  var toc = document.getElementById('toc');
+  if (!btn || !toc) return;
+
+  function apply(state) {
+    document.body.classList.toggle('toc-collapsed', state);
+    btn.innerHTML = state ? '点击展开 <span class="toc-icon inline-block transition-transform duration-300">▶</span>' : '点击收起 <span class="toc-icon inline-block transition-transform duration-300">▶</span>';
+    btn.title = state ? '展开目录' : '折叠目录';
+  }
+
+  btn.addEventListener('click', function() {
+    var collapsed = !document.body.classList.contains('toc-collapsed');
+    apply(collapsed);
+    try { localStorage.setItem('toc-collapsed', collapsed ? '1' : '0'); } catch(e) {}
+  });
+
+  try {
+    if (localStorage.getItem('toc-collapsed') === '1') apply(true);
+  } catch(e) {}
+})();
+
+// ── TOC scroll-spy (midpoint activation) ────────────────────────────
+(function() {
+  var toc = document.getElementById('toc');
+  if (!toc) return;
+  var links = toc.querySelectorAll('.toc-links a');
+  if (!links.length) { toc.style.display = 'none'; return; }
+
+  // collect heading targets
+  var headings = [];
+  links.forEach(function(a) {
+    var el = document.getElementById(a.getAttribute('data-target'));
+    if (el) headings.push({ el: el, link: a });
+  });
+
+  // find which heading's midpoint is active
+  function updateActive() {
+    var mid = window.scrollY + window.innerHeight / 2;
+    var activeIdx = -1;
+    for (var i = headings.length - 1; i >= 0; i--) {
+      if (headings[i].el.offsetTop <= mid) { activeIdx = i; break; }
+    }
+
+    links.forEach(function(a, idx) {
+      a.classList.toggle('active', idx === activeIdx);
+    });
+
+    if (activeIdx >= 0 && headings[activeIdx]) {
+      headings[activeIdx].link.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+    }
+  }
+
+  updateActive();
+
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() { ticking = false; updateActive(); });
+      ticking = true;
+    }
+  }, { passive: true });
+})();
+</script>
+<script>
+// Load HLJS theme CSS AFTER Tailwind CDN has injected its styles.
+// Tailwind CDN injects styles async (DOMContentLoaded / rAF) — we use
+// double rAF to guarantee HLJS loads last and wins cascade ties.
+requestAnimationFrame(function() {
+  requestAnimationFrame(function() {
+    var light = document.createElement('link');
+    light.rel = 'stylesheet';
+    light.media = '(prefers-color-scheme: light)';
+    light.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs.min.css';
+    document.head.appendChild(light);
+    var dark = document.createElement('link');
+    dark.rel = 'stylesheet';
+    dark.media = '(prefers-color-scheme: dark)';
+    dark.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs2015.min.css';
+    document.head.appendChild(dark);
+  });
+});
+</script>
+</body>
+</html>

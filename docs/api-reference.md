@@ -1,5 +1,9 @@
 # API 参考
 
+> **C++ 互操作：** 所有容器类型和函数包裹在 `extern "C" { }` 中。每个容器定义 `CCXXX_NOEXCEPT` 宏
+> （C++17+ 展开为 `noexcept`，C/<C++17 展开为空），标注在所有 public 函数和回调 typedef 上。
+> C++17+ 编译时，回调函数指针类型强制要求 `noexcept`，从编译期阻止异常通过库回调传播。
+
 ## ccmap — 侵入式红黑树
 
 头文件: [`include/ccmap.h`](https://github.com/CandyMi/ccalg/blob/master/include/ccmap.h)
@@ -14,7 +18,7 @@ typedef struct ccmap_node {
     uintptr_t           pc;       // parent | color (low bit)
 } ccmap_node_t;
 
-typedef int64_t (*ccmap_cmp_t)(const ccmap_node_t *a, const ccmap_node_t *b);
+typedef int64_t (*ccmap_cmp_t)(const ccmap_node_t *a, const ccmap_node_t *b) CCMAP_NOEXCEPT;
 // 返回 >0: a 序更小  <0: b 序更小  ==0: 相等
 
 typedef struct map {
@@ -33,6 +37,7 @@ typedef struct map {
 | 宏 | 作用 | 默认 |
 | --- | --- | --- |
 | `CCMAP_COMPARE(a, b)` | 内联比较（替代函数指针） | 未定义 |
+| `CCMAP_NOEXCEPT` | C++17 noexcept 标注（C/<C++17 展开为空） | 未定义 |
 | `CCMAP_NODE_T` | 阻止默认节点 typedef | 未定义 |
 
 ### 生命周期
@@ -110,8 +115,8 @@ typedef struct cchashmap_node {
     uint64_t               hash;  // 缓存的哈希值
 } cchashmap_node_t;
 
-typedef uint64_t (*cchashmap_hash_t)(const cchashmap_node_t *n, size_t seed);
-typedef bool     (*cchashmap_equal_t)(const cchashmap_node_t *a, const cchashmap_node_t *b);
+typedef uint64_t (*cchashmap_hash_t)(const cchashmap_node_t *n, size_t seed) CCHASHMAP_NOEXCEPT;
+typedef bool     (*cchashmap_equal_t)(const cchashmap_node_t *a, const cchashmap_node_t *b) CCHASHMAP_NOEXCEPT;
 
 typedef struct cchashmap {
     cchashmap_node_t **buckets;  // bucket 指针数组
@@ -132,6 +137,7 @@ typedef struct cchashmap {
 | `CCHASHMAP_HASH(n, seed)` | 内联哈希（替代函数指针） | 未定义 |
 | `CCHASHMAP_EQUAL(a, b)` | 内联判等（替代函数指针） | 未定义 |
 | `CCHASHMAP_NODE_T` | 阻止默认节点 typedef | 未定义 |
+| `CCHASHMAP_NOEXCEPT` | C++17 noexcept 标注 | 未定义 |
 | `CCHASHMAP_REALLOC` | 重分配函数 | `realloc` |
 | `CCHASHMAP_MALLOC(sz)` | 分配函数 | `realloc(NULL, sz)` |
 | `CCHASHMAP_FREE(ptr)` | 释放函数 | `free(ptr)` |
@@ -200,7 +206,9 @@ typedef struct cclist {
 
 ### 编译期配置
 
-无需配置宏。
+| 宏 | 作用 | 默认 |
+| --- | --- | --- |
+| `CCLIST_NOEXCEPT` | C++17 noexcept 标注 | 未定义 |
 
 ### 生命周期
 
@@ -300,6 +308,7 @@ typedef struct cclink {
 
 | 宏 | 作用 | 默认 |
 | --- | --- | --- |
+| `CCLINK_NOEXCEPT` | C++17 noexcept 标注 | 未定义 |
 | `CCLINK_NODE_T` | 阻止默认节点 typedef | 未定义 |
 
 ### 生命周期
@@ -379,7 +388,7 @@ typedef struct ccheap_node {
 // 8 字节 union，堆不访问字段——由比较器决定语义。
 // 嵌入到自定义结构体中（编译期不可替换）。
 
-typedef int64_t (*ccheap_compare_t)(const ccheap_node_t *, const ccheap_node_t *);
+typedef int64_t (*ccheap_compare_t)(const ccheap_node_t *, const ccheap_node_t *) CCHEAP_NOEXCEPT;
 
 typedef struct ccheap {
     ccheap_node_t   **data;   // 指针数组
@@ -400,6 +409,7 @@ typedef struct ccheap {
 | 宏 | 作用 | 默认 |
 | --- | --- | --- |
 | `CCHEAP_COMPARE(a, b)` | 内联比较（替代函数指针） | 未定义 |
+| `CCHEAP_NOEXCEPT` | C++17 noexcept 标注 | 未定义 |
 | `CCHEAP_ARITY` | 分叉数 | `2`（可选 `4`/`8`） |
 | `CCHEAP_NODE_T` | 节点类型（固定，嵌入用） | `ccheap_node_t` |
 | `CCHEAP_REALLOC` | 重分配函数 | `realloc` |
@@ -482,6 +492,7 @@ typedef struct ccvector {
 | 宏 | 作用 | 默认 |
 | --- | --- | --- |
 | `CCVECTOR_NODE_T` | 元素类型 | `ccvector_node_t` |
+| `CCVECTOR_NOEXCEPT` | C++17 noexcept 标注 | 未定义 |
 | `CCVECTOR_REALLOC` | 重分配函数 | `realloc` |
 | `CCVECTOR_MALLOC(sz)` | 分配函数 | `realloc(NULL, sz)` |
 | `CCVECTOR_FREE(ptr)` | 释放函数 | `free(ptr)` |
@@ -574,7 +585,7 @@ typedef struct ccflatmap_node {
 } ccflatmap_node_t;
 
 typedef int64_t (*ccflatmap_cmp_t)(const CCFLATMAP_NODE_T *a,
-                                   const CCFLATMAP_NODE_T *b);
+                                   const CCFLATMAP_NODE_T *b) CCFLATMAP_NOEXCEPT;
 
 typedef struct ccflatmap {
     CCFLATMAP_NODE_T *buckets;
@@ -591,6 +602,7 @@ typedef struct ccflatmap {
 | 宏 | 作用 | 默认 |
 | --- | --- | --- |
 | `CCFLATMAP_COMPARE(a, b)` | 内联比较 | 未定义 |
+| `CCFLATMAP_NOEXCEPT` | C++17 noexcept 标注 | 未定义 |
 | `CCFLATMAP_NODE_T` | 元素类型 | `ccflatmap_node_t` |
 | `CCFLATMAP_REALLOC` / `MALLOC` / `FREE` | 分配器 | `realloc` / `free` |
 | `CCFLATMAP_DEFAULT_CAP` | 初始容量 | `8` |
@@ -683,7 +695,7 @@ typedef struct cctreap_node {
     uint64_t             priority;  // internal random priority (max-heap)
 } cctreap_node_t;
 
-typedef int64_t (*cctreap_cmp_t) (const cctreap_node_t *a, const cctreap_node_t *b);
+typedef int64_t (*cctreap_cmp_t) (const cctreap_node_t *a, const cctreap_node_t *b) CCTREAP_NOEXCEPT;
 
 typedef struct cctreap {
     cctreap_node_t    *root;
@@ -701,6 +713,7 @@ typedef struct cctreap {
 | --- | --- | --- |
 | `CCTREAP_COMPARE(a, b)` | 内联 key 比较 | 未定义 |
 | `CCTREAP_RAND_T` | RNG 状态类型 | `uint64_t`（可替换为 `ccrandom128_t` / `ccrandom256_t`）|
+| `CCTREAP_NOEXCEPT` | C++17 noexcept 标注 | 未定义 |
 | `CCTREAP_RAND_INIT(m, seed)` | 播种：接收容器指针 + 种子值初始化 RNG 状态 | `(m)->state = (seed)` |
 | `CCTREAP_RAND_NEXT(state)` | 步进：生成下一个随机值 | `_tp_xorshift64` |
 | `CCTREAP_RAND(state)` | （兼容别名，等价于 `CCTREAP_RAND_NEXT`） | — |
@@ -791,6 +804,7 @@ bool ccunicode_from_codepoint(uint32_t val, char str[4], int *len);
 | 宏 | 作用 | 默认 |
 | --- | --- | --- |
 | `CCUNICODE_INLINE` | 函数内联关键字，可覆盖为 `static`（C89）| `static inline` |
+| `CCUNICODE_NOEXCEPT` | C++17 noexcept 标注 | 未定义 |
 
 ### 性能说明
 
@@ -846,6 +860,7 @@ double ccrandom256_f64next(ccrandom256_t *s);
 | 宏 | 作用 | 默认 |
 | --- | --- | --- |
 | `CCRANDOM_INLINE` | 函数内联关键字，可覆盖为 `static`（C89）| `static inline` |
+| `CCRANDOM_NOEXCEPT` | C++17 noexcept 标注 | 未定义 |
 
 ### 线程安全
 

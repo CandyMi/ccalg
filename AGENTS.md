@@ -81,6 +81,9 @@ When a macro is defined, the matching `init()` parameter is suppressed with `(vo
 | `cctreap` | `cctreap_cmp_t`: `int64_t (*)(const cctreap_node_t*, const cctreap_node_t*)` (key) | `#define CCTREAP_COMPARE(a, b)` (key) <br> `#define CCTREAP_RAND_NEXT(state)` (RNG) |
 | `cclist` / `cclink` | none needed | none |
 
+All callback typedefs include `CCXXX_NOEXCEPT` (C++17+ `noexcept`, C < C++17 empty) to enforce
+non-throwing callbacks at compile time in C++17+.
+
 #### Comparison semantics
 
 - Return type `int64_t`; `>0` → `a` ordered before `b`; `<0` → `b` before `a`; `==0` → equal
@@ -92,16 +95,16 @@ Each container owns its namespace. Prefix = container abbreviation. No macros ar
 
 | Container | Prefix | Key macros |
 | --- | --- | --- |
-| `ccmap` | `CCMAP_` | `CCMAP_INLINE`, `CCMAP_CONTAINER`, `CCMAP_COMPARE` |
-| `cchashmap` | `CCHASHMAP_` | `CCHASHMAP_INLINE`, `CCHASHMAP_CONTAINER`, `CCHASHMAP_REALLOC` |
-| `cclink` | `CCLINK_` | `CCLINK_INLINE`, `CCLINK_CONTAINER` |
-| `cclist` | `CCLIST_` | `CCLIST_INLINE`, `CCLIST_CONTAINER` |
-| `ccheap` | `CCHEAP_` | `CCHEAP_INLINE`, `CCHEAP_COMPARE`, `CCHEAP_REALLOC` |
-| `ccvector` | `CCVECTOR_` | `CCVECTOR_INLINE`, `CCVECTOR_REALLOC` |
-| `ccflatmap` | `CCFLATMAP_` | `CCFLATMAP_INLINE`, `CCFLATMAP_COMPARE`, `CCFLATMAP_REALLOC` |
-| `cctreap` | `CCTREAP_` | `CCTREAP_INLINE`, `CCTREAP_CONTAINER`, `CCTREAP_COMPARE`, `CCTREAP_RAND` |
-| `ccunicode` | `CCUNICODE_` | `CCUNICODE_INLINE` |
-| `ccrandom` | `CCRANDOM_` | `CCRANDOM_INLINE` |
+| `ccmap` | `CCMAP_` | `CCMAP_INLINE`, `CCMAP_NOEXCEPT`, `CCMAP_CONTAINER`, `CCMAP_COMPARE` |
+| `cchashmap` | `CCHASHMAP_` | `CCHASHMAP_INLINE`, `CCHASHMAP_NOEXCEPT`, `CCHASHMAP_CONTAINER`, `CCHASHMAP_REALLOC` |
+| `cclink` | `CCLINK_` | `CCLINK_INLINE`, `CCLINK_NOEXCEPT`, `CCLINK_CONTAINER` |
+| `cclist` | `CCLIST_` | `CCLIST_INLINE`, `CCLIST_NOEXCEPT`, `CCLIST_CONTAINER` |
+| `ccheap` | `CCHEAP_` | `CCHEAP_INLINE`, `CCHEAP_NOEXCEPT`, `CCHEAP_COMPARE`, `CCHEAP_REALLOC` |
+| `ccvector` | `CCVECTOR_` | `CCVECTOR_INLINE`, `CCVECTOR_NOEXCEPT`, `CCVECTOR_REALLOC` |
+| `ccflatmap` | `CCFLATMAP_` | `CCFLATMAP_INLINE`, `CCFLATMAP_NOEXCEPT`, `CCFLATMAP_COMPARE`, `CCFLATMAP_REALLOC` |
+| `cctreap` | `CCTREAP_` | `CCTREAP_INLINE`, `CCTREAP_NOEXCEPT`, `CCTREAP_CONTAINER`, `CCTREAP_COMPARE`, `CCTREAP_RAND` |
+| `ccunicode` | `CCUNICODE_` | `CCUNICODE_INLINE`, `CCUNICODE_NOEXCEPT` |
+| `ccrandom` | `CCRANDOM_` | `CCRANDOM_INLINE`, `CCRANDOM_NOEXCEPT` |
 
 ### Allocation hooks
 
@@ -115,6 +118,28 @@ Containers that allocate memory internally expose replaceable allocator macros:
 
 - `cchashmap`, `ccheap`, `ccvector`, `ccflatmap` use this mechanism.
 - `ccmap`, `cclink`, `cclist`, `cctreap` have zero internal allocation → no allocator macros.
+
+### C++ interop
+
+Every header wraps its types and functions in `extern "C" { }` for C++ compatibility
+(ccrandom.h already had one).  All public functions and callback typedefs carry a
+`CCXXX_NOEXCEPT` annotation:
+
+```c
+#if defined(__cplusplus) && __cplusplus >= 201703L
+  #define CCMAP_NOEXCEPT noexcept
+#else
+  #define CCMAP_NOEXCEPT
+#endif
+```
+
+| Scope | `CCXXX_NOEXCEPT` in C | `CCXXX_NOEXCEPT` in C++ < C++17 | `CCXXX_NOEXCEPT` in C++17+ |
+| --- | :-: | :-: | :-: |
+| Public function declarations | empty | empty | `noexcept` (optimization hint) |
+| Callback typedefs (`cmp_t`, `hash_t`, …) | empty | empty | `noexcept` (type-system constraint) |
+
+C++17+ compilers enforce that only `noexcept` functions can be assigned to the callback typedefs,
+preventing exception propagation through library callbacks at compile time.
 
 ### API naming conventions
 
@@ -342,9 +367,10 @@ cmake --install build --prefix /usr/local
 9. [ ] `xxx_size` (+ `xxx_height` if tree)
 10. [ ] All public functions NULL-safe
 11. [ ] Allocator hooks if the container allocates internally
-12. [ ] Internal helpers prefixed `_xxx_`
-13. [ ] BSD license header
-14. [ ] Matching `tests/test_ccxxx.c` + `bench/bench_ccxxx.cpp` (benchmarks required for all modules, including utilities like ccrandom/ccunicode)
+12. [ ] `CCXXX_NOEXCEPT` macro (C++17 `noexcept`, C/<C++17 empty) + `extern "C"` block
+13. [ ] Internal helpers prefixed `_xxx_`
+14. [ ] BSD license header
+15. [ ] Matching `tests/test_ccxxx.c` + `bench/bench_ccxxx.cpp` (benchmarks required for all modules, including utilities like ccrandom/ccunicode)
 15. [ ] Update `AGENTS.md`, `docs/api-reference.md`, `docs/algorithms.md`, `docs/index.md`
 
 ---

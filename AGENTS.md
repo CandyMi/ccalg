@@ -397,6 +397,28 @@ Use `/* */` consistently throughout each file.
 **No mixing** — a single file MUST NOT contain both `/* */` and `//` comments.  
 If a file mixes styles, STOP and ask which style to unify to before proceeding.
 
+#### Doxygen annotations
+
+Utility modules (`ccrandom`, `ccunicode`, `ccshuffle`, and similar non-container
+helpers) MUST annotate every public function with Doxygen-style doc comments:
+
+```c
+/** @brief One-line summary.
+ *  @param name  Description.
+ *  @return      Description. */
+```
+
+Fields:
+- `@brief` — required, single-sentence summary of the function.
+- `@param name` — one per parameter, describing valid values / NULL semantics.
+- `@return` — required for non-void functions; optional for void (document `out`
+  parameters if any).
+
+Container headers (`ccmap`, `cclist`, …) MAY use plain `/* */` block comments
+at the author's discretion — their public API is documented in `docs/api-reference.md`.
+A single file MUST NOT mix `/** */` and plain `/* */` for different doc blocks;
+choose one style per file.
+
 ### 3. Language standard & C89 compatibility
 
 - C99+ and C89 syntax may coexist in the project.

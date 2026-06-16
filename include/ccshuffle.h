@@ -80,8 +80,7 @@ typedef uint64_t (*ccshuffle_prng_t)(void *state) CCSHUFFLE_NOEXCEPT;
  *  @param sz         Size in bytes of each element.
  *  @param state      Opaque PRNG state passed to @a prng_next (must not be NULL).
  *  @param prng_next  PRNG callback returning uniformly-distributed uint64_t
- *                    (must not be NULL).
- **/
+ *                    (must not be NULL). */
 CCSHUFFLE_INLINE void
 ccshuffle_knuth(void *base, size_t len, size_t sz, void *state,
                 ccshuffle_prng_t prng_next) CCSHUFFLE_NOEXCEPT {

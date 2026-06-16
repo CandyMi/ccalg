@@ -118,7 +118,7 @@ TEST(elements_preserved) {
   ASSERT(is_permutation(arr, ref, 100) == 1);
 }
 
-/* ── large elements ( > CCSHUFFLE_BUFSIZ = 64 ) — heap alloc path ─────── */
+/* ── large elements ( > CCSHUFFLE_BSIZE = 64 ) — heap alloc path ──────── */
 
 TEST(large_elements) {
 # define BIG_SZ 128

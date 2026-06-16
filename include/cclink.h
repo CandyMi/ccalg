@@ -176,7 +176,7 @@ CCLINK_INLINE cclink_node_t *cclink_next(const cclink_node_t *n) CCLINK_NOEXCEPT
   return n ? n->next : NULL;
 }
 CCLINK_INLINE cclink_node_t *cclink_front(const cclink_t *l) CCLINK_NOEXCEPT {
-  return l ? l->head : NULL;
+  return cclink_begin(l);
 }
 CCLINK_INLINE cclink_node_t *cclink_back(const cclink_t *l) CCLINK_NOEXCEPT {
   return l ? l->tail : NULL;
@@ -194,9 +194,9 @@ CCLINK_INLINE bool cclink_empty(const cclink_t *l) CCLINK_NOEXCEPT {
 /* ── debug ────────────────────────────────────────────────────────────── */
 
 CCLINK_INLINE bool cclink_has_cycle(const cclink_t *l) CCLINK_NOEXCEPT {
-  if (!l || !l->head) return false;
-  const cclink_node_t *slow = l->head;
-  const cclink_node_t *fast = l->head;
+  if (!l || !cclink_begin(l)) return false;
+  const cclink_node_t *slow = cclink_begin(l);
+  const cclink_node_t *fast = cclink_begin(l);
   while (fast && fast->next) {
     slow = slow->next;
     fast = fast->next->next;

@@ -118,8 +118,8 @@ CCLIST_INLINE cclist_node_t *cclist_rbegin(const cclist_t *l) CCLIST_NOEXCEPT { 
 CCLIST_INLINE cclist_node_t *cclist_next(const cclist_node_t *n) CCLIST_NOEXCEPT { return n ? n->next : NULL; }
 CCLIST_INLINE cclist_node_t *cclist_prev(const cclist_node_t *n) CCLIST_NOEXCEPT { return n ? n->prev : NULL; }
 
-CCLIST_INLINE cclist_node_t *cclist_front(const cclist_t *l) CCLIST_NOEXCEPT { return l ? l->head : NULL; }
-CCLIST_INLINE cclist_node_t *cclist_back(const cclist_t *l) CCLIST_NOEXCEPT  { return l ? l->tail : NULL; }
+CCLIST_INLINE cclist_node_t *cclist_front(const cclist_t *l) CCLIST_NOEXCEPT { return cclist_begin(l); }
+CCLIST_INLINE cclist_node_t *cclist_back(const cclist_t *l) CCLIST_NOEXCEPT  { return cclist_rbegin(l); }
 
 /* ── push / pop ───────────────────────────────────────────────────────── */
 
@@ -201,9 +201,9 @@ CCLIST_INLINE void cclist_clear(cclist_t *l) CCLIST_NOEXCEPT { cclist_init(l); }
 
 /* Floyd's algorithm — O(N) time, O(1) space. */
 CCLIST_INLINE bool cclist_has_cycle(const cclist_t *l) CCLIST_NOEXCEPT {
-  if (!l || !l->head) return false;
-  cclist_node_t *slow = l->head;
-  cclist_node_t *fast = l->head;
+  if (!l || !cclist_begin(l)) return false;
+  cclist_node_t *slow = cclist_begin(l);
+  cclist_node_t *fast = cclist_begin(l);
   while (fast && fast->next) {
     slow = slow->next;
     fast = fast->next->next;

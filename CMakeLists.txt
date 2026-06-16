@@ -46,6 +46,7 @@ add_ccalg_test(test_cctreap)
 add_ccalg_test(test_ccrandom)
 add_ccalg_test(test_ccunicode)
 add_ccalg_test(test_ccunicode_verify)
+add_ccalg_test(test_ccshuffle)
 
 # ── benchmark targets (C++) ──────────────────────────────────────────────
 macro(add_ccalg_bench name)
@@ -78,7 +79,7 @@ target_compile_options(bench_ccmap_prefetch_on PRIVATE -O2 -DCCMAP_PREFETCH)
 # `cmake --build build --target check` — build + run all tests
 add_custom_target(check
   COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -L unit
-  DEPENDS test_ccmap test_cchashmap test_cclink test_cclist test_ccheap test_ccvector test_ccflatmap test_cctreap test_ccrandom test_ccunicode test_ccunicode_verify
+  DEPENDS test_ccmap test_cchashmap test_cclink test_cclist test_ccheap test_ccvector test_ccflatmap test_cctreap test_ccrandom test_ccunicode test_ccunicode_verify test_ccshuffle
   USES_TERMINAL
   COMMENT "Running all unit tests"
 )

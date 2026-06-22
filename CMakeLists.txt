@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.10)
 project(ccalg LANGUAGES C CXX)
 
-# ── include directory ────────────────────────────────────────────────────
+# ── include directory + library target ────────────────────────────────────
 set(CCALG_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
+
+# header-only library — downstream uses target_link_libraries(myapp ccalg)
+add_library(ccalg INTERFACE)
+target_include_directories(ccalg INTERFACE ${CCALG_INCLUDE_DIR})
 
 # ── common compile settings ──────────────────────────────────────────────
 set(CMAKE_C_STANDARD 99)

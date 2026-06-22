@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches-ignore: ["gh-pages"]
+  pull_request:
+    branches: ["main", "master"]
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x86_64 (GCC)
+            os: ubuntu-24.04
+            cc: gcc
+            cxx: g++
+
+          - name: Linux x86_64 (Clang)
+            os: ubuntu-24.04
+            cc: clang
+            cxx: clang++
+
+          - name: Linux i386 (GCC)
+            os: ubuntu-24.04
+            cc: gcc
+            cxx: g++
+            pkgs: gcc-multilib g++-multilib
+            cflags: -m32
+            cxxflags: -m32
+
+          - name: Linux i386 (Clang)
+            os: ubuntu-24.04
+            cc: clang
+            cxx: clang++
+            pkgs: gcc-multilib g++-multilib
+            cflags: -m32
+            cxxflags: -m32
+
+          - name: macOS arm64 (Apple Silicon)
+            os: macos-14
+            cc: clang
+            cxx: clang++
+
+          # ── Windows — MSVC ──────────────────────────────────────────────
+          - name: Windows x64 (MSVC)
+            os: windows-2022
+            cc: cl
+            cxx: cl
+
+          - name: Windows x86 (MSVC)
+            os: windows-2022
+            cc: cl
+            cxx: cl
+            cmake_extra: -A Win32
+
+          # ── Windows — ClangCL (VS toolset) ─────────────────────────────
+          - name: Windows x64 (ClangCL)
+            os: windows-2022
+            cc: clang-cl
+            cxx: clang-cl
+            cmake_extra: -T ClangCL
+
+          - name: Windows x86 (ClangCL)
+            os: windows-2022
+            cc: clang-cl
+            cxx: clang-cl
+            cmake_extra: -A Win32 -T ClangCL
+
+          # ── Windows — MinGW GCC ────────────────────────────────────────
+          - name: Windows x64 (MinGW GCC)
+            os: windows-2022
+            cc: gcc
+            cxx: g++
+            msystem: MINGW64
+            mingw_pkg: mingw-w64-x86_64-gcc
+            cmake_extra: -G Ninja
+
+          - name: Windows x86 (MinGW GCC)
+            os: windows-2022
+            cc: gcc
+            cxx: g++
+            msystem: MINGW32
+            mingw_pkg: mingw-w64-i686-gcc
+            cmake_extra: -G Ninja
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install multilib (Linux 32-bit)
+        if: matrix.pkgs
+        run: sudo apt-get update && sudo apt-get install -y ${{ matrix.pkgs }}
+
+      - name: Setup MSYS2 (MinGW)
+        if: matrix.msystem
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          update: true
+          install: ${{ matrix.mingw_pkg }}
+
+      - name: Configure
+        env:
+          CFLAGS: ${{ matrix.cflags }}
+          CXXFLAGS: ${{ matrix.cxxflags }}
+        run: >
+          cmake -S . -B build
+          -DCMAKE_C_COMPILER=${{ matrix.cc }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+          ${{ matrix.cmake_extra }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure -L unit

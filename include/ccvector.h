@@ -9,7 +9,7 @@
 **  ── Usage ──
 **
 **    ccvector_t v;  ccvector_init(&v);
-**    ccvector_node_t n = {.value = 42};
+**    ccvector_node_t n = {42};
 **    ccvector_push_back(&v, n);
 **    printf("%u\n", ccvector_at(&v, 0)->value);
 **    ccvector_destroy(&v);

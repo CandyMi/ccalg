@@ -26,7 +26,7 @@ int main() {
   ccvector_t v; ccvector_init(&v);
   auto t0 = clk::now();
   for (int i = 0; i < N; i++) {
-    ccvector_node_t e = {.value = (uint32_t)i};
+    ccvector_node_t e = {(uint32_t)i};
     ccvector_push_back(&v, e);
   }
   auto t1 = clk::now();
@@ -88,7 +88,7 @@ int main() {
     /* fill ccvector with shuffled data */
     ccvector_t v2; ccvector_init_cap(&v2, (size_t)SN);
     for (int i = 0; i < SN; i++) {
-      ccvector_node_t e = {.value = sv_shuffled[i]};
+      ccvector_node_t e = {sv_shuffled[i]};
       ccvector_push_back(&v2, e);
     }
 

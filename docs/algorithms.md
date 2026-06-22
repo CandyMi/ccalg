@@ -186,6 +186,7 @@ D-ary 堆是二叉堆的泛化，每个节点有 D 个子节点（ccheap 支持 
 | **定时器轮询** | timeout 为 priority，`peek` 查看最近超时而不弹出，结合事件循环使用 |
 | **Top-K 查询** | 维护大小为 K 的最小堆，遍历全量数据，堆顶即为第 K 大 |
 | **事件驱动模拟** | 离散事件按时间戳排序，每次 pop 最早事件执行 |
+| **A* 路径搜索** | 节点 cost 为优先级，`ccheap_update` 在发现更优路径时 O(log n) 更新已存在节点的代價 |
 
 ### 堆结构（以二叉堆为例）
 
@@ -226,6 +227,44 @@ flowchart TD
     G --> H["i = 最大子节点索引"]
     H --> F
     F -->|否| I["✅ 完成，返回堆顶"]
+
+### Decrease-key / 节点更新 (可选)
+
+A* / Dijkstra 等算法需要在搜索过程中降低已存在节点的优先级。
+通过 `#define CCHEAP_NODE_INDEX <字段名>` 开启索引追踪，节点嵌入额外的
+`size_t` 字段记录其在堆数组中的位置，提供 `ccheap_update` 操作。
+
+```c
+#define CCHEAP_NODE_INDEX heap_idx
+#define CCHEAP_COMPARE(a, b) ((int64_t)((b)->cost - (a)->cost))
+#include "ccheap.h"
+
+struct search_node {
+    ccheap_node_t hn;        // 内含 .heap_idx 字段
+    int x, y;
+    double g, f;
+};
+
+// 找到更优路径 → O(log n) 更新
+n->f = new_f;
+ccheap_update(&open_set, &n->hn);
+```
+
+**算法流程：**
+
+- `ccheap_update` 用节点的 `CCHEAP_NODE_INDEX` 字段 O(1) 定位其在数组中的位置
+- 先尝试**上滤**（bubble-up）：若优先级提高，向根方向交换
+- 再尝试**下滤**（sift-down）：若优先级降低，向叶方向下沉
+- 两次尝试保证节点落在正确位置
+
+**零开销：** 不定义 `CCHEAP_NODE_INDEX` 时，节点保持 8 字节，无额外指令。
+
+**对比懒删除方案：**
+
+| 方案 | 操作 | 堆大小 | 额外内存 |
+| --- | --- | --- | --- |
+| 懒删除（无宏） | 发现更优路径时 push 新节点，pop 时跳过 stale | 可能膨胀 | 0 |
+| `CCHEAP_NODE_INDEX` | `ccheap_update` O(log n) 原地更新 | 紧凑 | 每个节点 +8B |
 ```
 
 ### D-ary 子节点

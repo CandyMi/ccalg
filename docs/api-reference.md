@@ -383,10 +383,14 @@ typedef struct ccheap_node {
     union {
         uint64_t priority;  // 优先队列
         uint64_t timeout;   // 定时器
+        double   cost;      // 浮点代價 (A*, 路径搜索)
     };
+#ifdef CCHEAP_NODE_INDEX
+    size_t CCHEAP_NODE_INDEX;  // 堆数组位置 (ccheap_update 用)
+#endif
 } ccheap_node_t;
-// 8 字节 union，堆不访问字段——由比较器决定语义。
-// 嵌入到自定义结构体中（编译期不可替换）。
+// 8 字节 union (无 CCHEAP_NODE_INDEX 时)，堆不访问字段——由比较器决定语义。
+// CCHEAP_NODE_INDEX 开启后节点变为 16B（64-bit），支持 O(log n) decrease-key。
 
 typedef int64_t (*ccheap_compare_t)(const ccheap_node_t *, const ccheap_node_t *) CCHEAP_NOEXCEPT;
 
@@ -416,6 +420,7 @@ typedef struct ccheap {
 | `CCHEAP_MALLOC(sz)` | 分配函数 | `realloc(NULL, sz)` |
 | `CCHEAP_FREE(ptr)` | 释放函数 | `free(ptr)` |
 | `CCHEAP_DEFAULT_CAP` | 初始容量 | `32` |
+| `CCHEAP_NODE_INDEX` | 开启索引追踪（字段名自定义），启用 `ccheap_update` | 未定义 |
 
 ### 比较语义
 
@@ -455,6 +460,13 @@ ccheap_node_t *ccheap_pop(ccheap_t *heap);
 
 ccheap_node_t *ccheap_peek(ccheap_t *heap);
 // 查看根节点（不弹出）。空/NULL 返回 NULL。
+
+#ifdef CCHEAP_NODE_INDEX
+int  ccheap_update(ccheap_t *heap, ccheap_node_t *n);
+// 对已在堆中的节点重新评估位置（decrease-key / increase-key）。
+// 返回 0 成功，-1 失败（NULL / n 不在堆中 / _idx 过期）。
+// 需要 #define CCHEAP_NODE_INDEX <字段名> 开启。
+#endif
 ```
 
 ### 工具

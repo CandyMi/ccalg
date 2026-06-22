@@ -250,7 +250,9 @@ Each header defines its own `CCXXX_INLINE` macro (pattern: `#define CCXXX_INLINE
 ### ccheap — D-ary Heap
 
 - D-ary branching via `CCHEAP_ARITY` (2/4/8).  Child loops unrolled at compile-time via `#if CCHEAP_ARITY_N > N`.
-- Pointer array `ccheap_node_t **` — 2× growth.  `ccheap_node_t` is a fixed 8B union (`priority`/`timeout`); users embed it and recover via `CCHEAP_CONTAINER`.
+- Pointer array `ccheap_node_t **` — 2× growth.  Default `ccheap_node_t` is an 8B union (`priority`/`timeout`/`cost`); users embed and recover via `CCHEAP_CONTAINER`.
+- **Decrease-key (optional):** `#define CCHEAP_NODE_INDEX <field>` before `#include` to embed a `size_t` tracking field in the node (16B on 64-bit).  Enables `ccheap_update(heap, node)` — O(log n) re-evaluation of an already-inserted node.  Zero overhead when macro is undefined.
+- Internal helpers: `_hswap` (swap + idx maintenance if `CCHEAP_NODE_INDEX` active), `_hsift_down` (shared by pop and update).
 
 ### ccvector — Dynamic Array
 

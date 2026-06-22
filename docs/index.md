@@ -28,7 +28,7 @@
 | `cchashmap` | 链式哈希表 | O(1) 均摊 | O(1) 均摊 | O(1) 均摊 | O(n) 无序 |
 | `cclink` | 单向链表 | O(1) 头插 | O(n) | O(n) 任意 / O(1) 头 | O(n) |
 | `cclist` | 双向链表 | O(1) 头/尾 | O(n) | O(1) 给定节点 | O(n) |
-| `ccheap` | D-ary 堆 | O(log n) | — (peek O1) | O(log n) pop | — |
+| `ccheap` | D-ary 堆 | O(log n) | — (peek O1) | O(log n) pop / update | — |
 | `ccvector` | 动态数组 | O(1) 均摊 | O(1) 随机 | O(1) 尾部 | O(n) |
 | `ccflatmap` | 排序数组映射 | O(n) | O(log n) 二分 | O(n) | O(n) 有序 |
 | `cctreap` | Treap (树堆) | O(log n) 期望 | O(log n) 期望 | O(log n) 期望 | O(n) 有序 |

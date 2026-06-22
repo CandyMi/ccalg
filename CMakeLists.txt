@@ -56,7 +56,10 @@ add_ccalg_test(test_ccshuffle)
 macro(add_ccalg_bench name)
   add_executable(${name} bench/${name}.cpp)
   target_include_directories(${name} PRIVATE ${CCALG_INCLUDE_DIR})
-  target_compile_options(${name} PRIVATE -O2)
+  # MSVC Debug adds /RTC1 which conflicts with /O2; skip explicit -O2 for MSVC
+  target_compile_options(${name} PRIVATE
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-O2>
+  )
 endmacro()
 
 add_ccalg_bench(bench_ccmap)
@@ -75,8 +78,8 @@ add_executable(bench_ccmap_prefetch      bench/bench_ccmap_prefetch.cpp)
 add_executable(bench_ccmap_prefetch_on   bench/bench_ccmap_prefetch.cpp)
 target_include_directories(bench_ccmap_prefetch    PRIVATE ${CCALG_INCLUDE_DIR})
 target_include_directories(bench_ccmap_prefetch_on PRIVATE ${CCALG_INCLUDE_DIR})
-target_compile_options(bench_ccmap_prefetch    PRIVATE -O2)
-target_compile_options(bench_ccmap_prefetch_on PRIVATE -O2 -DCCMAP_PREFETCH)
+target_compile_options(bench_ccmap_prefetch    PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-O2>)
+target_compile_options(bench_ccmap_prefetch_on PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-O2> -DCCMAP_PREFETCH)
 
 # ── convenience targets ──────────────────────────────────────────────────
 

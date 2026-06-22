@@ -10,6 +10,7 @@
 **
 **    node.priority  →  priority queue (scheduling, Dijkstra, …)
 **    node.timeout   →  timer wheel  (event loop, network I/O, …)
+**    node.cost      →  floating-point cost (A*, pathfinding, …)
 **
 **  ── Comparison ──
 **
@@ -152,13 +153,19 @@ extern "C" {
 
 /* ── types ────────────────────────────────────────────────────────────── */
 
+#ifndef CCHEAP_NODE_T
 #define CCHEAP_NODE_T ccheap_node_t
 typedef struct ccheap_node {
   union {
-    uint64_t  priority;
-    uint64_t  timeout;
+    uint64_t  priority;   /* integer priority (default) */
+    uint64_t  timeout;    /* timer expiry                */
+    double    cost;       /* floating-point cost (A*, …) */
   };
+#ifdef CCHEAP_NODE_INDEX
+  size_t  CCHEAP_NODE_INDEX;  /* heap array position (update/decrease-key) */
+#endif
 } ccheap_node_t;
+#endif
 
 typedef int64_t (*ccheap_compare_t)(const CCHEAP_NODE_T *, const CCHEAP_NODE_T *) CCHEAP_NOEXCEPT;
 
@@ -185,7 +192,75 @@ CCHEAP_INLINE void _hswap(ccheap_t *h, size_t a, size_t b) {
   ccheap_node_t *tmp = CCHEAP_AT(h, a);
   CCHEAP_AT(h, a) = CCHEAP_AT(h, b);
   CCHEAP_AT(h, b) = tmp;
+#ifdef CCHEAP_NODE_INDEX
+  CCHEAP_AT(h, a)->CCHEAP_NODE_INDEX = a;
+  CCHEAP_AT(h, b)->CCHEAP_NODE_INDEX = b;
+#endif
 }
+
+/* internal: sift down from index i (pop / update) */
+CCHEAP_INLINE void
+_hsift_down(ccheap_t *h, size_t sz, size_t i) {
+  for (;;) {
+    size_t best  = i;
+    size_t child = CCHEAP_CHILD(i, 0);
+
+#if CCHEAP_ARITY_N > 0
+    if (child + 0 < sz && CCHEAP_CMP(h, CCHEAP_AT(h, best), CCHEAP_AT(h, child + 0)) < 0) best = child + 0;
+#endif
+#if CCHEAP_ARITY_N > 1
+    if (child + 1 < sz && CCHEAP_CMP(h, CCHEAP_AT(h, best), CCHEAP_AT(h, child + 1)) < 0) best = child + 1;
+#endif
+#if CCHEAP_ARITY_N > 2
+    if (child + 2 < sz && CCHEAP_CMP(h, CCHEAP_AT(h, best), CCHEAP_AT(h, child + 2)) < 0) best = child + 2;
+#endif
+#if CCHEAP_ARITY_N > 3
+    if (child + 3 < sz && CCHEAP_CMP(h, CCHEAP_AT(h, best), CCHEAP_AT(h, child + 3)) < 0) best = child + 3;
+#endif
+#if CCHEAP_ARITY_N > 4
+    if (child + 4 < sz && CCHEAP_CMP(h, CCHEAP_AT(h, best), CCHEAP_AT(h, child + 4)) < 0) best = child + 4;
+#endif
+#if CCHEAP_ARITY_N > 5
+    if (child + 5 < sz && CCHEAP_CMP(h, CCHEAP_AT(h, best), CCHEAP_AT(h, child + 5)) < 0) best = child + 5;
+#endif
+#if CCHEAP_ARITY_N > 6
+    if (child + 6 < sz && CCHEAP_CMP(h, CCHEAP_AT(h, best), CCHEAP_AT(h, child + 6)) < 0) best = child + 6;
+#endif
+#if CCHEAP_ARITY_N > 7
+    if (child + 7 < sz && CCHEAP_CMP(h, CCHEAP_AT(h, best), CCHEAP_AT(h, child + 7)) < 0) best = child + 7;
+#endif
+
+    if (best == i) break;
+    _hswap(h, i, best);
+    i = best;
+  }
+}
+
+#ifdef CCHEAP_NODE_INDEX
+/* ── decrease-key / update ──────────────────────────────────────────── */
+CCHEAP_INLINE int
+ccheap_update(ccheap_t *heap, CCHEAP_NODE_T *n) CCHEAP_NOEXCEPT
+{
+  if (ccheap_unlikely(!heap || !n)) return -1;
+
+  size_t i = n->CCHEAP_NODE_INDEX;
+  if (ccheap_unlikely(i >= heap->len || CCHEAP_AT(heap, i) != n))
+    return -1;
+
+  /* bubble up if priority increased (or cost decreased) */
+  while (i > 0) {
+    size_t p = CCHEAP_PARENT(i);
+    if (CCHEAP_CMP(heap, CCHEAP_AT(heap, p), CCHEAP_AT(heap, i)) >= 0)
+      break;
+    _hswap(heap, p, i);
+    i = p;
+  }
+
+  /* sift down if no bubble-up happened (priority decreased) */
+  _hsift_down(heap, heap->len, i);
+  return 0;
+}
+#endif /* CCHEAP_NODE_INDEX */
 
 /* ── public API ───────────────────────────────────────────────────────── */
 
@@ -223,7 +298,11 @@ ccheap_insert(ccheap_t *heap, CCHEAP_NODE_T *n) CCHEAP_NOEXCEPT
     heap->cap = new_cap;
   }
 
-  heap->data[heap->len++] = n;
+  heap->data[heap->len] = n;
+#ifdef CCHEAP_NODE_INDEX
+  n->CCHEAP_NODE_INDEX = heap->len;
+#endif
+  heap->len++;
   size_t i = heap->len - 1;
 
   while (i > 0) {
@@ -251,43 +330,12 @@ ccheap_pop(ccheap_t *heap) CCHEAP_NOEXCEPT
 
   /* move last to root, then pop */
   CCHEAP_AT(heap, 0) = CCHEAP_AT(heap, heap->len - 1);
+#ifdef CCHEAP_NODE_INDEX
+  CCHEAP_AT(heap, 0)->CCHEAP_NODE_INDEX = 0;
+#endif
   heap->len--;
-  size_t sz = heap->len;
 
-  size_t i = 0;
-  for (;;) {
-    size_t best  = i;
-    size_t child = CCHEAP_CHILD(i, 0);
-
-#if CCHEAP_ARITY_N > 0
-    if (child + 0 < sz && CCHEAP_CMP(heap, CCHEAP_AT(heap, best), CCHEAP_AT(heap, child + 0)) < 0) best = child + 0;
-#endif
-#if CCHEAP_ARITY_N > 1
-    if (child + 1 < sz && CCHEAP_CMP(heap, CCHEAP_AT(heap, best), CCHEAP_AT(heap, child + 1)) < 0) best = child + 1;
-#endif
-#if CCHEAP_ARITY_N > 2
-    if (child + 2 < sz && CCHEAP_CMP(heap, CCHEAP_AT(heap, best), CCHEAP_AT(heap, child + 2)) < 0) best = child + 2;
-#endif
-#if CCHEAP_ARITY_N > 3
-    if (child + 3 < sz && CCHEAP_CMP(heap, CCHEAP_AT(heap, best), CCHEAP_AT(heap, child + 3)) < 0) best = child + 3;
-#endif
-#if CCHEAP_ARITY_N > 4
-    if (child + 4 < sz && CCHEAP_CMP(heap, CCHEAP_AT(heap, best), CCHEAP_AT(heap, child + 4)) < 0) best = child + 4;
-#endif
-#if CCHEAP_ARITY_N > 5
-    if (child + 5 < sz && CCHEAP_CMP(heap, CCHEAP_AT(heap, best), CCHEAP_AT(heap, child + 5)) < 0) best = child + 5;
-#endif
-#if CCHEAP_ARITY_N > 6
-    if (child + 6 < sz && CCHEAP_CMP(heap, CCHEAP_AT(heap, best), CCHEAP_AT(heap, child + 6)) < 0) best = child + 6;
-#endif
-#if CCHEAP_ARITY_N > 7
-    if (child + 7 < sz && CCHEAP_CMP(heap, CCHEAP_AT(heap, best), CCHEAP_AT(heap, child + 7)) < 0) best = child + 7;
-#endif
-
-    if (best == i) break;
-    _hswap(heap, i, best);
-    i = best;
-  }
+  _hsift_down(heap, heap->len, 0);
 
   return result;
 }

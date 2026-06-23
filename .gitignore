@@ -58,9 +58,6 @@ compile_commands.json
 *.bak
 *.swp
 
-# vcpkg
-vcpkg_installed/
-
 # debug information files
 *.dwo
 
@@ -72,5 +69,4 @@ Testing/
 .DS_Store
 __pycache__/
 
-# premake5 binary output (legacy)
-bin/
+

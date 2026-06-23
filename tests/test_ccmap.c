@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Test suite for ccmap (intrusive red-black tree)
 **  Build:  gcc -std=c99 -Wall -Wextra -o test_ccmap test_ccmap.c && ./test_ccmap
 */

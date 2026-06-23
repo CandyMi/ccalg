@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Benchmark: ccmap prefetch ON vs OFF
 **  Build:  g++ -std=c++11 -O2 -o bench_prefetch_nop bench_ccmap_prefetch.cpp
 **          g++ -std=c++11 -O2 -DCCMAP_PREFETCH -o bench_prefetch_yes bench_ccmap_prefetch.cpp

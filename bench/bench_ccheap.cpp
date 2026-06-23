@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Benchmark: ccheap vs std::priority_queue
 **
 **  Build (function-pointer, container_of — default):

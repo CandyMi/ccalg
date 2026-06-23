@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Benchmark: cclist vs std::list
 **  Build:  g++ -std=c++11 -O2 -o bench_cclist bench_cclist.cpp && ./bench_cclist
 */

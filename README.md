@@ -1,5 +1,10 @@
 # ccalg
 
+[![CI](https://img.shields.io/github/actions/workflow/status/CandyMi/ccalg/ci.yml?branch=master&logo=github)](https://github.com/CandyMi/ccalg/actions)
+[![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)](LICENSE)
+[![C/C++](https://img.shields.io/badge/language-C%20/%20C%2B%2B-00599c.svg)]()
+[![Header-only](https://img.shields.io/badge/header--only-true-brightgreen.svg)]()
+
 A header-only library for high-performance data structures in C/C++.
 
 Compatible with C89 / C99 / C++ / MSVC.  BSD 3-Clause.
@@ -15,12 +20,17 @@ Compatible with C89 / C99 / C++ / MSVC.  BSD 3-Clause.
 | `ccheap` | [`include/ccheap.h`](include/ccheap.h) | D-ary heap (priority queue) | Pointer array |
 | `ccvector` | [`include/ccvector.h`](include/ccvector.h) | Dynamic array | Yes |
 | `ccflatmap` | [`include/ccflatmap.h`](include/ccflatmap.h) | Sorted-array map (flat map) | Yes |
+| `cctreap` | [`include/cctreap.h`](include/cctreap.h) | Intrusive treap (order statistics) | No |
+| `ccrandom` | [`include/ccrandom.h`](include/ccrandom.h) | PRNG (Xoroshiro128++ / Xoshiro256** / Xoshiro512**) | No |
+| `ccunicode` | [`include/ccunicode.h`](include/ccunicode.h) | UTF-8 ↔ UCS-4 codec | No |
+| `ccshuffle` | [`include/ccshuffle.h`](include/ccshuffle.h) | Fisher-Yates shuffle | No |
 
 Most containers are **intrusive** — nodes are embedded in user structs, no hidden allocations. `ccvector` and `ccflatmap` store elements by **value**.
 
 ## Quick start
 
 ```c
+#include <stdio.h>
 #include "ccmap.h"
 
 struct entry { int key; ccmap_node_t node; };
@@ -62,33 +72,11 @@ cmake --build build --target check
 cmake --build build --target bench
 ```
 
-### Premake5 (alternative)
-
-```bash
-premake5 gmake2               # Generate Makefiles
-make -C build config=release  # Build
-./build/test_ccmap            # Run tests
-```
-
 See [docs/building.md](docs/building.md) for details and manual compilation.
-
-### Package managers
-
-```bash
-# vcpkg (overlay port)
-vcpkg install ccalg --overlay-ports=<path-to-ccalg>/ports
-
-# Conan (2.x)
-conan create . -tf ""
-```
 
 ## Documents
 
 [Online documentation (only chinease)](https://ccalg.dev)
-
-## Contributing
-
-See [docs/contributing.md](docs/contributing.md) for vcpkg / ConanCenter submission guides.
 
 ## License
 

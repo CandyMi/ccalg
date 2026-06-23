@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Test suite for ccheap CCHEAP_NODE_INDEX + ccheap_update
 **  Build: gcc -std=c99 -Wall -Wextra -o test_ccheap_update test_ccheap_update.c && ./test_ccheap_update
 */

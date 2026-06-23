@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Benchmark: ccunicode UTF-8 encode/decode throughput
 **  Build:  g++ -std=c++11 -O2 -o bench_ccunicode bench_ccunicode.cpp && ./bench_ccunicode
 */

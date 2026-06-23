@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Test suite for cctreap (intrusive treap)
 **  Build:  gcc -std=c99 -Wall -Wextra -o test_cctreap test_cctreap.c && ./test_cctreap
 */

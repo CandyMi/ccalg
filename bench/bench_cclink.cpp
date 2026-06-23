@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Benchmark: cclink vs std::forward_list
 **  Build:  g++ -std=c++11 -O2 -o bench_cclink bench_cclink.cpp && ./bench_cclink
 */

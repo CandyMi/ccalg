@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Test suite for ccshuffle — Fisher-Yates (Knuth) shuffle
 */
 #include <stdio.h>

@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Test suite for cclist (intrusive doubly-linked list)
 **  Build:  gcc -std=c99 -Wall -Wextra -o test_cclist test_cclist.c && ./test_cclist
 */

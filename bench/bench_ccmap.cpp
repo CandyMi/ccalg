@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Benchmark: ccmap vs std::map
 **  Build:  g++ -std=c++11 -O2 -o bench_ccmap bench_ccmap.cpp && ./bench_ccmap
 */

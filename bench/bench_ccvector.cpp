@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Benchmark: ccvector vs std::vector
 **  Build:  g++ -std=c++11 -O2 -o bench_ccvector bench_ccvector.cpp && ./bench_ccvector
 */

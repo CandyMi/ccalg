@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Test suite for ccrandom (128-bit & 256-bit PRNGs)
 **  Build:  gcc -std=c99 -Wall -Wextra -o test_ccrandom test_ccrandom.c && ./test_ccrandom
 */

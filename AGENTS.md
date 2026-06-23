@@ -12,7 +12,7 @@
 - **Author:** CandyMi
 - **Repository:** [github.com/CandyMi/ccalg](https://github.com/CandyMi/ccalg)
 - **Website:** [ccalg.dev](https://ccalg.dev) (served via `gh-pages` branch)
-- **Build:** CMake (primary) or Premake5 (alternative). Headers are self-contained; `#include` and use.
+- **Build:** CMake (primary). Headers are self-contained; `#include` and use.
 - **Core traits:** intrusive, zero internal node allocation (with exceptions), compile-time zero-overhead callbacks.
 
 ---
@@ -31,6 +31,7 @@
 | [cctreap.h](include/cctreap.h) | `cctreap_t` / `cctreap_node_t` | Intrusive treap (BST + max-heap, order statistics) |
 | [ccunicode.h](include/ccunicode.h) | — | UTF-8 ↔ UCS-4 codec |
 | [ccrandom.h](include/ccrandom.h) | `ccrandom128_t` / `ccrandom256_t` / `ccrandom512_t` | Non-cryptographic PRNG (Xoroshiro128++ / Xoshiro256** / Xoshiro512**) |
+| [ccshuffle.h](include/ccshuffle.h) | — | Fisher-Yates (Knuth) shuffle for contiguous arrays |
 
 ---
 
@@ -105,6 +106,7 @@ Each container owns its namespace. Prefix = container abbreviation. No macros ar
 | `cctreap` | `CCTREAP_` | `CCTREAP_INLINE`, `CCTREAP_NOEXCEPT`, `CCTREAP_CONTAINER`, `CCTREAP_COMPARE`, `CCTREAP_RAND` |
 | `ccunicode` | `CCUNICODE_` | `CCUNICODE_INLINE`, `CCUNICODE_NOEXCEPT` |
 | `ccrandom` | `CCRANDOM_` | `CCRANDOM_INLINE`, `CCRANDOM_NOEXCEPT` |
+| `ccshuffle` | `CCSHUFFLE_` | `CCSHUFFLE_INLINE`, `CCSHUFFLE_NOEXCEPT`, `CCSHUFFLE_BSIZE` |
 
 ### Allocation hooks
 
@@ -244,7 +246,7 @@ Each header defines its own `CCXXX_INLINE` macro (pattern: `#define CCXXX_INLINE
 
 ### cclist — Doubly-Linked List
 
-- `head`/`tail` sentinels + `size`.  All push/pop O(1).
+- `head`/`tail` node pointers (no sentinels) + `size`.  All push/pop O(1).
 - `splice_back`: O(1) bulk move.  `verify`: 6 checks.  `has_cycle`: Floyd.
 
 ### ccheap — D-ary Heap
@@ -271,7 +273,7 @@ Each header defines its own `CCXXX_INLINE` macro (pattern: `#define CCXXX_INLINE
 
 ### cctreap — Treap
 
-- BST (key) + max-heap (priority).  Node 32B (64-bit): `child[2]` (16B) + `pc` (8B) + `size` (8B) + `priority` (8B).  Priority internal, xorshift64-generated on insert.
+- BST (key) + max-heap (priority).  Node 40B (64-bit): `child[2]` (16B) + `pc` (8B) + `size` (8B) + `priority` (8B).  Priority internal, xorshift64-generated on insert.
 - Key comparison via `CCTREAP_COMPARE` (macro or fn-ptr). Priority is internal `uint64_t` with max-heap invariant, generated on insert via xorshift64 (overridable via `CCTREAP_RAND`).
 - **Insert**: BST descent → bubble-up by priority (rotate while `_TP_PRIO_CMP(node, parent) > 0`).
 - **Erase**: bubble-down to leaf (rotate toward higher-priority child) → transplant with NULL.
@@ -307,6 +309,15 @@ Each header defines its own `CCXXX_INLINE` macro (pattern: `#define CCXXX_INLINE
 - Not cryptographic — predictable from ~2^64 outputs.
 - No thread safety — one instance per thread.
 
+### ccshuffle — Fisher-Yates Shuffle
+
+- **Value-based** — no node typedef (operates on raw `void*` arrays).
+- O(n) Durstenfeld/Fisher-Yates in-place shuffle; O(1) space (stack swap buffer, heap fallback for elements > `CCSHUFFLE_BSIZE`).
+- Accepts any PRNG via `ccshuffle_prng_t` callback — pass `ccrandomXXX_next` directly.
+- User-overridable swap buffer size via `#define CCSHUFFLE_BSIZE` before `#include`.
+- Pure function (`ccshuffle_knuth`), no state, no allocation beyond optional heap fallback.
+- NULL-safe: if `base`, `state`, or `prng_next` is NULL, returns immediately.
+
 ---
 
 Internal constants: `CCMAP_RED=0`, `CCMAP_BLACK=1`, `CCMAP_LEFT=0`, `CCMAP_RIGHT=1`; `CCTREAP_LEFT=0`, `CCTREAP_RIGHT=1`.
@@ -336,8 +347,11 @@ cmake --install build --prefix /usr/local
 | `test_ccvector.c` | Dynamic array |
 | `test_ccflatmap.c` | Sorted-array map |
 | `test_cctreap.c` | Treap |
-| `test_ccrandom.c` | PRNG (Xoroshiro128++ / Xoshiro256**) |
+| `test_ccrandom.c` | PRNG (Xoroshiro128++ / Xoshiro256** / Xoshiro512**) |
+| `test_ccshuffle.c` | Fisher-Yates shuffle |
 | `test_ccunicode.c` | UTF-8 ↔ UCS-4 codec |
+| `test_ccunicode_verify.c` | UTF-8 edge-case verification |
+| `test_ccheap_update.c` | D-ary heap decrease-key |
 
 ### Benchmarks (C++ vs STL)
 

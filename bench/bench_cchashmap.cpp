@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Benchmark: cchashmap vs std::unordered_map  (vs uthash, optional)
 **
 **  Build (default — cchashmap vs STL):

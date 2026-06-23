@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Test suite for ccheap (D-ary heap, pointer mode + function pointer)
 **  Build:  gcc -std=c99 -Wall -Wextra -o test_ccheap test_ccheap.c && ./test_ccheap
 */

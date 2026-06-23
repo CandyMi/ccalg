@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Benchmark: cctreap vs std::map
 **  Build:  g++ -std=c++11 -O2 -o bench_cctreap bench_cctreap.cpp && ./bench_cctreap
 */

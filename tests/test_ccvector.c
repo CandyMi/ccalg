@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Test suite for ccvector (dynamic array)
 **  Build:  gcc -std=c99 -Wall -Wextra -o test_ccvector test_ccvector.c && ./test_ccvector
 */

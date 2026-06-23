@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Benchmark: ccflatmap vs ccmap vs std::map
 **  Build:  g++ -std=c++11 -O2 -o bench_ccflatmap bench_ccflatmap.cpp && ./bench_ccflatmap
 */

@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Benchmark: ccrandom128/ccrandom256 vs std::mt19937
 **  Build:  g++ -std=c++11 -O2 -o bench_ccrandom bench_ccrandom.cpp && ./bench_ccrandom
 */

@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Test suite for ccflatmap (sorted-array map)
 **  Build:  gcc -std=c99 -Wall -Wextra -o test_ccflatmap test_ccflatmap.c && ./test_ccflatmap
 */

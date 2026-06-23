@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Test suite for cchashmap (intrusive chained hash map)
 **  Build:  gcc -std=c99 -Wall -Wextra -o test_cchashmap test_cchashmap.c && ./test_cchashmap
 */

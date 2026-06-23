@@ -16,7 +16,7 @@ ccalg 是 header-only 库，无需编译链接。两种引入方式：
 **方式二** — 安装后（推荐）：
 
 ```bash
-cmake --install build --prefix /usr/local   # 或 sh scripts/install.sh
+cmake --install build --prefix /usr/local
 ```
 
 ```c

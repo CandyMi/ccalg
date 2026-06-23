@@ -1,4 +1,7 @@
 /*
+**  LICENSE: BSD
+**  Author: CandyMi[https://github.com/candymi]
+**
 **  Test suite for cclink (intrusive singly-linked list)
 **  Build:  gcc -std=c99 -Wall -Wextra -o test_cclink test_cclink.c && ./test_cclink
 */

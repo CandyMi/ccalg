@@ -30,7 +30,7 @@
 | [ccflatmap.h](include/ccflatmap.h) | `ccflatmap_t` / `ccflatmap_node_t` | Sorted-array map (value-based) |
 | [cctreap.h](include/cctreap.h) | `cctreap_t` / `cctreap_node_t` | Intrusive treap (BST + max-heap, order statistics) |
 | [ccunicode.h](include/ccunicode.h) | — | UTF-8 ↔ UCS-4 codec |
-| [ccrandom.h](include/ccrandom.h) | `ccrandom128_t` / `ccrandom256_t` | Non-cryptographic PRNG (Xoroshiro128++ / Xoshiro256**) |
+| [ccrandom.h](include/ccrandom.h) | `ccrandom128_t` / `ccrandom256_t` / `ccrandom512_t` | Non-cryptographic PRNG (Xoroshiro128++ / Xoshiro256** / Xoshiro512**) |
 
 ---
 
@@ -294,14 +294,15 @@ Each header defines its own `CCXXX_INLINE` macro (pattern: `#define CCXXX_INLINE
 
 ### ccrandom — PRNG
 
-- Two engines, value-based (no intrusive node):
+- Three engines, value-based (no intrusive node):
   - `ccrandom128_t` — Xoroshiro128++, 2×u64 state, 2^128−1 period, fastest.
   - `ccrandom256_t` — Xoshiro256**, 4×u64 state, 2^256−1 period, higher statistical quality.
-- Both pass BigCrush (TestU01) and PractRand ≥ 32 TiB.
-- **Seeding**: `ccrandom128_init(&rng, seed)` / `ccrandom256_init(&rng, seed)` — 64-bit seed expanded via SplitMix64.  Any 64-bit value valid (zero included); seed is consumed, not stored.
-- **u64 output**: `ccrandom128_next(&rng)` / `ccrandom256_next(&rng)` → [0, 2^64−1].
-- **f32 output**: `ccrandom128_f32next(&rng)` / `ccrandom256_f32next(&rng)` → float [0, 1), 24-bit mantissa.
-- **f64 output**: `ccrandom128_f64next(&rng)` / `ccrandom256_f64next(&rng)` → double [0, 1), 53-bit mantissa.
+  - `ccrandom512_t` — Xoshiro512**, 8×u64 state, 2^512−1 period, highest statistical quality.
+- All pass BigCrush (TestU01) and PractRand ≥ 32 TiB.
+- **Seeding**: `ccrandom128_init(&rng, seed)` / `ccrandom256_init(&rng, seed)` / `ccrandom512_init(&rng, seed)` — 64-bit seed expanded via SplitMix64 (2/4/8 iterations).  Any 64-bit value valid (zero included); seed is consumed, not stored.
+- **u64 output**: `ccrandom128_next(&rng)` / `ccrandom256_next(&rng)` / `ccrandom512_next(&rng)` → [0, 2^64−1].
+- **f32 output**: `ccrandom128_f32next(&rng)` / `ccrandom256_f32next(&rng)` / `ccrandom512_f32next(&rng)` → float [0, 1), 24-bit mantissa.
+- **f64 output**: `ccrandom128_f64next(&rng)` / `ccrandom256_f64next(&rng)` / `ccrandom512_f64next(&rng)` → double [0, 1), 53-bit mantissa.
 - Zero internal allocation.  Bit-identical across platforms for the same seed.
 - Not cryptographic — predictable from ~2^64 outputs.
 - No thread safety — one instance per thread.

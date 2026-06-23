@@ -39,7 +39,7 @@
 
 | 模块 | 用途 |
 | --- | --- |
-| `ccrandom` | 非加密 PRNG（Xoroshiro128++ / Xoshiro256**） |
+| `ccrandom` | 非加密 PRNG（Xoroshiro128++ / Xoshiro256** / Xoshiro512**） |
 | `ccunicode` | UTF-8 ↔ UCS-4 编解码 |
 
 ## 4. 上手

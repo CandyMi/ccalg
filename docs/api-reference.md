@@ -830,7 +830,7 @@ bool ccunicode_from_codepoint(uint32_t val, char str[4], int *len);
 
 头文件: [`include/ccrandom.h`](https://github.com/CandyMi/ccalg/blob/master/include/ccrandom.h)
 
-轻量、可复现、跨平台的高性能 PRNG，提供 128-bit 与 256-bit 两个引擎。专为**非加密场景**（模拟、游戏、测试、采样、蒙特卡洛）设计。
+轻量、可复现、跨平台的高性能 PRNG，提供 128-bit、256-bit 与 512-bit 三个引擎。专为**非加密场景**（模拟、游戏、测试、采样、蒙特卡洛）设计。
 
 两个引擎均通过 BigCrush (TestU01) 和 PractRand ≥ 32 TiB 统计测试。
 
@@ -838,13 +838,16 @@ bool ccunicode_from_codepoint(uint32_t val, char str[4], int *len);
 | --- | --- | --- | --- | --- |
 | `ccrandom128` | Xoroshiro128++ | 2×u64 | 2¹²⁸−1 | 最快，适合吞吐敏感场景 |
 | `ccrandom256` | Xoshiro256** | 4×u64 | 2²⁵⁶−1 | 统计质量更高 |
+| `ccrandom512` | Xoshiro512** | 8×u64 | 2⁵¹²−1 | 最高统计质量，适合大规模模拟 |
 
 ### 初始化
 
 ```c
 void ccrandom128_init(ccrandom128_t *s, uint64_t seed);
 void ccrandom256_init(ccrandom256_t *s, uint64_t seed);
+void ccrandom512_init(ccrandom512_t *s, uint64_t seed);
 // SplitMix64 扩展种子至内部状态。任何 64 位值均可（含 0）。
+// ccrandom512 运行 SplitMix64 八次，填充 8×u64 = 512-bit 状态。
 ```
 
 ### 整数输出
@@ -852,6 +855,7 @@ void ccrandom256_init(ccrandom256_t *s, uint64_t seed);
 ```c
 uint64_t ccrandom128_next(ccrandom128_t *s);
 uint64_t ccrandom256_next(ccrandom256_t *s);
+uint64_t ccrandom512_next(ccrandom512_t *s);
 // 返回 [0, 2^64−1] 均匀分布 64 位无符号整数。
 ```
 
@@ -860,10 +864,12 @@ uint64_t ccrandom256_next(ccrandom256_t *s);
 ```c
 float  ccrandom128_f32next(ccrandom128_t *s);
 float  ccrandom256_f32next(ccrandom256_t *s);
+float  ccrandom512_f32next(ccrandom512_t *s);
 // 返回 [0, 1) 范围内 float，24 位尾数精度。
 
 double ccrandom128_f64next(ccrandom128_t *s);
 double ccrandom256_f64next(ccrandom256_t *s);
+double ccrandom512_f64next(ccrandom512_t *s);
 // 返回 [0, 1) 范围内 double，53 位尾数精度。
 ```
 

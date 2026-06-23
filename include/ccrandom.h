@@ -37,7 +37,7 @@
 **   ccrandom512_t rng512;
 **   ccrandom512_init(&rng512, 12345ULL);
 **
-**   uint64_t u = ccrandom512_next(&rng512);      // [0, 2^64−1]
+**   uint64_t u = ccrandom512_next(&rng512);       // [0, 2^64−1]
 **   float    f = ccrandom512_f32next(&rng512);    // [0, 1)
 **   double   d = ccrandom512_f64next(&rng512);    // [0, 1)
 **
@@ -89,7 +89,7 @@
 **   Compilers   GCC ≥ 4.8,  Clang ≥ 3.4,  MSVC ≥ 2015,  ICC ≥ 19
 **   Arch        any LP64 / LLP64 / ILP32 with 64-bit integer support
 **
-**   Requires <stdint.h> (C99 / C++11; MSVC 2010+ ships it).
+**   uint64_t via <stdint.h> (C99 / C++11) or compiler fallback (C89).
 **
 **   Floating-point constants:  C99+ use 0x1.0p-N hex-float literals;
 **   C89 and C++ < 17 fall back to the equivalent decimal value.  Both forms
@@ -126,9 +126,36 @@
 #ifndef CCRANDOM_H
 #define CCRANDOM_H
 
-/* ── header dependencies ───────────────────────────────────────────────── */
+/* ── header dependencies / uint64_t ──────────────────────────────────────
+** Provide uint64_t on pre-C99 compilers that lack <stdint.h>.
+** C99 / C++11 / MSVC 2010+ / GCC & Clang C89 mode all ship it.             */
 
-#include <stdint.h>
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+  #include <stdint.h>
+#elif defined(_MSC_VER)
+  #if _MSC_VER >= 1600
+    #include <stdint.h>
+  #else
+    typedef unsigned __int64 UINT64_T;
+    #ifndef uint64_t
+      #define uint64_t UINT64_T
+    #endif
+    #ifndef UINT64_C
+      #define UINT64_C(v) v ## ULL
+    #endif
+  #endif
+#elif defined(__GNUC__) || defined(__clang__)
+# include <stdint.h>
+#else
+  /* Unknown — unsigned long long is a common C89 extension */
+  typedef unsigned long long UINT64_T;
+  #ifndef uint64_t
+    #define uint64_t UINT64_T
+  #endif
+  #ifndef UINT64_C
+    #define UINT64_C(v) v ## ULL
+  #endif
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -165,7 +192,7 @@ typedef struct ccrandom512 { uint64_t seed[8]; } ccrandom512_t;
 ** Names prefixed ccr_ are implementation details.  Do not call directly.      */
 
 CCRANDOM_INLINE uint64_t
-ccr_rotl(const uint64_t x, unsigned int k) {
+ccr_rotl(const uint64_t x, unsigned int k) CCRANDOM_NOEXCEPT {
   /* k is always < 64 at every call site; the assert documents the contract
   ** and guards against accidental misuse.  */
   /* assert(k < 64);  -- enable during debug builds if you have <assert.h> */
@@ -173,7 +200,7 @@ ccr_rotl(const uint64_t x, unsigned int k) {
 }
 
 CCRANDOM_INLINE uint64_t
-ccr_sm64_next(uint64_t *state) {
+ccr_sm64_next(uint64_t *state) CCRANDOM_NOEXCEPT {
   /* SplitMix64 — a simple 64-bit mixing function with solid avalanche.
   ** Constants from Steele & Vigna [3]; multiplier 0x9e3779b97f4a7c15 is the
   ** fractional part of the golden ratio. */
@@ -182,6 +209,14 @@ ccr_sm64_next(uint64_t *state) {
   z = (z ^ (z >> 30)) * UINT64_C(0xbf58476d1ce4e5b9);
   z = (z ^ (z >> 27)) * UINT64_C(0x94d049bb133111eb);
   return z ^ (z >> 31);
+}
+
+CCRANDOM_INLINE void
+ccr_random_init(uint64_t seeds[], int nseed, uint64_t seed) CCRANDOM_NOEXCEPT {
+  int i;
+  for (i = 0; i < nseed; i++) {
+    seeds[i] = ccr_sm64_next(&seed);
+  }
 }
 
 /* ── seed ───────────────────────────────────────────────────────────────── */
@@ -199,10 +234,7 @@ ccr_sm64_next(uint64_t *state) {
  *  @param seed   Any 64-bit value; zero is valid. */
 CCRANDOM_INLINE void
 ccrandom128_init(ccrandom128_t *state, uint64_t seed) CCRANDOM_NOEXCEPT {
-  /* Map a user seed to a 128-bit state via two iterations of SplitMix64.
-  ** The seed is consumed (modified in-place) so zero-initialized seeds work. */
-  state->seed[0] = ccr_sm64_next(&seed);
-  state->seed[1] = ccr_sm64_next(&seed);
+  ccr_random_init(state->seed, sizeof(state->seed) / sizeof(uint64_t), seed);
 }
 
 /** @brief Initialize a ccrandom256 generator with a 64-bit seed.
@@ -218,10 +250,7 @@ ccrandom128_init(ccrandom128_t *state, uint64_t seed) CCRANDOM_NOEXCEPT {
  *  @param seed   Any 64-bit value; zero is valid. */
 CCRANDOM_INLINE void
 ccrandom256_init(ccrandom256_t *state, uint64_t seed) CCRANDOM_NOEXCEPT {
-  state->seed[0] = ccr_sm64_next(&seed);
-  state->seed[1] = ccr_sm64_next(&seed);
-  state->seed[2] = ccr_sm64_next(&seed);
-  state->seed[3] = ccr_sm64_next(&seed);
+  ccr_random_init(state->seed, sizeof(state->seed) / sizeof(uint64_t), seed);
 }
 
 /** @brief Initialize a ccrandom512 generator with a 64-bit seed.
@@ -237,14 +266,7 @@ ccrandom256_init(ccrandom256_t *state, uint64_t seed) CCRANDOM_NOEXCEPT {
  *  @param seed   Any 64-bit value; zero is valid. */
 CCRANDOM_INLINE void
 ccrandom512_init(ccrandom512_t *state, uint64_t seed) CCRANDOM_NOEXCEPT {
-  state->seed[0] = ccr_sm64_next(&seed);
-  state->seed[1] = ccr_sm64_next(&seed);
-  state->seed[2] = ccr_sm64_next(&seed);
-  state->seed[3] = ccr_sm64_next(&seed);
-  state->seed[4] = ccr_sm64_next(&seed);
-  state->seed[5] = ccr_sm64_next(&seed);
-  state->seed[6] = ccr_sm64_next(&seed);
-  state->seed[7] = ccr_sm64_next(&seed);
+  ccr_random_init(state->seed, sizeof(state->seed) / sizeof(uint64_t), seed);
 }
 
 /* ── 64-bit integer output ─────────────────────────────────────────────── */

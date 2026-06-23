@@ -161,7 +161,7 @@ flowchart LR
 | PractRand 32 TiB | ✅ 通过（无异常） | ✅ 通过（无异常） | ✅ 通过（无异常） | ❌ 数百字节即失败 | ✅ 通过 |
 | Linear Complexity | ✅ 合格 | ✅ 合格 | ✅ 合格 | ❌ 极低线性复杂度 | ✅ |
 
-`rand()`（典型的 LCG 或简单 LFSR）通常在数 MB 内被 PractRand 标记失败。ccrandom 双引擎均通过最严格的统计测试。
+`rand()`（典型的 LCG 或简单 LFSR）通常在数 MB 内被 PractRand 标记失败。ccrandom 三引擎均通过最严格的统计测试。
 
 ### 2.3 跨平台可复现性
 
@@ -609,7 +609,7 @@ m->state = (uint64_t)(uintptr_t)m;
 
 ### 6.3 一句话总结
 
-> xorshift64 对 treap 场景**质量足够、开销极小、零依赖**。ccrandom 双引擎是面向通用高性能 PRNG 场景的选择，它们定位不同，不构成替代关系。
+> xorshift64 对 treap 场景**质量足够、开销极小、零依赖**。ccrandom 三引擎是面向通用高性能 PRNG 场景的选择，它们定位不同，不构成替代关系。
 
 ---
 

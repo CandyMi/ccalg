@@ -832,7 +832,7 @@ bool ccunicode_from_codepoint(uint32_t val, char str[4], int *len);
 
 轻量、可复现、跨平台的高性能 PRNG，提供 128-bit、256-bit 与 512-bit 三个引擎。专为**非加密场景**（模拟、游戏、测试、采样、蒙特卡洛）设计。
 
-两个引擎均通过 BigCrush (TestU01) 和 PractRand ≥ 32 TiB 统计测试。
+三个引擎均通过 BigCrush (TestU01) 和 PractRand ≥ 32 TiB 统计测试。
 
 | 引擎 | 算法 | 状态 | 周期 | 特点 |
 | --- | --- | --- | --- | --- |

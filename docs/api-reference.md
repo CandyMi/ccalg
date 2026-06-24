@@ -887,3 +887,123 @@ double ccrandom512_f64next(ccrandom512_t *s);
 ### 与非加密保证
 
 ccrandom **不适于加密**。输出经过非线性加扰，但保留线性状态转移的全部信息——约 O(2^64) 输出后状态可被重构。
+
+---
+
+## ccbi — 任意精度整数
+
+头文件: [`include/ccbi.h`](https://github.com/CandyMi/ccalg/blob/master/include/ccbi.h)
+
+### 类型
+
+```c
+#define CCBI_SSO_LIMBS  8   /* 可预定义覆盖，2~32767 */
+
+typedef struct ccbi {
+    uint32_t  *limbs;                    /* → internal[]（SSO）或堆 */
+    uint32_t   internal[CCBI_SSO_LIMBS]; /* 内联缓冲区（默认 256-bit） */
+    uint32_t   meta;                     /* sign(2) | used(15) | cap(15) */
+} ccbi_t;  /* 12 + 4*CCBI_SSO_LIMBS B (默认 44B) */
+```
+
+元数据宏（取代直接字段访问）：
+
+| 宏 | 作用 |
+| --- | --- |
+| `CCBI_SIGN(z)` / `CCBI_SET_SIGN(z,v)` | 符号 (-1/0/1) |
+| `CCBI_USED(z)` / `CCBI_SET_USED(z,v)` | 有效 limb 数 |
+| `CCBI_CAP(z)` / `CCBI_SET_CAP(z,v)` | 分配容量 |
+
+### 生命周期
+
+```c
+void   ccbi_init(ccbi_t *z);          // 初始化为零（指向 SSO 缓冲）
+void   ccbi_destroy(ccbi_t *z);       // 仅在堆上时 free
+int    ccbi_copy(ccbi_t *z, const ccbi_t *src);
+void   ccbi_swap(ccbi_t *a, ccbi_t *b); // O(1) 指针/SSO 混合交换
+void   ccbi_zero(ccbi_t *z);
+void   ccbi_one(ccbi_t *z);
+```
+
+### 赋值
+
+```c
+int  ccbi_from_int(ccbi_t *z, int64_t v);
+int  ccbi_from_uint(ccbi_t *z, uint64_t v);
+int  ccbi_from_str(ccbi_t *z, const char *str, int base);
+     // base 2~36；十进制快速路径 9 位/chunk
+```
+
+### 比较
+
+```c
+int    ccbi_cmp(const ccbi_t *a, const ccbi_t *b);
+int    ccbi_cmp_int(const ccbi_t *a, int64_t b);
+int    ccbi_cmp_abs(const ccbi_t *a, const ccbi_t *b);
+int    ccbi_sign(const ccbi_t *z);
+int    ccbi_is_zero(const ccbi_t *z);
+int    ccbi_is_one(const ccbi_t *z);
+int    ccbi_is_neg(const ccbi_t *z);
+```
+
+### 算术
+
+```c
+int  ccbi_add(ccbi_t *z, const ccbi_t *a, const ccbi_t *b);
+int  ccbi_sub(ccbi_t *z, const ccbi_t *a, const ccbi_t *b);
+int  ccbi_mul(ccbi_t *z, const ccbi_t *a, const ccbi_t *b);  // 自动派发: schoolbook / Karatsuba / Toom-3
+int  ccbi_div_rem(ccbi_t *q, ccbi_t *r, const ccbi_t *a, const ccbi_t *b);
+int  ccbi_mod(ccbi_t *r, const ccbi_t *a, const ccbi_t *m);
+
+void ccbi_neg(ccbi_t *z, const ccbi_t *a);
+void ccbi_abs(ccbi_t *z, const ccbi_t *a);
+int  ccbi_inc(ccbi_t *z);
+int  ccbi_dec(ccbi_t *z);
+int  ccbi_add_uint(ccbi_t *z, uint32_t v);
+int  ccbi_mul_uint(ccbi_t *z, uint32_t v);
+int  ccbi_muladd(ccbi_t *z, const ccbi_t *x, uint32_t y);  // z += x*y
+```
+
+### 移位
+
+```c
+int    ccbi_shl(ccbi_t *z, const ccbi_t *a, size_t n);
+int    ccbi_shr(ccbi_t *z, const ccbi_t *a, size_t n);
+size_t ccbi_bit_length(const ccbi_t *z);
+```
+
+### 数论
+
+```c
+int ccbi_gcd(ccbi_t *z, const ccbi_t *a, const ccbi_t *b);
+int ccbi_pow_mod(ccbi_t *z, const ccbi_t *base,
+                 const ccbi_t *exp, const ccbi_t *mod);
+```
+
+### 转换
+
+```c
+int64_t   ccbi_to_int(const ccbi_t *z);
+int       ccbi_to_str_len(const ccbi_t *z, int base);
+int       ccbi_to_str_buf(const ccbi_t *z, char *buf, size_t len, int base);
+char     *ccbi_to_str(const ccbi_t *z, int base);  // 内部 malloc
+void      ccbi_free_str(char *s);
+int       ccbi_print(const ccbi_t *z, int base, int newline);
+```
+
+### 分配器钩子
+
+```c
+#define CCBI_MALLOC(sz)   CCBI_REALLOC(NULL, sz)
+#define CCBI_REALLOC(p,sz) realloc
+#define CCBI_FREE(p)      free(p)
+```
+
+SSO 小值不走分配器。
+
+### 编译期配置
+
+| 宏 | 默认 | 说明 |
+| --- | --- | --- |
+| `CCBI_SSO_LIMBS` | `8` | SSO 缓冲区 limb 数（256-bit）。设 0 禁用 SSO |
+| `CCBI_MALLOC` / `CCBI_REALLOC` / `CCBI_FREE` | malloc / realloc / free | 堆分配器替换钩子 |

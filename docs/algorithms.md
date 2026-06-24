@@ -550,3 +550,110 @@ flowchart LR
 - 宏模式下比较/哈希逻辑被编译器直接内联
 - 无函数指针间接调用、无寄存器溢出
 - 适合热路径极致性能场景
+
+---
+
+## ccbi — 大数运算
+
+### 内部表示
+
+**小端序符号-绝对值（sign-magnitude）**，limb 基数为 2³²。
+
+```
+limbs[0..used-1], 小端序
+  limb[0] = 低 32-bit, limb[used-1] = 高 32-bit
+```
+
+- `meta` 字段: `sign(2-bit) | used(15-bit) | cap(15-bit)` 压入一个 uint32_t
+- `CCBI_SSO_LIMBS` 可配置（默认 8），`sizeof(ccbi_t) = 12 + 4·CCBI_SSO_LIMBS`
+
+### SSO（Small-String Optimization）
+
+```
+used ≤ CCBI_SSO_LIMBS:  limbs → internal[] (栈上，零分配)
+used > CCBI_SSO_LIMBS:  ccbi_grow → malloc → limbs → 堆
+```
+
+### 加法 / 减法
+
+教科书逐 limb 进位/借位：
+
+```
+for i = 0..max(n,m):
+    sum[i] = a[i] + b[i] + carry    (carry = 0/1)
+```
+
+`ccbi_limb_add` / `ccbi_limb_sub` / `ccbi_limb_mul` 是跨容器共用的 limb 原语。
+
+### 乘法 — 三级派发
+
+```
+n < 16              → schoolbook O(n²)
+16 ≤ n < CCBI_TOOM3 → Karatsuba  O(n^1.585)
+n ≥ CCBI_TOOM3_THRESH (默认 64) → Toom-3  O(n^1.465)
+```
+
+`squaring` 自动检测 `a == b`，交叉项只算一次再×2，减少 ~47% 乘法。
+
+### 除法 — 左对齐商数位 + 预计算倒数
+
+**单 limb 除数快速路径**: 教材式逐位试商。
+
+**多 limb 除数**: 预计算 `v_recip = ceil(2^64 / v_top)`（一次 divq），
+每轮试商用 `qd = (u128)u_top * v_recip >> 64`（一次 mulq）代替 `u_top / v_top`（一次 divq）。
+
+```
+while |u| ≥ |v|:
+    qd = 试商（mulq）
+    u -= qd * v (shifted)
+    如果借位传播过头: qd--; u += v
+    存储 qd
+```
+
+### 模幂 — Montgomery CIOS + Sliding Window
+
+- **小模数** (k < 4): 二进制法
+- **大模数** (k ≥ 4): Montgomery CIOS + Sliding Window (w=4)
+
+```
+预计算 R² mod m
+base → Montgomery 域
+for 指数 bit 窗口:
+    平方 wlen 次
+    × table[window]（Sliding Window 减少乘法次数）
+转换回整数域
+```
+
+### 字符串转换
+
+#### from_str — 十进制 9 位分块
+
+```
+普通路径:     N 次 mul_uint(10) + add_uint(digit)
+分块路径: ceil(N/9) 次 mul_uint(10⁹) + add_uint(chunk)
+```
+
+非十进制保持逐字符路径。
+
+#### to_str — 用户缓冲 API
+
+```
+ccbi_to_str_len(z, base)        → 预计算所需缓冲区大小
+ccbi_to_str_buf(z, buf, len, base) → 写入用户缓冲区（零分配）
+ccbi_to_str(z, base)             → 内部 malloc（向后兼容）
+```
+
+### 最大公约数 — 二进制 Stein 算法
+
+```
+如果 |a,b| 均为偶数: gcd = 2 * gcd(a/2, b/2)
+gcd 逻辑:
+    while a != 0:
+        while a 为偶数: a /= 2
+        while b 为偶数: b /= 2
+        if |a| ≥ |b|: a = (a - b) / 2
+        else:          b = (b - a) / 2
+```
+
+- 避免除法（仅用移位 + 减法），比 Euclid 在长整数上更优
+- 每次迭代至少消除一个尾零

@@ -12,7 +12,7 @@
 
 | 特性 | 说明 |
 | --- | --- |
-| **Header-only · C89** | 单头文件 `#include` 即用，兼容 MSVC / GCC / Clang，可运行在嵌入式平台 |
+| **Header-only · C99** | 单头文件 `#include` 即用，兼容 MSVC / GCC / Clang，可运行在嵌入式平台 |
 | **侵入式 · 零分配** | 节点嵌入用户结构体，无 `malloc`/`free`，内存完全可控 |
 | **零开销回调** | 宏模式将比较/哈希编译期内联，消除函数指针间接调用 |
 | **读写天然分离** | 纯读操作不修改内部状态，外部 rwlock 即可 N 路读并发，无线程竞争 |
@@ -39,6 +39,7 @@
 
 | 模块 | 用途 |
 | --- | --- |
+| `ccbi` | 任意精度整数运算（大数库），SSO 零分配，Karatsuba/Toom-3 乘法，Montgomery 模幂，二进制 GCD |
 | `ccrandom` | 非加密 PRNG（Xoroshiro128++ / Xoshiro256** / Xoshiro512**） |
 | `ccunicode` | UTF-8 ↔ UCS-4 编解码 |
 

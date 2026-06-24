@@ -59,6 +59,7 @@ PAGES = [
     ("benchmarks",        "性能基准", "ccalg - "),
     ("thread-safety",     "线程安全", "ccalg - "),
     ("random",            "伪随机数", "ccalg - "),
+    ("ccbi",              "大数库", "ccalg - "),
 ]
 
 items = [

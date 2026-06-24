@@ -1180,6 +1180,167 @@ ccbi_shr(ccbi_t *z, const ccbi_t *a, size_t n) CCBI_NOEXCEPT {
 }
 
 /* ==========================================================================
+ *  ── Bitwise operations ──
+ * ========================================================================== */
+
+/*  z = a & b  — bitwise AND of magnitudes (result ≥ 0).
+ *
+ *  Returns 0 on success, -1 on allocation failure.
+ */
+CCBI_INLINE int
+ccbi_and(ccbi_t *z, const ccbi_t *a, const ccbi_t *b) CCBI_NOEXCEPT {
+  uint32_t au = CCBI_USED(a), bu = CCBI_USED(b);
+  uint32_t min_len = (au < bu) ? au : bu;
+  if (ccbi_grow(z, min_len)) return -1;
+  int a_isz = (a == z), b_isz = (b == z);
+  uint32_t *zl = z->limbs;
+  const uint32_t *al = a_isz ? zl : a->limbs;
+  const uint32_t *bl = b_isz ? zl : b->limbs;
+  for (uint32_t i = 0; i < min_len; i++) zl[i] = al[i] & bl[i];
+  CCBI_SET_USED(z, min_len);
+  ccbi_normalize(z);
+  CCBI_SET_SIGN(z, 1);
+  return 0;
+}
+
+/*  z = a | b  — bitwise OR of magnitudes (result ≥ 0).
+ *
+ *  Returns 0 on success, -1 on allocation failure.
+ */
+CCBI_INLINE int
+ccbi_or(ccbi_t *z, const ccbi_t *a, const ccbi_t *b) CCBI_NOEXCEPT {
+  uint32_t au = CCBI_USED(a), bu = CCBI_USED(b);
+  uint32_t max_len = (au > bu) ? au : bu;
+  if (ccbi_grow(z, max_len)) return -1;
+  int a_isz = (a == z), b_isz = (b == z);
+  uint32_t *zl = z->limbs;
+  const uint32_t *al = a_isz ? zl : a->limbs;
+  const uint32_t *bl = b_isz ? zl : b->limbs;
+  uint32_t min_len = (au < bu) ? au : bu;
+  uint32_t i;
+  for (i = 0; i < min_len; i++) zl[i] = al[i] | bl[i];
+  /* copy high limbs from the longer operand (x | 0 = x) */
+  const uint32_t *src = (au >= bu) ? al : bl;
+  uint32_t src_len = (au >= bu) ? au : bu;
+  for (; i < src_len; i++) zl[i] = src[i];
+  CCBI_SET_USED(z, max_len);
+  CCBI_SET_SIGN(z, 1);
+  return 0;
+}
+
+/*  z = a ^ b  — bitwise XOR of magnitudes (result ≥ 0).
+ *
+ *  Returns 0 on success, -1 on allocation failure.
+ */
+CCBI_INLINE int
+ccbi_xor(ccbi_t *z, const ccbi_t *a, const ccbi_t *b) CCBI_NOEXCEPT {
+  uint32_t au = CCBI_USED(a), bu = CCBI_USED(b);
+  uint32_t max_len = (au > bu) ? au : bu;
+  if (ccbi_grow(z, max_len)) return -1;
+  int a_isz = (a == z), b_isz = (b == z);
+  uint32_t *zl = z->limbs;
+  const uint32_t *al = a_isz ? zl : a->limbs;
+  const uint32_t *bl = b_isz ? zl : b->limbs;
+  uint32_t min_len = (au < bu) ? au : bu;
+  uint32_t i;
+  for (i = 0; i < min_len; i++) zl[i] = al[i] ^ bl[i];
+  /* high limbs: x ^ 0 = x */
+  const uint32_t *src = (au >= bu) ? al : bl;
+  uint32_t src_len = (au >= bu) ? au : bu;
+  for (; i < src_len; i++) zl[i] = src[i];
+  CCBI_SET_USED(z, max_len);
+  ccbi_normalize(z);   /* XOR can zero out the MSB limb */
+  CCBI_SET_SIGN(z, 1);
+  return 0;
+}
+
+/*  z = ~a  — one's complement, within the significant bit-length of a.
+ *
+ *  Only bits 0..bit_length(a)-1 are flipped; all higher bits are cleared.
+ *  So ~0 = 0, ~1 = 0, ~2 = 1, ~(2^k-1) = 0.  Result ≥ 0.
+ *
+ *  Returns 0 on success, -1 on allocation failure.
+ */
+CCBI_INLINE int
+ccbi_not(ccbi_t *z, const ccbi_t *a) CCBI_NOEXCEPT {
+  uint32_t au = CCBI_USED(a);
+  if (au == 0) { ccbi_zero(z); return 0; }
+  size_t bl = ccbi_bit_length(a);
+  uint32_t full = (uint32_t)(bl / 32);
+  uint32_t bits = (uint32_t)(bl % 32);
+  uint32_t need = full + (bits ? 1 : 0);
+  if (ccbi_grow(z, need)) return -1;
+  int a_isz = (a == z);
+  uint32_t *zl = z->limbs;
+  const uint32_t *al = a_isz ? zl : a->limbs;
+  uint32_t i;
+  for (i = 0; i < full; i++) zl[i] = ~al[i];
+  if (bits) {
+    uint32_t mask = (UINT32_C(1) << bits) - 1;
+    zl[full] = (~al[full]) & mask;
+  }
+  CCBI_SET_USED(z, need);
+  ccbi_normalize(z);
+  CCBI_SET_SIGN(z, 1);
+  return 0;
+}
+
+/* ── Single-bit operations ── */
+
+/*  Return 0/1 — test bit i (0-indexed, LSB first). */
+CCBI_INLINE int
+ccbi_test_bit(const ccbi_t *z, size_t i) CCBI_NOEXCEPT {
+  size_t limb = i / 32;
+  if (limb >= CCBI_USED(z)) return 0;
+  return (int)((z->limbs[limb] >> (i % 32)) & UINT32_C(1));
+}
+
+/*  Set bit i to 1.  Grows the limb array if i is beyond current length. */
+CCBI_INLINE int
+ccbi_set_bit(ccbi_t *z, size_t i) CCBI_NOEXCEPT {
+  size_t limb = i / 32;
+  uint32_t bit = (uint32_t)(i % 32);
+  if (limb >= CCBI_USED(z)) {
+    if (ccbi_grow(z, (uint32_t)(limb + 1))) return -1;
+    /* zero out intermediate limbs up to the target */
+    memset(z->limbs + CCBI_USED(z), 0,
+           (limb + 1 - CCBI_USED(z)) * sizeof(uint32_t));
+    CCBI_SET_USED(z, (uint32_t)(limb + 1));
+    CCBI_SET_SIGN(z, 1);
+  }
+  z->limbs[limb] |= (UINT32_C(1) << bit);
+  return 0;
+}
+
+/*  Clear bit i to 0.  No-op if i is beyond current limb span. */
+CCBI_INLINE int
+ccbi_clear_bit(ccbi_t *z, size_t i) CCBI_NOEXCEPT {
+  size_t limb = i / 32;
+  if (limb >= CCBI_USED(z)) return 0;
+  z->limbs[limb] &= ~(UINT32_C(1) << (i % 32));
+  ccbi_normalize(z);
+  return 0;
+}
+
+/*  Flip (toggle) bit i.  Grows the limb array if i is beyond current
+ *  length (since 0 ^ 1 = 1). */
+CCBI_INLINE int
+ccbi_flip_bit(ccbi_t *z, size_t i) CCBI_NOEXCEPT {
+  size_t limb = i / 32;
+  uint32_t bit = (uint32_t)(i % 32);
+  if (limb >= CCBI_USED(z)) {
+    if (ccbi_grow(z, (uint32_t)(limb + 1))) return -1;
+    memset(z->limbs + CCBI_USED(z), 0,
+           (limb + 1 - CCBI_USED(z)) * sizeof(uint32_t));
+    CCBI_SET_USED(z, (uint32_t)(limb + 1));
+    CCBI_SET_SIGN(z, 1);
+  }
+  z->limbs[limb] ^= (UINT32_C(1) << bit);
+  ccbi_normalize(z);
+  return 0;
+}
+
+/* ==========================================================================
  *  ── Number theory ──
  * ========================================================================== */
 

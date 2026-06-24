@@ -597,6 +597,190 @@ static void test_large_div(void) {
   ccbi_destroy(&r); ccbi_destroy(&chk);
 }
 
+/* ==========================================================================
+ *  ── Bitwise ops tests ──
+ * ========================================================================== */
+
+static void test_and(void) {
+  ccbi_t a, b, z; ccbi_init(&a); ccbi_init(&b); ccbi_init(&z);
+
+  ccbi_from_uint(&a, 0x0F); ccbi_from_uint(&b, 0x33);
+  ccbi_and(&z, &a, &b);
+  CHECK(ccbi_to_int(&z) == 0x03, "0x0F & 0x33 = 0x03");
+
+  ccbi_from_uint(&a, 0xFFFFFFFF);
+  ccbi_and(&z, &a, &a);
+  CHECK(ccbi_to_int(&z) == 0xFFFFFFFFULL, "all-ones & self = self");
+
+  ccbi_from_uint(&a, 0xFFFF0000);
+  ccbi_from_uint(&b, 0x0000FFFF);
+  ccbi_and(&z, &a, &b);
+  CHECK(ccbi_to_int(&z) == 0, "disjoint masks => 0");
+
+  ccbi_destroy(&a); ccbi_destroy(&b); ccbi_destroy(&z);
+}
+
+static void test_or(void) {
+  ccbi_t a, b, z; ccbi_init(&a); ccbi_init(&b); ccbi_init(&z);
+
+  ccbi_from_uint(&a, 0x0F); ccbi_from_uint(&b, 0x30);
+  ccbi_or(&z, &a, &b);
+  CHECK(ccbi_to_int(&z) == 0x3F, "0x0F | 0x30 = 0x3F");
+
+  ccbi_from_uint(&a, 0);
+  ccbi_from_uint(&b, 0xDEAD);
+  ccbi_or(&z, &a, &b);
+  CHECK(ccbi_to_int(&z) == 0xDEAD, "0 | x = x");
+
+  ccbi_from_uint(&a, 0xDEAD);
+  ccbi_or(&z, &a, &a);
+  CHECK(ccbi_to_int(&z) == 0xDEAD, "x | x = x");
+
+  ccbi_destroy(&a); ccbi_destroy(&b); ccbi_destroy(&z);
+}
+
+static void test_xor(void) {
+  ccbi_t a, b, z; ccbi_init(&a); ccbi_init(&b); ccbi_init(&z);
+
+  ccbi_from_uint(&a, 0x0F); ccbi_from_uint(&b, 0x33);
+  ccbi_xor(&z, &a, &b);
+  CHECK(ccbi_to_int(&z) == 0x3C, "0x0F ^ 0x33 = 0x3C");
+
+  ccbi_xor(&z, &a, &a);
+  CHECK(ccbi_to_int(&z) == 0, "x ^ x = 0");
+
+  ccbi_from_uint(&b, 0xDEAD);
+  ccbi_xor(&z, &a, &b);
+  ccbi_xor(&z, &z, &b);
+  CHECK(ccbi_to_int(&z) == 0x0F, "(x ^ y) ^ y = x");
+
+  ccbi_destroy(&a); ccbi_destroy(&b); ccbi_destroy(&z);
+}
+
+static void test_not(void) {
+  ccbi_t a, z; ccbi_init(&a); ccbi_init(&z);
+
+  ccbi_zero(&a);
+  ccbi_not(&z, &a);
+  CHECK(ccbi_is_zero(&z), "~0 = 0 (no bits to flip)");
+
+  ccbi_one(&a);
+  ccbi_not(&z, &a);
+  CHECK(ccbi_is_zero(&z), "~1 = 0 (only bit flips to 0)");
+
+  ccbi_from_uint(&a, 2);        /* 0b10, bit_length=2 */
+  ccbi_not(&z, &a);
+  CHECK(ccbi_to_int(&z) == 1, "~2 = 1 (in 2-bit space)");
+
+  ccbi_from_uint(&a, 0x0F);     /* bit_length=4 */
+  ccbi_not(&z, &a);
+  CHECK(ccbi_to_int(&z) == 0, "~0x0F = 0 (all 4 bits flip)");
+
+  ccbi_from_uint(&a, 0xAAAAAAAA);
+  ccbi_not(&z, &a);
+  CHECK(ccbi_to_int(&z) == 0x55555555ULL, "~0xAAAAAAAA = 0x55555555");
+
+  /* multi-limb: 0x00000001FFFFFFFF */
+  ccbi_from_uint(&a, UINT64_C(0x1FFFFFFFF));
+  CHECK(ccbi_bit_length(&a) == 33, "bl of 1FFFFFFFF is 33");
+  ccbi_not(&z, &a);
+  /* ~ in 33-bit space: 0x1FFFFFFFF → 0x00000000 */
+  CHECK(ccbi_is_zero(&z), "~0x1FFFFFFFF = 0 (33-bit complement clears all)");
+
+  ccbi_destroy(&a); ccbi_destroy(&z);
+}
+
+static void test_test_bit(void) {
+  ccbi_t a; ccbi_init(&a);
+
+  ccbi_zero(&a);
+  CHECK(ccbi_test_bit(&a, 0) == 0, "zero: bit 0 = 0");
+  CHECK(ccbi_test_bit(&a, 100) == 0, "zero: bit 100 = 0");
+
+  ccbi_one(&a);
+  CHECK(ccbi_test_bit(&a, 0) == 1, "1: bit 0 = 1");
+  CHECK(ccbi_test_bit(&a, 1) == 0, "1: bit 1 = 0");
+
+  ccbi_from_uint(&a, 0x80000000);
+  CHECK(ccbi_test_bit(&a, 31) == 1, "0x80000000: bit 31 = 1");
+  CHECK(ccbi_test_bit(&a, 30) == 0, "0x80000000: bit 30 = 0");
+
+  ccbi_destroy(&a);
+}
+
+static void test_set_clear_flip(void) {
+  ccbi_t a; ccbi_init(&a);
+
+  ccbi_zero(&a);
+  ccbi_set_bit(&a, 5);
+  CHECK(ccbi_test_bit(&a, 5) == 1, "set bit 5 on zero");
+  CHECK(ccbi_to_int(&a) == 32, "set bit 5 = 32");
+
+  ccbi_clear_bit(&a, 5);
+  CHECK(ccbi_test_bit(&a, 5) == 0, "clear bit 5");
+  CHECK(ccbi_is_zero(&a), "cleared back to zero");
+
+  /* flip from 0 to 1 on a large offset — triggers grow */
+  ccbi_flip_bit(&a, 70);   /* limb 2, bit 6 */
+  CHECK(ccbi_test_bit(&a, 70) == 1, "flip bit 70 on zero = 1");
+  CHECK(ccbi_bit_length(&a) == 71, "bl after flip bit 70 = 71");
+
+  ccbi_flip_bit(&a, 70);
+  CHECK(ccbi_test_bit(&a, 70) == 0, "flip bit 70 again = 0");
+  CHECK(ccbi_is_zero(&a), "double flip back to zero");
+
+  /* alias: set_bit on self */
+  ccbi_set_bit(&a, 0);
+  ccbi_set_bit(&a, 63);
+  CHECK(ccbi_test_bit(&a, 0) == 1, "set bit 0");
+  CHECK(ccbi_test_bit(&a, 63) == 1, "set bit 63 (limb 1)");
+  CHECK(ccbi_to_int(&a) == (int64_t)(UINT64_C(1) | (UINT64_C(1) << 63)),
+         "set bit 0 + 63 value check");
+
+  ccbi_destroy(&a);
+}
+
+static void test_bit_alias(void) {
+  /* AND/OR/XOR with z == a or z == b */
+  ccbi_t a, b; ccbi_init(&a); ccbi_init(&b);
+
+  ccbi_from_uint(&a, 0x0F); ccbi_from_uint(&b, 0x33);
+
+  /* z == a */
+  ccbi_and(&a, &a, &b);
+  CHECK(ccbi_to_int(&a) == 0x03, "and z==a: 0x0F & 0x33");
+
+  ccbi_from_uint(&a, 0x0F);
+  ccbi_or(&a, &a, &b);
+  CHECK(ccbi_to_int(&a) == 0x3F, "or z==a: 0x0F | 0x33");
+
+  ccbi_from_uint(&a, 0x0F);
+  ccbi_xor(&a, &a, &b);
+  CHECK(ccbi_to_int(&a) == 0x3C, "xor z==a: 0x0F ^ 0x33");
+
+  /* z == b */
+  ccbi_from_uint(&a, 0x0F);
+  ccbi_and(&b, &a, &b);
+  CHECK(ccbi_to_int(&b) == 0x03, "and z==b: 0x0F & 0x33");
+
+  ccbi_from_uint(&b, 0x33);
+  ccbi_from_uint(&a, 0x0F);
+  ccbi_or(&b, &a, &b);
+  CHECK(ccbi_to_int(&b) == 0x3F, "or z==b: 0x0F | 0x33");
+
+  ccbi_from_uint(&b, 0x33);
+  ccbi_from_uint(&a, 0x0F);
+  ccbi_xor(&b, &a, &b);
+  CHECK(ccbi_to_int(&b) == 0x3C, "xor z==b: 0x0F ^ 0x33");
+
+  /* not alias */
+  ccbi_from_uint(&a, 0xAAAAAAAA);
+  ccbi_not(&a, &a);
+  CHECK(ccbi_to_int(&a) == 0x55555555ULL, "not z==a: ~0xAAAAAAAA");
+
+  ccbi_destroy(&a); ccbi_destroy(&b);
+}
+
 int main(void) {
   failed = 0;
   printf("ccbi test suite\n===============\n");
@@ -612,6 +796,15 @@ int main(void) {
   test_boundary_sign();
   test_toom3();
   test_large_div();
+
+  printf("  bitwise ops...\n");
+  test_and();
+  test_or();
+  test_xor();
+  test_not();
+  test_test_bit();
+  test_set_clear_flip();
+  test_bit_alias();
 
   printf("===============\n%d failed\n", failed);
   return failed > 0 ? 1 : 0;

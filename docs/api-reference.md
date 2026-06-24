@@ -972,6 +972,28 @@ int    ccbi_shr(ccbi_t *z, const ccbi_t *a, size_t n);
 size_t ccbi_bit_length(const ccbi_t *z);
 ```
 
+### 位运算
+
+对 magnitude（绝对值）进行按位逻辑运算，结果恒为非负。
+
+```c
+int  ccbi_and(ccbi_t *z, const ccbi_t *a, const ccbi_t *b);  // z = a & b
+int  ccbi_or (ccbi_t *z, const ccbi_t *a, const ccbi_t *b);  // z = a | b
+int  ccbi_xor(ccbi_t *z, const ccbi_t *a, const ccbi_t *b);  // z = a ^ b
+int  ccbi_not(ccbi_t *z, const ccbi_t *a);                   // z = ~a  (bit_length 范围内取反)
+```
+
+单 bit 操作：
+
+```c
+int  ccbi_test_bit(const ccbi_t *z, size_t i);    // 返回 0/1，越界返回 0
+int  ccbi_set_bit(ccbi_t *z, size_t i);            // 第 i 位置 1，自动扩容
+int  ccbi_clear_bit(ccbi_t *z, size_t i);          // 第 i 位清零
+int  ccbi_flip_bit(ccbi_t *z, size_t i);           // 第 i 位翻转，自动扩容
+```
+
+`ccbi_not` 仅在 `bit_length(a)` 范围内取反，高位清零。例如 `~1 = 0`（1-bit 空间）、`~2 = 1`（2-bit 空间）。
+
 ### 数论
 
 ```c

@@ -151,6 +151,117 @@ TEST(push_alias) {
   ccheap_destroy(&h);
 }
 
+/* ── Floyd build / heapify tests ──────────────────────────────────── */
+
+TEST(build_empty) {
+  ccheap_t h; ccheap_init(&h, min_cmp);
+  ASSERT(ccheap_build(&h, NULL, 0) == 0);
+  ASSERT(ccheap_size(&h) == 0);
+  ASSERT(ccheap_peek(&h) == NULL);
+  ccheap_destroy(&h);
+}
+
+TEST(build_single) {
+  ccheap_t h; ccheap_init(&h, min_cmp);
+  struct my_node n = {{0}, 42};
+  ccheap_node_t *arr[] = { &n.node };
+  ASSERT(ccheap_build(&h, arr, 1) == 0);
+  ASSERT(ccheap_size(&h) == 1);
+  ASSERT(CCHEAP_CONTAINER(ccheap_peek(&h), struct my_node, node)->priority == 42);
+  ccheap_destroy(&h);
+}
+
+TEST(build_ordering) {
+  ccheap_t h; ccheap_init(&h, min_cmp);
+  struct my_node n[7];
+  ccheap_node_t *arr[7];
+  /* insert in reverse order so build < insert for same result */
+  for (int i = 0; i < 7; i++) { n[i].priority = (uint32_t)(7 - i); arr[i] = &n[i].node; }
+  ASSERT(ccheap_build(&h, arr, 7) == 0);
+  ASSERT(ccheap_size(&h) == 7);
+
+  /* pop order should be 1,2,...,7 */
+  for (int i = 0; i < 7; i++) {
+    struct my_node *p = CCHEAP_CONTAINER(ccheap_pop(&h), struct my_node, node);
+    ASSERT(p->priority == (uint32_t)(i + 1));
+  }
+  ccheap_destroy(&h);
+}
+
+TEST(build_vs_insert_equivalent) {
+  /* build(unsorted) should produce the same pop order as insert(one-by-one) */
+  ccheap_t ha, hb; ccheap_init(&ha, min_cmp); ccheap_init(&hb, min_cmp);
+  enum { N = 100 };
+  struct my_node na[N], nb[N];
+  ccheap_node_t *arr[N];
+
+  for (int i = 0; i < N; i++) {
+    uint32_t v = (uint32_t)((i * 17 + 31) % N); /* pseudo-random but deterministic */
+    na[i].priority = v;
+    nb[i].priority = v;
+    arr[i] = &na[i].node;
+  }
+
+  /* build */
+  ASSERT(ccheap_build(&ha, arr, N) == 0);
+  /* insert one-by-one */
+  for (int i = 0; i < N; i++) ccheap_insert(&hb, &nb[i].node);
+
+  ASSERT(ccheap_size(&ha) == N);
+  ASSERT(ccheap_size(&hb) == N);
+
+  /* pop order must match */
+  for (int i = 0; i < N; i++) {
+    struct my_node *pa = CCHEAP_CONTAINER(ccheap_pop(&ha), struct my_node, node);
+    struct my_node *pb = CCHEAP_CONTAINER(ccheap_pop(&hb), struct my_node, node);
+    ASSERT(pa->priority == pb->priority);
+  }
+
+  ccheap_destroy(&ha);
+  ccheap_destroy(&hb);
+}
+
+TEST(build_resize) {
+  ccheap_t h; ccheap_init(&h, min_cmp); /* default cap = 32 */
+  enum { N = 200 };
+  struct my_node n[N];
+  ccheap_node_t *arr[N];
+  for (int i = 0; i < N; i++) { n[i].priority = (uint32_t)(N - i); arr[i] = &n[i].node; }
+  ASSERT(ccheap_build(&h, arr, N) == 0);
+  ASSERT(ccheap_size(&h) == N);
+  for (int i = 0; i < N; i++) {
+    struct my_node *p = CCHEAP_CONTAINER(ccheap_pop(&h), struct my_node, node);
+    ASSERT(p->priority == (uint32_t)(i + 1));
+  }
+  ccheap_destroy(&h);
+}
+
+TEST(heapify_in_place) {
+  ccheap_t h; ccheap_init(&h, min_cmp);
+  struct my_node n[5];
+  ccheap_node_t *arr[5];
+  for (int i = 0; i < 5; i++) { n[i].priority = (uint32_t)(5 - i); arr[i] = &n[i].node; }
+  ccheap_build(&h, arr, 5); /* initially 1,2,3,4,5 (already heap) */
+
+  /* bulk-update: double every priority — now 2,4,6,8,10 */
+  for (size_t i = 0; i < ccheap_size(&h); i++)
+    CCHEAP_CONTAINER(h.data[i], struct my_node, node)->priority *= 2;
+
+  ASSERT(ccheap_heapify(&h) == 0);
+  ASSERT(ccheap_size(&h) == 5);
+
+  for (int i = 0; i < 5; i++) {
+    struct my_node *p = CCHEAP_CONTAINER(ccheap_pop(&h), struct my_node, node);
+    ASSERT(p->priority == (uint32_t)((i + 1) * 2));
+  }
+  ccheap_destroy(&h);
+}
+
+TEST(heapify_null_safety) {
+  ASSERT(ccheap_build(NULL, NULL, 0) == -1);
+  ASSERT(ccheap_heapify(NULL) == -1);
+}
+
 TEST(null_safety) {
   ccheap_t h; ccheap_init(&h, min_cmp);
   ASSERT(ccheap_init(NULL, NULL) == -1);
@@ -174,6 +285,13 @@ int main(void) {
   RUN(large_insert_pop);
   RUN(resize_trigger);
   RUN(push_alias);
+  RUN(build_empty);
+  RUN(build_single);
+  RUN(build_ordering);
+  RUN(build_vs_insert_equivalent);
+  RUN(build_resize);
+  RUN(heapify_in_place);
+  RUN(heapify_null_safety);
   RUN(null_safety);
   printf("\n  %d passed, %d failed\n", passed, failed);
   return failed ? 1 : 0;

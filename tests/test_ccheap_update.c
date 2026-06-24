@@ -131,6 +131,58 @@ TEST(update_increase_key) {
   ccheap_destroy(&h);
 }
 
+TEST(update_after_build) {
+  /* build + update a single node — verify indices and heap property */
+  ccheap_t h; ccheap_init(&h, NULL);
+  enum { N = 20 };
+  ccheap_node_t n[N];
+  ccheap_node_t *arr[N];
+  for (int i = 0; i < N; i++) { n[i].cost = (double)(N - i); arr[i] = &n[i]; }
+  ASSERT(ccheap_build(&h, arr, N) == 0);
+  check_idxs(&h);
+  check_heap(&h);
+
+  /* decrease key of node at data[3] */
+  ccheap_node_t *target = h.data[3];
+  double old = target->cost;
+  target->cost = old * 0.1;
+  ASSERT(ccheap_update(&h, target) == 0);
+  check_idxs(&h);
+  check_heap(&h);
+
+  /* increase key back */
+  target->cost = old * 10;
+  ASSERT(ccheap_update(&h, target) == 0);
+  check_idxs(&h);
+  check_heap(&h);
+
+  ccheap_destroy(&h);
+}
+
+TEST(update_after_heapify) {
+  /* insert, bulk-modify, heapify, then update individual nodes */
+  ccheap_t h; ccheap_init(&h, NULL);
+  enum { N = 20 };
+  ccheap_node_t n[N];
+  for (int i = 0; i < N; i++) { n[i].cost = (double)(N - i); ccheap_push(&h, &n[i]); }
+
+  /* bulk-add 100 to all costs (destroying heap property) */
+  for (size_t i = 0; i < h.len; i++) h.data[i]->cost += 100.0;
+  ASSERT(ccheap_heapify(&h) == 0);
+  check_idxs(&h);
+  check_heap(&h);
+
+  /* now update a specific node */
+  ccheap_node_t *target = h.data[h.len / 2];
+  target->cost = -100.0;   /* should bubble to root */
+  ASSERT(ccheap_update(&h, target) == 0);
+  ASSERT(ccheap_peek(&h) == target);
+  check_idxs(&h);
+  check_heap(&h);
+
+  ccheap_destroy(&h);
+}
+
 TEST(update_stale_idx) {
   ccheap_t h; ccheap_init(&h, NULL);
   ccheap_node_t a = {.cost = 5.0};
@@ -191,6 +243,8 @@ int main(void) {
   RUN(update_decrease_key);
   RUN(update_increase_key);
   RUN(update_stale_idx);
+  RUN(update_after_build);
+  RUN(update_after_heapify);
   RUN(update_null_safety);
   RUN(full_Astar_simulation);
   printf("\n  %d passed, %d failed\n", passed, failed);

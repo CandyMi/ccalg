@@ -67,6 +67,25 @@
 **    ccheap_push(&h, &t.node);
 **    struct task *done = CCHEAP_CONTAINER(ccheap_pop(&h), struct task, node);
 **    done->cb(done->arg);
+**
+**  ── Bulk construction (Floyd) ──
+**
+**    ccheap_build(&h, nodes, count) replaces all contents and builds
+**    a heap from an arbitrary array of node pointers in O(count) via
+**    Floyd's bottom-up sift-down — avoids the O(n log n) cost of n
+**    individual ccheap_insert() calls.
+**
+**    Example:
+**      ccheap_node_t *pool[1000];
+**      for (int i = 0; i < 1000; i++) pool[i] = &entries[i].node;
+**      ccheap_build(&h, pool, 1000);            // O(1000)
+**      // vs. for (...) ccheap_insert(&h, ...)   // O(1000·log 1000)
+**
+**    ccheap_heapify(&h) re-heapifies current contents in place.
+**    Used after bulk priority changes:
+**      for (size_t i = 0; i < ccheap_size(&h); i++)
+**          CCHEAP_CONTAINER(h.data[i], struct task, node)->cost *= 0.9;
+**      ccheap_heapify(&h);
 */
 #ifndef CCHEAP_H
 #define CCHEAP_H
@@ -262,7 +281,29 @@ ccheap_update(ccheap_t *heap, CCHEAP_NODE_T *n) CCHEAP_NOEXCEPT
 }
 #endif /* CCHEAP_NODE_INDEX */
 
-/* ── public API ───────────────────────────────────────────────────────── */
+/* ── public API ─────────────────────────────────────────────────────────
+ *
+ *  Lifecycle:
+ *    ccheap_init       — allocate internal array (default cap 32)
+ *    ccheap_destroy    — free internal array
+ *    ccheap_clear      — reset to empty (no free, no realloc)
+ *
+ *  Insert / Remove:
+ *    ccheap_push       — alias for ccheap_insert
+ *    ccheap_insert     — push one node — O(log len)
+ *    ccheap_build      — replace & build from pointer array — O(count)
+ *    ccheap_pop        — remove and return the root — O(log len)
+ *    ccheap_peek       — read root without removing — O(1)
+ *
+ *  Bulk rebuild:
+ *    ccheap_heapify    — re-heapify current data[] in place — O(len)
+ *
+ *  Update (only with CCHEAP_NODE_INDEX):
+ *    ccheap_update     — rebalance after priority change — O(log len)
+ *
+ *  Query:
+ *    ccheap_size       — element count — O(1)
+ */
 
 CCHEAP_INLINE int
 ccheap_init(ccheap_t *heap, ccheap_compare_t f) CCHEAP_NOEXCEPT
@@ -316,6 +357,94 @@ ccheap_insert(ccheap_t *heap, CCHEAP_NODE_T *n) CCHEAP_NOEXCEPT
   return 0;
 }
 
+/* ── Floyd heap construction ────────────────────────────────────────── */
+
+/*  Replace contents with nodes[0..count-1] and establish the heap
+ *  property via Floyd's bottom-up sift-down — O(count).  Pointers are
+ *  shallow-copied (no node memory is allocated or freed).
+ *
+ *  Equivalent to clearing the heap and calling ccheap_insert count
+ *  times, but runs in O(count) instead of O(count · log count).
+ *
+ *  Returns 0 on success, -1 on invalid argument or allocation failure.
+ *  When count == 0 the heap is emptied (no error).
+ *
+ *  Example:
+ *    ccheap_t h;  ccheap_init(&h, cmp);
+ *    ccheap_node_t *nodes[3] = {&a, &b, &c};
+ *    ccheap_build(&h, nodes, 3);    // O(3) instead of O(3 log 3)
+ *
+ *  CCHEAP_NODE_INDEX note:  every node's index is set by this function;
+ *  ccheap_update remains safe immediately after ccheap_build.
+ */
+CCHEAP_INLINE int
+ccheap_build(ccheap_t *heap, CCHEAP_NODE_T **nodes, size_t count) CCHEAP_NOEXCEPT
+{
+  if (ccheap_unlikely(!heap || (!nodes && count))) return -1;
+
+  if (count == 0) { heap->len = 0; return 0; }
+
+  /* grow internal array if needed */
+  if (heap->cap < count) {
+    ccheap_node_t **nd = (ccheap_node_t **)CCHEAP_REALLOC(
+        heap->data, sizeof(ccheap_node_t *) * count);
+    if (!nd) return -1;
+    heap->data = nd;
+    heap->cap = count;
+  }
+
+  /* copy pointers */
+  for (size_t i = 0; i < count; i++)
+    heap->data[i] = nodes[i];
+  heap->len = count;
+
+#ifdef CCHEAP_NODE_INDEX
+  for (size_t i = 0; i < count; i++)
+    heap->data[i]->CCHEAP_NODE_INDEX = i;
+#endif
+
+  /* Floyd's algorithm: sift down from the last parent to 0 — O(n) */
+  if (count > 1) {
+    size_t i = CCHEAP_PARENT(count - 1) + 1;
+    while (i-- > 0)
+      _hsift_down(heap, count, i);
+  }
+
+  return 0;
+}
+
+/*  Re-heapify the current data[0..len-1] in place — O(len).  Does
+ *  not allocate, shrink, or change len/cap.  Useful for O(n) recovery
+ *  after bulk priority changes that would otherwise require O(n log n)
+ *  individual ccheap_update calls.
+ *
+ *  Returns 0 on success, -1 on NULL heap.  An empty or single-element
+ *  heap is a no-op (returns 0).
+ *
+ *  Correct use — bulk priority update, data[] pointers intact:
+ *    for (size_t i = 0; i < ccheap_size(&h); i++)
+ *        h.data[i]->priority += 1;
+ *    ccheap_heapify(&h);
+ *
+ *  CCHEAP_NODE_INDEX caveat — nodes that are never sifted during Floyd
+ *  retain their old index.  If data[] pointers were swapped by hand,
+ *  some CCHEAP_NODE_INDEX values may be stale (ccheap_update detects
+ *  this via CCHEAP_AT(heap, i) != n and returns -1).  When stale
+ *  indices are unacceptable, use ccheap_build instead.
+ */
+CCHEAP_INLINE int
+ccheap_heapify(ccheap_t *heap) CCHEAP_NOEXCEPT
+{
+  if (ccheap_unlikely(!heap)) return -1;
+  if (heap->len <= 1) return 0;
+
+  size_t i = CCHEAP_PARENT(heap->len - 1) + 1;
+  while (i-- > 0)
+    _hsift_down(heap, heap->len, i);
+
+  return 0;
+}
+
 CCHEAP_INLINE CCHEAP_NODE_T *
 ccheap_pop(ccheap_t *heap) CCHEAP_NOEXCEPT
 {
@@ -350,21 +479,21 @@ ccheap_peek(ccheap_t *heap) CCHEAP_NOEXCEPT
 CCHEAP_INLINE size_t
 ccheap_size(const ccheap_t *heap) CCHEAP_NOEXCEPT
 {
-  if (!heap) return 0;
+  if (ccheap_unlikely(!heap)) return 0;
   return heap->len;
 }
 
 CCHEAP_INLINE void
 ccheap_clear(ccheap_t *heap) CCHEAP_NOEXCEPT
 {
-  if (!heap) return;
+  if (ccheap_unlikely(!heap)) return;
   heap->len = 0;
 }
 
 CCHEAP_INLINE void
 ccheap_destroy(ccheap_t *heap) CCHEAP_NOEXCEPT
 {
-  if (!heap) return;
+  if (ccheap_unlikely(!heap)) return;
   if (heap->data) CCHEAP_FREE(heap->data);
   heap->data = NULL;
   heap->len = heap->cap = 0;

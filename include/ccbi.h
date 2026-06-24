@@ -25,6 +25,18 @@
 **
 **    ccbi_destroy(&a); ccbi_destroy(&b); ccbi_destroy(&c);
 **
+**  ── Bitwise / single-bit ──
+**
+**    ccbi_and(&z, &a, &b);            //  z = a & b
+**    ccbi_or (&z, &a, &b);            //  z = a | b
+**    ccbi_xor(&z, &a, &b);            //  z = a ^ b
+**    ccbi_not(&z, &a);                //  z = ~a (bit_length 范围)
+**
+**    if (ccbi_test_bit(&a, 7)) …      //  测试第 7 位
+**    ccbi_set_bit(&m, 63);            //  第 63 位置 1，自动扩容
+**    ccbi_clear_bit(&m, 31);          //  第 31 位清零
+**    ccbi_flip_bit(&m, 0);            //  第 0 位翻转
+**
 **  ── Allocator hooks ──
 **
 **    #define CCBI_REALLOC my_realloc

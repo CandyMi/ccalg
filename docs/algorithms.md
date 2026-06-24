@@ -624,6 +624,30 @@ for 指数 bit 窗口:
 转换回整数域
 ```
 
+### 位运算
+
+按 magnitude（绝对值）运算，结果恒为非负。
+
+```
+AND:  for i = 0..min(|a|,|b|)-1:  z[i] = a[i] & b[i]  高位截断
+OR:   for i = 0..max(|a|,|b|)-1:  z[i] = a[i] | b[i]  高位从较长者拷贝
+XOR:  for i = 0..max(|a|,|b|)-1:  z[i] = a[i] ^ b[i]  高位拷贝，可能归零
+NOT:  bl = bit_length(a)
+      for i = 0..(bl/32)-1:  z[i] = ~a[i]
+      if bl%32:  z[last] = (~a[last]) & ((1<<bl%32)-1)  掩码高位
+```
+
+`ccbi_not` 仅在 `bit_length(a)` 范围内取反，所以 `~1 = 0`、`~2 = 1`。
+
+单 bit 操作为 O(1) limb 定位 ± 潜在 grow：
+
+```
+test_bit:  limb = i/32;  (z->limbs[limb] >> i%32) & 1
+set_bit:   z->limbs[limb] |= 1 << i%32    (越界自动 grow)
+clear_bit: z->limbs[limb] &= ~(1 << i%32) (越界无操作)
+flip_bit:  z->limbs[limb] ^= 1 << i%32    (越界等同 set_bit)
+```
+
 ### 字符串转换
 
 #### from_str — 十进制 9 位分块

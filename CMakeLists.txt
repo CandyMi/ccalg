@@ -41,6 +41,7 @@ endmacro()
 
 add_ccalg_test(test_ccmap)
 add_ccalg_test(test_cchashmap)
+add_ccalg_test(test_cchashmap_fp)
 add_ccalg_test(test_cclist)
 add_ccalg_test(test_cclink)
 add_ccalg_test(test_ccheap)

@@ -134,48 +134,35 @@ extern "C" {
  *
  *  Small-String-Optimization (SSO): when `limbs` points to `internal[]`,
  *  zero heap allocation.  Once used exceeds `CCBI_SSO_LIMBS`, a heap
- *  buffer is allocated.  Meta-data (sign/used/cap) is packed into one
- *  uint32_t via shift macros — no bitfields, portable C99.
- *
- *  meta bit layout (little-endian):
- *    bit  1–0:  sign  (2-bit signed: -1/0/1)
- *    bit 16–2:  used  (15-bit: 0..32767)
- *    bit 31–17: cap   (15-bit: 0..32767)
+ *  buffer is allocated.
  */
 typedef struct ccbi {
   uint32_t  *limbs;                    /* 8B: → internal[] or heap */
   uint32_t   internal[CCBI_SSO_LIMBS]; /* 4*SSO_LIMBS B: inline buffer */
-  uint32_t   meta;                     /* 4B: sign|used|cap packed */
-} ccbi_t;  /* total: 12 + 4*SSO_LIMBS B (44B at SSO_LIMBS=8) */
+  int        sign;                     /* 4B: -1/0/1 */
+  uint32_t   used;                     /* 4B: used limb count, ≤ cap */
+  uint32_t   cap;                      /* 4B: allocated limb capacity */
+} ccbi_t;  /* total: 20 + 4*SSO_LIMBS B (52B at SSO_LIMBS=8) */
 
-/* ── meta-field access macros ── */
+/* ── metadata field access macros ── */
 
-/** Extract sign (-1/0/1) from packed meta.
- *  Bit 0 = sign magnitude (1 for positive), Bit 1 = sign extension (-1). */
-#define CCBI_SIGN(z)    ((int32_t)((((z)->meta) & 2u) ? -1 : (int32_t)(((z)->meta) & 1u)))
+/** Extract sign (-1/0/1). */
+#define CCBI_SIGN(z)    ((z)->sign)
 
-/** Store sign (-1/0/1) into packed meta. */
-#define CCBI_SET_SIGN(z,v)  do {                                           \
-    (z)->meta = ((z)->meta & ~3u) | ((uint32_t)(int32_t)(v) & 3u);         \
-  } while(0)
+/** Store sign (-1/0/1). */
+#define CCBI_SET_SIGN(z,v)  do { (z)->sign = (v); } while(0)
 
-/** Extract used-limb count from packed meta. */
-#define CCBI_USED(z)    (((z)->meta >> 2) & 0x7FFFu)
+/** Extract used-limb count. */
+#define CCBI_USED(z)    ((z)->used)
 
-/** Store used-limb count into packed meta. */
-#define CCBI_SET_USED(z,v)  do {                                           \
-    (z)->meta = ((z)->meta & ~(0x7FFFu << 2))                              \
-              | (((uint32_t)(v) & 0x7FFFu) << 2);                          \
-  } while(0)
+/** Store used-limb count. */
+#define CCBI_SET_USED(z,v)  do { (z)->used = (v); } while(0)
 
-/** Extract allocated limb capacity from packed meta. */
-#define CCBI_CAP(z)     (((z)->meta >> 17) & 0x7FFFu)
+/** Extract allocated limb capacity. */
+#define CCBI_CAP(z)     ((z)->cap)
 
-/** Store allocated limb capacity into packed meta. */
-#define CCBI_SET_CAP(z,v)  do {                                            \
-    (z)->meta = ((z)->meta & ~(0x7FFFu << 17))                             \
-              | (((uint32_t)(v) & 0x7FFFu) << 17);                         \
-  } while(0)
+/** Store allocated limb capacity. */
+#define CCBI_SET_CAP(z,v)  do { (z)->cap = (v); } while(0)
 
 /* ==========================================================================
  *  ── Internal helpers ──
@@ -184,7 +171,7 @@ typedef struct ccbi {
 /** @brief Ensure capacity, preserving existing data. */
 CCBI_INLINE int
 ccbi_grow(ccbi_t *z, uint32_t need) CCBI_NOEXCEPT {
-  /* Current capacity: SSO_LIMBS while limbs points to internal, else from meta. */
+  /* Current capacity: SSO_LIMBS while limbs points to internal, else from cap field. */
   uint32_t cur_cap = (z->limbs == z->internal) ? (uint32_t)CCBI_SSO_LIMBS : CCBI_CAP(z);
   if (need <= cur_cap) return 0;
   uint32_t new_cap = cur_cap ? cur_cap * 2 : 8;
@@ -310,15 +297,12 @@ ccbi_udiv_limb(ccbi_t *q, uint32_t *r, const ccbi_t *a, uint32_t v) CCBI_NOEXCEP
 
 CCBI_INLINE void ccbi_init(ccbi_t *z) CCBI_NOEXCEPT {
   z->limbs = z->internal;
-  z->meta  = 0;  /* sign=0, used=0, cap implicitly = SSO_LIMBS via grow */
+  ccbi_zero(z);
 }
 
 CCBI_INLINE void ccbi_destroy(ccbi_t *z) CCBI_NOEXCEPT {
   if (!z) return;
-  if (z->limbs != z->internal)
-    CCBI_FREE(z->limbs);
-  z->limbs = z->internal;
-  z->meta  = 0;
+  ccbi_zero(z);
 }
 
 CCBI_INLINE void ccbi_zero(ccbi_t *z) CCBI_NOEXCEPT {
@@ -326,7 +310,9 @@ CCBI_INLINE void ccbi_zero(ccbi_t *z) CCBI_NOEXCEPT {
     CCBI_FREE(z->limbs);
     z->limbs = z->internal;
   }
-  z->meta = 0;
+  z->sign = 0;
+  z->used = 0;
+  z->cap  = 0;
 }
 
 CCBI_INLINE void ccbi_one(ccbi_t *z) CCBI_NOEXCEPT {

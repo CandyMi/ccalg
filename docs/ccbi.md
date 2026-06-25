@@ -14,10 +14,12 @@
 采用 **小端序符号-绝对值**（sign-magnitude）表示法，limb 基数为 2³²。
 
 ```
-ccbi_t (12 + 4·CCBI_SSO_LIMBS B)
+ccbi_t (20 + 4·CCBI_SSO_LIMBS B)
   limbs   : uint32_t*      → 指向 internal[] 或堆
   internal: uint32_t[CCBI_SSO_LIMBS] → 内联缓冲区
-  meta    : uint32_t       → sign(2) | used(15) | cap(15)
+  sign    : int            → -1/0/1
+  used    : uint32_t       → used limb count
+  cap     : uint32_t       → allocated limb capacity
 ```
 
 - `limbs[0]` = 最低 32-bit，`limbs[used-1]` = 最高
@@ -28,15 +30,15 @@ ccbi_t (12 + 4·CCBI_SSO_LIMBS B)
 
 | CCBI_SSO_LIMBS | 结构体大小 | 零分配阈值 | 备注 |
 |:---:|:---:|:---:|:---|
-| 2 | 20 B | ≤ 64-bit | 最少，省栈 |
-| 4 | 28 B | ≤ 128-bit | |
-| **8** (默认) | **44 B** | **≤ 256-bit** | |
-| 16 | 76 B | ≤ 512-bit | |
-| 32 | 140 B | ≤ 1024-bit | |
-| 64 | 268 B | ≤ 2048-bit | |
-| 128 | 524 B | ≤ 4096-bit | meta 字段上限 32767 |
+| 2 | 28 B | ≤ 64-bit | 最少，省栈 |
+| 4 | 36 B | ≤ 128-bit | |
+| **8** (默认) | **52 B** | **≤ 256-bit** | |
+| 16 | 84 B | ≤ 512-bit | |
+| 32 | 148 B | ≤ 1024-bit | |
+| 64 | 276 B | ≤ 2048-bit | |
+| 128 | 532 B | ≤ 4096-bit | |
 
-`used` 和 `cap` 均为 15-bit 元数据字段，最大 32767，因此 `CCBI_SSO_LIMBS` 有效范围为 **2 ~ 32767**。超过默认值时需注意栈空间增长：`sizeof(ccbi_t) = 12 + 4·CCBI_SSO_LIMBS`。
+`cap` 为 `uint32_t` 无上限（最大可表示约 16TB 的大数），`CCBI_SSO_LIMBS` 有效范围主要受栈空间约束：`sizeof(ccbi_t) = 20 + 4·CCBI_SSO_LIMBS`。
 
 ### 1.2 核心算法
 

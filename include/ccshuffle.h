@@ -125,7 +125,10 @@ _ccshuffle_range(uint64_t rnd, size_t range,
   /* ── fallback: rejection sampling (portable, two div ops) ──────── */
   (void)state; (void)next;
   uint64_t limit = UINT64_MAX - (UINT64_MAX % range);
-  if (rnd > limit) return _ccshuffle_range(next(state), range, state, next);
+  while (rnd > limit) {
+    rnd = next(state);
+    limit = UINT64_MAX - (UINT64_MAX % range);
+  }
   return (size_t)(rnd % range);
 #endif
 }

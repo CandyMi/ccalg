@@ -1012,7 +1012,7 @@ ccbi_div_rem(ccbi_t *q, ccbi_t *r, const ccbi_t *a, const ccbi_t *b) CCBI_NOEXCE
   /* Precompute reciprocal: v_recip = ceil(2^64 / v_top).
    * Replaces each trial quotient's 64/32 divq with a mulq+shift. */
   uint32_t v_top_norm = v.limbs[n - 1];
-#if defined(__SIZEOF_INT128__) || (defined(__GNUC__) && !defined(__ICC))
+#if defined(__SIZEOF_INT128__)
   uint64_t v_recip = (~0ULL / v_top_norm) + 1;  /* ceil(2^64 / v_top) */
 #endif
 
@@ -1024,7 +1024,7 @@ ccbi_div_rem(ccbi_t *q, ccbi_t *r, const ccbi_t *a, const ccbi_t *b) CCBI_NOEXCE
     if (u_top >= ((uint64_t)v_top_norm << 32))
       qd = 0xFFFFFFFF;
     else
-#if defined(__SIZEOF_INT128__) || (defined(__GNUC__) && !defined(__ICC))
+#if defined(__SIZEOF_INT128__)
       qd = (uint32_t)(((__uint128_t)u_top * v_recip) >> 64);
 #else
       qd = (uint32_t)(u_top / v_top_norm);

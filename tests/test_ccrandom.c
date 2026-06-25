@@ -180,10 +180,10 @@ TEST(f32_mean) {
 TEST(u64_distribution) {
   ccrandom128_t rng;
   ccrandom128_init(&rng, 1ULL);
-  int above = 0, below = 0, n = 100000;
+  int above = 0, n = 100000;
   uint64_t mid = UINT64_MAX / 2;
   for (int i = 0; i < n; i++) {
-    if (ccrandom128_next(&rng) > mid) above++; else below++;
+    if (ccrandom128_next(&rng) > mid) above++;
   }
   /* expect ~50% above midpoint, tolerance ± 2% */
   double ratio = (double)above / n;

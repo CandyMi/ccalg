@@ -32,20 +32,25 @@ static volatile int      sink_int;
     #define __builtin_clzll(x)       ((int)(__lzcnt64(x)))
     #define __builtin_ctzll(x)       ((int)(_tzcnt_u64(x)))
   #else
-    /* 32-bit MSVC: compose 64-bit popcount from two 32-bit halves */
+    /* 32-bit MSVC: __popcnt64/__lzcnt64/_tzcnt_u64 are x64-only.
+     * Compose from 32-bit intrinsics. */
     static inline int msvc_popcount64(uint64_t x) {
       return (int)(__popcnt((unsigned int)(x)) + __popcnt((unsigned int)(x >> 32)));
     }
-    /* 64-bit clz via 32-bit __lzcnt */
     static inline int msvc_clz64(uint64_t x) {
       unsigned long idx;
-      if (_BitScanReverse64(&idx, x)) return (int)(63 - idx);
+      uint32_t hi = (uint32_t)(x >> 32);
+      if (hi) { _BitScanReverse(&idx, hi); return (int)(31 - (int)idx); }
+      uint32_t lo = (uint32_t)(x);
+      if (lo) { _BitScanReverse(&idx, lo); return (int)(63 - (int)idx); }
       return 64;
     }
-    /* 64-bit ctz via 32-bit _BitScanForward64 */
     static inline int msvc_ctz64(uint64_t x) {
       unsigned long idx;
-      if (_BitScanForward64(&idx, x)) return (int)idx;
+      uint32_t lo = (uint32_t)(x);
+      if (lo) { _BitScanForward(&idx, lo); return (int)idx; }
+      uint32_t hi = (uint32_t)(x >> 32);
+      if (hi) { _BitScanForward(&idx, hi); return (int)(idx + 32); }
       return 64;
     }
     #define __builtin_popcountll(x)  msvc_popcount64(x)

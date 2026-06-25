@@ -24,22 +24,20 @@ jobs:
             cc: clang
             cxx: clang++
 
-          # ── Linux — ASan (Address Sanitizer) ───────────────────────────
+          # ── Linux — ASan via CCALG_SANITIZE (CMake option) ────────────
           - name: Linux x86_64 (GCC ASan)
             os: ubuntu-24.04
             cc: gcc
             cxx: g++
             asan: 1
-            cflags: -fsanitize=address -fno-omit-frame-pointer
-            cxxflags: -fsanitize=address -fno-omit-frame-pointer
+            cmake_extra: -DCCALG_SANITIZE=ON
 
           - name: Linux x86_64 (Clang ASan)
             os: ubuntu-24.04
             cc: clang
             cxx: clang++
             asan: 1
-            cflags: -fsanitize=address -fno-omit-frame-pointer
-            cxxflags: -fsanitize=address -fno-omit-frame-pointer
+            cmake_extra: -DCCALG_SANITIZE=ON
 
           - name: Linux i386 (GCC)
             os: ubuntu-24.04

@@ -376,7 +376,23 @@ cmake --install build --prefix /usr/local
 | `test_ccunicode.c` | UTF-8 ↔ UCS-4 codec |
 | `test_ccunicode_verify.c` | UTF-8 edge-case verification |
 | `test_ccheap_update.c` | D-ary heap decrease-key |
+| `test_ccbi.c` | Big-integer (arbitrary-precision arithmetic) |
 | `test_ccbits.c` | Bit manipulation primitives |
+
+### Sanitizer build
+
+Set `-DCCALG_SANITIZE=ON` (default for Debug builds) to enable
+AddressSanitizer + UndefinedBehaviorSanitizer on all test targets:
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCCALG_SANITIZE=ON
+cmake --build build --target check
+```
+
+- GCC/Clang: `-fsanitize=address -fno-omit-frame-pointer -fsanitize=undefined`
+- MSVC ≥ VS 16.9: `/fsanitize=address`
+- Benchmark targets are excluded — ASAN conflicts with `-O2`.
+- On macOS ASAN may need `$ENV{ASAN_OPTIONS}=detect_leaks=0` (no malloc-leak detection).
 
 ### Benchmarks (C++ vs STL)
 
@@ -393,6 +409,9 @@ cmake --install build --prefix /usr/local
 | `bench_ccrandom.cpp` | ccrandom128/ccrandom256 vs `std::mt19937` | 20M draws |
 | `bench_ccunicode.cpp` | ccunicode UTF-8 encode/decode throughput | ASCII / CJK / 4-byte |
 | `bench_ccmap_prefetch.cpp` | ccmap with/without CCMAP_PREFETCH | 100K |
+| `bench_ccshuffle.cpp` | ccshuffle_knuth vs `std::shuffle` | 100K / 1M |
+| `bench_ccbits.cpp` | Bit primitives (popcount, clz, ctz, bswap) throughput | 10M |
+| `bench_ccbi.cpp` | Big-integer mul / div / pow_mod / to_str throughput | 256/1024/2048-bit |
 
 ---
 
@@ -526,7 +545,34 @@ header change → tests → benchmarks → docs → gh-pages deploy
 - **Macro prefixes are per-container.** No cross-container shared macros.
 - Do not use internal helper functions (`_rb_*`, `_tp_*`, `_cclist_*`) outside their owning header — use only the public API.
 
-### 11. Encapsulation — public API boundary
+### 11. Test style convention
+
+All test files MUST use the standard test framework macros:
+
+```c
+static int passed, failed;
+#define TEST(name) static void test_##name(void)
+#define ASSERT(cond) do { \
+  if (!(cond)) { printf("  FAIL %s:%d: %s\n", __FILE__, __LINE__, #cond); failed++; } \
+  else passed++; \
+} while(0)
+#define RUN(name) do { printf("  %s\n", #name); test_##name(); } while(0)
+
+int main(void) {
+  printf("xxx tests:\n");
+  RUN(test_a);
+  RUN(test_b);
+  printf("\n  %d passed, %d failed\n", passed, failed);
+  return failed ? 1 : 0;
+}
+```
+
+- `ASSERT` uses `#cond` (auto-stringification) — **never** supply a manual message string.
+- `fprintf(stderr, ...)` is NOT used — all output goes to `stdout`.
+- Tests output `"%d passed, %d failed\n"` at exit; ctest matches `"0 failed"` / `"[1-9]* failed"`.
+- Custom CHECK-style macros are NOT permitted — use the unified TEST/ASSERT/RUN.
+
+### 12. Encapsulation — public API boundary
 
 - **External code (tests, benchmarks, examples, users) MUST NOT access struct fields directly.** Use only the public API functions (`xxx_init`, `xxx_size`, `xxx_at`, etc.).
 - **Internal implementation code SHOULD delegate to the public API** when it already provides the needed operation (e.g. `ccvector_front` delegates to `ccvector_at(v, 0)`) — this avoids duplicating NULL/bounds checks and keeps a single maintenance point.

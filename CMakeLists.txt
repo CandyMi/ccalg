@@ -19,6 +19,19 @@ else()
   add_compile_options(-Wall -Wextra -Wno-missing-field-initializers)
 endif()
 
+# ── sanitizer support ────────────────────────────────────────────────────
+option(CCALG_SANITIZE "Enable AddressSanitizer + UndefinedBehaviorSanitizer" ON)
+
+set(_ccalg_sanitize_flags "")
+if(CCALG_SANITIZE)
+  if(MSVC)
+    # MSVC ASAN available from VS 16.9+ (cl 19.28+)
+    set(_ccalg_sanitize_flags /fsanitize=address)
+  else()
+    set(_ccalg_sanitize_flags -fsanitize=address -fno-omit-frame-pointer -fsanitize=undefined)
+  endif()
+endif()
+
 # ── ctest integration ────────────────────────────────────────────────────
 enable_testing()
 
@@ -26,6 +39,10 @@ enable_testing()
 macro(add_ccalg_test name)
   add_executable(${name} tests/${name}.c)
   target_include_directories(${name} PRIVATE ${CCALG_INCLUDE_DIR})
+  if(_ccalg_sanitize_flags)
+    target_compile_options(${name} PRIVATE ${_ccalg_sanitize_flags})
+    target_link_options(${name} PRIVATE ${_ccalg_sanitize_flags})
+  endif()
   add_test(
     NAME        ${name}
     COMMAND     $<TARGET_FILE:${name}>
@@ -76,6 +93,9 @@ add_ccalg_bench(bench_ccflatmap)
 add_ccalg_bench(bench_cctreap)
 add_ccalg_bench(bench_ccrandom)
 add_ccalg_bench(bench_ccunicode)
+add_ccalg_bench(bench_ccshuffle)
+add_ccalg_bench(bench_ccbits)
+add_ccalg_bench(bench_ccbi)
 
 # prefetch benchmark — needs two compilations (with / without CCMAP_PREFETCH)
 add_executable(bench_ccmap_prefetch      bench/bench_ccmap_prefetch.cpp)
@@ -90,7 +110,7 @@ target_compile_options(bench_ccmap_prefetch_on PRIVATE $<$<NOT:$<CXX_COMPILER_ID
 # `cmake --build build --target check` — build + run all tests
 add_custom_target(check
   COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -L unit
-  DEPENDS test_ccmap test_cchashmap test_cclink test_cclist test_ccheap test_ccvector test_ccflatmap test_cctreap test_ccrandom test_ccunicode test_ccunicode_verify test_ccshuffle test_ccheap_update test_ccbi test_ccbits
+  DEPENDS test_ccmap test_cchashmap test_cchashmap_fp test_cclink test_cclist test_ccheap test_ccvector test_ccflatmap test_cctreap test_ccrandom test_ccunicode test_ccunicode_verify test_ccshuffle test_ccheap_update test_ccbi test_ccbits
   USES_TERMINAL
   COMMENT "Running all unit tests"
 )
@@ -132,7 +152,16 @@ add_custom_target(bench
   COMMAND ${CMAKE_COMMAND} -E echo ""
   COMMAND ${CMAKE_COMMAND} -E echo "=== ccmap prefetch ON  ==="
   COMMAND $<TARGET_FILE:bench_ccmap_prefetch_on>
-  DEPENDS bench_ccmap bench_cchashmap bench_cclink bench_cclist bench_ccheap bench_ccvector bench_ccflatmap bench_cctreap bench_ccrandom bench_ccunicode bench_ccmap_prefetch bench_ccmap_prefetch_on
+  COMMAND ${CMAKE_COMMAND} -E echo ""
+  COMMAND ${CMAKE_COMMAND} -E echo "=== ccshuffle vs std::shuffle ==="
+  COMMAND $<TARGET_FILE:bench_ccshuffle>
+  COMMAND ${CMAKE_COMMAND} -E echo ""
+  COMMAND ${CMAKE_COMMAND} -E echo "=== ccbits bit primitives ==="
+  COMMAND $<TARGET_FILE:bench_ccbits>
+  COMMAND ${CMAKE_COMMAND} -E echo ""
+  COMMAND ${CMAKE_COMMAND} -E echo "=== ccbi big-integer arithmetic ==="
+  COMMAND $<TARGET_FILE:bench_ccbi>
+  DEPENDS bench_ccmap bench_cchashmap bench_cclink bench_cclist bench_ccheap bench_ccvector bench_ccflatmap bench_cctreap bench_ccrandom bench_ccunicode bench_ccmap_prefetch bench_ccmap_prefetch_on bench_ccshuffle bench_ccbits bench_ccbi
   USES_TERMINAL
   COMMENT "Running all benchmarks"
 )

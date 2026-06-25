@@ -91,25 +91,6 @@ non-throwing callbacks at compile time in C++17+.
 - Return type `int64_t`; `>0` → `a` ordered before `b`; `<0` → `b` before `a`; `==0` → equal
 - For `ccmap` and `cctreap`, equality means duplicate key → insert returns `-1`
 
-### Macro naming convention
-
-Each container owns its namespace. Prefix = container abbreviation. No macros are shared cross-container.
-
-| Container | Prefix | Key macros |
-| --- | --- | --- |
-| `ccmap` | `CCMAP_` | `CCMAP_INLINE`, `CCMAP_NOEXCEPT`, `CCMAP_CONTAINER`, `CCMAP_COMPARE` |
-| `cchashmap` | `CCHASHMAP_` | `CCHASHMAP_INLINE`, `CCHASHMAP_NOEXCEPT`, `CCHASHMAP_CONTAINER`, `CCHASHMAP_REALLOC` |
-| `cclink` | `CCLINK_` | `CCLINK_INLINE`, `CCLINK_NOEXCEPT`, `CCLINK_CONTAINER` |
-| `cclist` | `CCLIST_` | `CCLIST_INLINE`, `CCLIST_NOEXCEPT`, `CCLIST_CONTAINER` |
-| `ccheap` | `CCHEAP_` | `CCHEAP_INLINE`, `CCHEAP_NOEXCEPT`, `CCHEAP_COMPARE`, `CCHEAP_REALLOC` |
-| `ccvector` | `CCVECTOR_` | `CCVECTOR_INLINE`, `CCVECTOR_NOEXCEPT`, `CCVECTOR_REALLOC` |
-| `ccflatmap` | `CCFLATMAP_` | `CCFLATMAP_INLINE`, `CCFLATMAP_NOEXCEPT`, `CCFLATMAP_COMPARE`, `CCFLATMAP_REALLOC` |
-| `cctreap` | `CCTREAP_` | `CCTREAP_INLINE`, `CCTREAP_NOEXCEPT`, `CCTREAP_CONTAINER`, `CCTREAP_COMPARE`, `CCTREAP_RAND` |
-| `ccunicode` | `CCUNICODE_` | `CCUNICODE_INLINE`, `CCUNICODE_NOEXCEPT` |
-| `ccrandom` | `CCRANDOM_` | `CCRANDOM_INLINE`, `CCRANDOM_NOEXCEPT` |
-| `ccshuffle` | `CCSHUFFLE_` | `CCSHUFFLE_INLINE`, `CCSHUFFLE_NOEXCEPT`, `CCSHUFFLE_BSIZE` |
-| `ccbits` | `CCBITS_` | `CCBITS_INLINE`, `CCBITS_NOEXCEPT` |
-
 ### Allocation hooks
 
 Containers that allocate memory internally expose replaceable allocator macros:
@@ -125,25 +106,9 @@ Containers that allocate memory internally expose replaceable allocator macros:
 
 ### C++ interop
 
-Every header wraps its types and functions in `extern "C" { }` for C++ compatibility
-(ccrandom.h already had one).  All public functions and callback typedefs carry a
-`CCXXX_NOEXCEPT` annotation:
-
-```c
-#if defined(__cplusplus) && __cplusplus >= 201703L
-  #define CCMAP_NOEXCEPT noexcept
-#else
-  #define CCMAP_NOEXCEPT
-#endif
-```
-
-| Scope | `CCXXX_NOEXCEPT` in C | `CCXXX_NOEXCEPT` in C++ < C++17 | `CCXXX_NOEXCEPT` in C++17+ |
-| --- | :-: | :-: | :-: |
-| Public function declarations | empty | empty | `noexcept` (optimization hint) |
-| Callback typedefs (`cmp_t`, `hash_t`, …) | empty | empty | `noexcept` (type-system constraint) |
-
-C++17+ compilers enforce that only `noexcept` functions can be assigned to the callback typedefs,
-preventing exception propagation through library callbacks at compile time.
+Headers are wrapped in `extern "C" { }` for C++ linking.  Callback typedefs carry
+`CCXXX_NOEXCEPT` (empty on C / C++ < 17, `noexcept` on C++17+) — this prevents
+exception propagation through library callbacks at compile time.
 
 ### API naming conventions
 
@@ -218,133 +183,53 @@ All public functions NULL-safe — `if (!m)` or `if (!m || !node)` guards. No `a
 
 ---
 
-## Portability
-
-Each header defines its own `CCXXX_INLINE` macro (pattern: `#define CCXXX_INLINE static inline`), user-overridable for C89 (`#define CCXXX_INLINE static` before `#include`).  `cclist.h` provides a C89 `bool` shim.  Each container guards its node typedef with `#ifndef CCXXX_NODE_T`.
-
----
-
 ## Per-Container Details
 
 ### ccmap — Red-Black Tree
-
-- **Color encoding**: low bit of parent pointer.  Node 24B (64-bit): `child[2]` (16B) + `pc` (8B).
-- Internal helpers prefixed `_rb_` (`_rb_p`, `_rb_c`, `_rb_red`, `_rb_sp`, `_rb_sc`, `_rb_spc`, `_rb_min`, `_rb_transplant`, `_rb_rot_left`, `_rb_rot_right`, `_rb_ins_fix`, `_rb_del_fix`).
-- `_rb_p`/`_rb_c`/`_rb_red`/`_rb_sp`/`_rb_sc`/`_rb_spc` are macros — zero-overhead access to `pc` field.
-- `_rb_transplant`: setne-based array index, eliminates 3-way branch.
-- Rotations: hoisted child pointers + setne-based parent reattachment.
+- Color in low bit of parent pointer.  Node 24B (64-bit): `child[2]` + `pc`.
+- `_rb_transplant`: setne-based array index eliminates 3-way branch.
 
 ### cchashmap — Hash Map
-
-- Chained hashing: array + singly-linked list.  Node caches hash value.
-- Bucket array `cchashmap_node_t **` — lazy-allocated on first insert; 2× resize on load factor > 1.25.
-- Power-of-two capacity: index via `hash & (cap - 1)`.
-- Seed = container address `(size_t)(uintptr_t)m`.
-- `destroy` frees bucket array only — caller must delete all nodes first.
+- Chained hashing, lazy bucket array, 2× resize at load >1.25.
+- Seed = `(uintptr_t)m`; bucket index via `hash & (cap-1)`.
 
 ### cclink — Singly-Linked List
-
-- `head` + `tail` + `size`.  No sentinels.  `push` O(1) head, `push_back` O(1) tail, `remove` O(n).
+- `head`+`tail`+`size`, no sentinels.  `push_front`/`push_back` O(1), `remove` O(n).
 
 ### cclist — Doubly-Linked List
-
-- `head`/`tail` node pointers (no sentinels) + `size`.  All push/pop O(1).
-- `splice_back`: O(1) bulk move.  `verify`: 6 checks.  `has_cycle`: Floyd.
+- `head`/`tail` ptrs, no sentinels, all push/pop O(1).  `splice_back` O(1), `verify` (6 checks), `has_cycle` (Floyd).
 
 ### ccheap — D-ary Heap
-
-- D-ary branching via `CCHEAP_ARITY` (2/4/8).  Child loops unrolled at compile-time via `#if CCHEAP_ARITY_N > N`.
-- Pointer array `ccheap_node_t **` — 2× growth.  Default `ccheap_node_t` is an 8B union (`priority`/`timeout`/`cost`); users embed and recover via `CCHEAP_CONTAINER`.
-- **Decrease-key (optional):** `#define CCHEAP_NODE_INDEX <field>` before `#include` to embed a `size_t` tracking field in the node (16B on 64-bit).  Enables `ccheap_update(heap, node)` — O(log n) re-evaluation of an already-inserted node.  Zero overhead when macro is undefined.
-- Internal helpers: `_hswap` (swap + idx maintenance if `CCHEAP_NODE_INDEX` active), `_hsift_down` (shared by pop and update).
+- `CCHEAP_ARITY` ∈ {2,4,8}, child loops unrolled at compile time.
+- Optional decrease-key: `#define CCHEAP_NODE_INDEX <field>` → `ccheap_update` O(log n).
 
 ### ccvector — Dynamic Array
-
-- Value storage in contiguous `CCVECTOR_NODE_T *buckets`.  2× growth from `CCVECTOR_DEFAULT_CAP=8`.
-- `ccvector_at(v, i)` returns `NULL` on out-of-bounds (unlike `std::vector::operator[]`).
-- `ccvector_sort(v, cmp)` — in-place sort via `qsort`, cross-platform (C89 everywhere).  Comparator: `int (*)(const void*, const void*)`.
+- Value-based, 2× growth from cap 8.  `at()` returns `NULL` on OOB.
 
 ### ccflatmap — Sorted-Array Map
-
-- Sorted-array map (like C++23 `std::flat_map`).  Binary search O(log n); insert/erase memmove O(n).
-- **Bulk insert**: `push_back` (O(1) unsorted) × N + `sort` (O(N log N)).
-- **Bulk erase**: `erase_unordered` (swap-with-last O(1)) × N + `sort`.
-- `erase_at(m, pos)`: index-based erase, skips binary search.
-- Internal sort: in-place quicksort (Hoare, median-of-three, insertion sort for ≤16).
-- Default `ccflatmap_node_t`: `{ int64_t key; uint64_t value; }`.
+- Value-based sorted array.  Bulk: `push_back`×N + `sort`, or `erase_unordered`×N + `sort`.
+- Internal QS: Hoare, median-of-3, insertion sort ≤16.
 
 ### cctreap — Treap
-
-- BST (key) + max-heap (priority).  Node 40B (64-bit): `child[2]` (16B) + `pc` (8B) + `size` (8B) + `priority` (8B).  Priority internal, xorshift64-generated on insert.
-- Key comparison via `CCTREAP_COMPARE` (macro or fn-ptr). Priority is internal `uint64_t` with max-heap invariant, generated on insert via xorshift64 (overridable via `CCTREAP_RAND`).
-- **Insert**: BST descent → bubble-up by priority (rotate while `_TP_PRIO_CMP(node, parent) > 0`).
-- **Erase**: bubble-down to leaf (rotate toward higher-priority child) → transplant with NULL.
-- `kth(m, k)`: 0-indexed k-th smallest; uses node `size` to binary-search.  O(log n) deterministic.
-- `rank(m, probe)`: 0-indexed position; accumulates left-subtree sizes during descent.  Returns `-1` if not found.
-- `first`/`last` recomputed from root after erase (bubble-down alters topology).
-- Internal helpers prefixed `_tp_` (`_tp_p`, `_tp_sp`, `_tp_spc`, `_tp_sz`, `_tp_upd_sz`, `_tp_min`, `_tp_max`, `_tp_transplant`, `_tp_rot_left`, `_tp_rot_right`, `_tp_ins_fix`, `_tp_del_fix`).
+- BST(key) + max-heap(priority).  Node 40B.  Priority via internal xorshift64.
+- `kth(m,k)` / `rank(m,probe)` — O(log n) via cached subtree `size`.
 
 ### ccunicode — UTF-8 Codec
-
-- **Zero state** — pure functions, no struct/state type to embed.
-- `ccunicode_to_codepoint(str, len, &val)` → bytes consumed (1–4), 0 on error.
-- `ccunicode_from_codepoint(val, str, &len)` → `bool` success.
-- ASCII fast path (~70–90% of typical text) returns without touching lookup table.
-- 256-byte `seq_len[]` table classifies first byte in one access — replaces if-else chain.
-- Overlong encoding rejection, surrogate-half rejection (U+D800–U+DFFF), >U+10FFFF rejection.
-- Branchless byte-count in encoder (compiler emits SETcc/CMOV).
-- Fall-through switch for continuation bytes — eliminates loop overhead.
-- Unicode 17.0 / RFC 3629 compliant.
+- Pure functions, zero state.  256-byte `seq_len[]` table for first-byte classification.
+- Overlong/surrogate/>U+10FFFF rejection.  Unicode 17.0 / RFC 3629.
 
 ### ccrandom — PRNG
+- 3 engines: 128 (Xoroshiro128++), 256 (Xoshiro256**), 512 (Xoshiro512**).
+- All pass BigCrush + PractRand ≥32 TiB.  Seed via SplitMix64.
+- Not crypto, not thread-safe.
 
-- Three engines, value-based (no intrusive node):
-  - `ccrandom128_t` — Xoroshiro128++, 2×u64 state, 2^128−1 period, fastest.
-  - `ccrandom256_t` — Xoshiro256**, 4×u64 state, 2^256−1 period, higher statistical quality.
-  - `ccrandom512_t` — Xoshiro512**, 8×u64 state, 2^512−1 period, highest statistical quality.
-- All pass BigCrush (TestU01) and PractRand ≥ 32 TiB.
-- **Seeding**: `ccrandom128_init(&rng, seed)` / `ccrandom256_init(&rng, seed)` / `ccrandom512_init(&rng, seed)` — 64-bit seed expanded via SplitMix64 (2/4/8 iterations).  Any 64-bit value valid (zero included); seed is consumed, not stored.
-- **u64 output**: `ccrandom128_next(&rng)` / `ccrandom256_next(&rng)` / `ccrandom512_next(&rng)` → [0, 2^64−1].
-- **f32 output**: `ccrandom128_f32next(&rng)` / `ccrandom256_f32next(&rng)` / `ccrandom512_f32next(&rng)` → float [0, 1), 24-bit mantissa.
-- **f64 output**: `ccrandom128_f64next(&rng)` / `ccrandom256_f64next(&rng)` / `ccrandom512_f64next(&rng)` → double [0, 1), 53-bit mantissa.
-- Zero internal allocation.  Bit-identical across platforms for the same seed.
-- Not cryptographic — predictable from ~2^64 outputs.
-- No thread safety — one instance per thread.
-
-### ccbits — Bit Manipulation Primitives
-
-- **Value-based** — no node typedef, no struct/state to embed.
-- Cross-platform dispatch: GCC/Clang (`__builtin_*`), MSVC (`<intrin.h>`), portable fallback (pure C).
-- All functions guarded by `#ifndef`/`#define` — user can override any function before `#include`.
-- **No internal allocation**, no init/destroy needed.
-
-| Category | Functions | Widths |
-| --- | --- | :-: |
-| popcount | `popcount8/16/32/64` | 8–64 |
-| clz | `clz16/32/64` | 16–64 |
-| ctz | `ctz16/32/64` | 16–64 |
-| rotate | `rotl32/64` `rotr32/64` | 32/64 |
-| bswap | `bswap16/32/64` | 16–64 |
-| bitrev | `bitrev8/32/64` | 8–64 |
-| ceilpow2 | `ceilpow2_32/64` | 32/64 |
-| ispow2 | `ispow2_32/64` (macro) | 32/64 |
-| bit_width | `bit_width8/16/32/64` | 8–64 |
-| parity | `parity8/16/32/64` | 8–64 |
-| mask_low | `mask_low32/64` | 32/64 |
-| sign_ext | `sign_ext32/64` | 32/64 |
+### ccbits — Bit Manipulation
+- 12 categories, 8–64 bit widths.  GCC/Clang builtins → MSVC intrinsics → pure C fallback.
+- All functions `#ifndef`-guarded — user-overridable before `#include`.
 
 ### ccshuffle — Fisher-Yates Shuffle
-
-- **Value-based** — no node typedef (operates on raw `void*` arrays).
-- O(n) Durstenfeld/Fisher-Yates in-place shuffle; O(1) space (stack swap buffer, heap fallback for elements > `CCSHUFFLE_BSIZE`).
-- Accepts any PRNG via `ccshuffle_prng_t` callback — pass `ccrandomXXX_next` directly.
-- User-overridable swap buffer size via `#define CCSHUFFLE_BSIZE` before `#include`.
-- Pure function (`ccshuffle_knuth`), no state, no allocation beyond optional heap fallback.
-- NULL-safe: if `base`, `state`, or `prng_next` is NULL, returns immediately.
-
----
-
-Internal constants: `CCMAP_RED=0`, `CCMAP_BLACK=1`, `CCMAP_LEFT=0`, `CCMAP_RIGHT=1`; `CCTREAP_LEFT=0`, `CCTREAP_RIGHT=1`.
+- O(n) in-place, O(1) stack swap (heap fallback for >64B elements).
+- Accepts any PRNG via `ccshuffle_prng_t` callback.
 
 ---
 
@@ -356,7 +241,6 @@ Internal constants: `CCMAP_RED=0`, `CCMAP_BLACK=1`, `CCMAP_LEFT=0`, `CCMAP_RIGHT
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target check    # build + test
 cmake --build build --target bench    # build + benchmark
-cmake --install build --prefix /usr/local
 ```
 
 ### Test coverage
@@ -421,18 +305,15 @@ cmake --build build --target check
 2. [ ] `CCXXX_INLINE` portable-inline macro
 3. [ ] Intrusive node `ccxxx_node_t` with `CCXXX_NODE_T` guard (or value-based for vector/flatmap)
 4. [ ] `CCXXX_CONTAINER` → `container_of` (if intrusive)
-5. [ ] Comparison/hash dual-mode dispatch (fn ptr + macro), `(void)arg` for unused params
+5. [ ] Comparison/hash dual-mode dispatch (fn ptr + macro)
 6. [ ] `xxx_init` / `xxx_clear` (+ `xxx_destroy` if internal allocation)
 7. [ ] `xxx_insert` / `xxx_find` / `xxx_erase`
-8. [ ] `xxx_begin` / `xxx_end` / `xxx_next` (+ `xxx_prev` for ordered)
+8. [ ] `xxx_begin` / `xxx_end` / `xxx_next` (+ `xxx_prev` if ordered)
 9. [ ] `xxx_size` (+ `xxx_height` if tree)
-10. [ ] All public functions NULL-safe
-11. [ ] Allocator hooks if the container allocates internally
-12. [ ] `CCXXX_NOEXCEPT` macro (C++17 `noexcept`, C/<C++17 empty) + `extern "C"` block
-13. [ ] Internal helpers prefixed `_xxx_`
-14. [ ] BSD license header
-15. [ ] Matching `tests/test_ccxxx.c` + `bench/bench_ccxxx.cpp` (benchmarks required for all modules, including utilities like ccrandom/ccunicode)
-15. [ ] Update `AGENTS.md`, `docs/api-reference.md`, `docs/algorithms.md`, `docs/index.md`
+10. [ ] Internal helpers prefixed `_xxx_`
+11. [ ] BSD license header
+12. [ ] Matching `tests/test_ccxxx.c` + `bench/bench_ccxxx.cpp`
+13. [ ] Update `AGENTS.md`, `docs/api-reference.md`, `docs/algorithms.md`, `docs/index.md`
 
 ---
 

@@ -43,6 +43,7 @@
 | `ccrandom` | 非加密 PRNG（Xoroshiro128++ / Xoshiro256** / Xoshiro512**） |
 | `ccshuffle` | 无偏 Fisher-Yates 洗牌（Lemire 乘法，零 `div`） |
 | `ccunicode` | UTF-8 ↔ UCS-4 编解码 |
+| `ccbits` | 位运算原语（popcount, clz, ctz, rotl/rotr, bswap, bitrev, ceilpow2） |
 
 ## 4. 上手
 

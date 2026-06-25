@@ -32,6 +32,7 @@
 | [ccunicode.h](include/ccunicode.h) | — | UTF-8 ↔ UCS-4 codec |
 | [ccrandom.h](include/ccrandom.h) | `ccrandom128_t` / `ccrandom256_t` / `ccrandom512_t` | Non-cryptographic PRNG (Xoroshiro128++ / Xoshiro256** / Xoshiro512**) |
 | [ccshuffle.h](include/ccshuffle.h) | — | Fisher-Yates (Knuth) shuffle for contiguous arrays |
+| [ccbits.h](include/ccbits.h) | — | Bit manipulation (popcount, clz, ctz, rotl/rotr, bswap, bitrev, bit_width, parity, mask_low, sign_ext) |
 
 ---
 
@@ -107,6 +108,7 @@ Each container owns its namespace. Prefix = container abbreviation. No macros ar
 | `ccunicode` | `CCUNICODE_` | `CCUNICODE_INLINE`, `CCUNICODE_NOEXCEPT` |
 | `ccrandom` | `CCRANDOM_` | `CCRANDOM_INLINE`, `CCRANDOM_NOEXCEPT` |
 | `ccshuffle` | `CCSHUFFLE_` | `CCSHUFFLE_INLINE`, `CCSHUFFLE_NOEXCEPT`, `CCSHUFFLE_BSIZE` |
+| `ccbits` | `CCBITS_` | `CCBITS_INLINE`, `CCBITS_NOEXCEPT` |
 
 ### Allocation hooks
 
@@ -309,6 +311,28 @@ Each header defines its own `CCXXX_INLINE` macro (pattern: `#define CCXXX_INLINE
 - Not cryptographic — predictable from ~2^64 outputs.
 - No thread safety — one instance per thread.
 
+### ccbits — Bit Manipulation Primitives
+
+- **Value-based** — no node typedef, no struct/state to embed.
+- Cross-platform dispatch: GCC/Clang (`__builtin_*`), MSVC (`<intrin.h>`), portable fallback (pure C).
+- All functions guarded by `#ifndef`/`#define` — user can override any function before `#include`.
+- **No internal allocation**, no init/destroy needed.
+
+| Category | Functions | Widths |
+| --- | --- | :-: |
+| popcount | `popcount8/16/32/64` | 8–64 |
+| clz | `clz16/32/64` | 16–64 |
+| ctz | `ctz16/32/64` | 16–64 |
+| rotate | `rotl32/64` `rotr32/64` | 32/64 |
+| bswap | `bswap16/32/64` | 16–64 |
+| bitrev | `bitrev8/32/64` | 8–64 |
+| ceilpow2 | `ceilpow2_32/64` | 32/64 |
+| ispow2 | `ispow2_32/64` (macro) | 32/64 |
+| bit_width | `bit_width8/16/32/64` | 8–64 |
+| parity | `parity8/16/32/64` | 8–64 |
+| mask_low | `mask_low32/64` | 32/64 |
+| sign_ext | `sign_ext32/64` | 32/64 |
+
 ### ccshuffle — Fisher-Yates Shuffle
 
 - **Value-based** — no node typedef (operates on raw `void*` arrays).
@@ -352,6 +376,7 @@ cmake --install build --prefix /usr/local
 | `test_ccunicode.c` | UTF-8 ↔ UCS-4 codec |
 | `test_ccunicode_verify.c` | UTF-8 edge-case verification |
 | `test_ccheap_update.c` | D-ary heap decrease-key |
+| `test_ccbits.c` | Bit manipulation primitives |
 
 ### Benchmarks (C++ vs STL)
 

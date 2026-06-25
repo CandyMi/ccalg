@@ -1047,6 +1047,98 @@ SSO 小值不走分配器。
 
 ---
 
+## ccbits — 位运算原语
+
+头文件: [`include/ccbits.h`](https://github.com/CandyMi/ccalg/blob/master/include/ccbits.h)
+
+跨平台/编译器的位运算原语库。GCC/Clang/MSVC 平台使用编译器内建（单指令），
+未知编译器使用纯 C 可移植 fallback。每个函数均可通过预定义宏覆盖。
+
+**不依赖任何运行时支持，不需要初始化。**
+
+### 函数一览
+
+| 分类 | 函数 | 宽度 | 默认实现（GCC/Clang → MSVC → fallback）|
+| --- | --- | :-: | --- |
+| **popcount** | `ccbits_popcount8` | 8 | `__builtin_popcount` → `__popcnt16` → SWAR |
+| | `ccbits_popcount16` | 16 | `__builtin_popcount` → `__popcnt16` → SWAR |
+| | `ccbits_popcount32` | 32 | `__builtin_popcount` → `__popcnt` → SWAR |
+| | `ccbits_popcount64` | 64 | `__builtin_popcountll` → `__popcnt64` → SWAR |
+| **clz** | `ccbits_clz16` | 16 | `__builtin_clz` → `_BitScanReverse` → 二分分解 |
+| | `ccbits_clz32` | 32 | `__builtin_clz` → `_BitScanReverse` → 二分分解 |
+| | `ccbits_clz64` | 64 | `__builtin_clzll` → `_BitScanReverse64` → 二分分解 |
+| **ctz** | `ccbits_ctz16` | 16 | `__builtin_ctz` → `_BitScanForward` → 二分分解 |
+| | `ccbits_ctz32` | 32 | `__builtin_ctz` → `_BitScanForward` → de Bruijn 乘法 |
+| | `ccbits_ctz64` | 64 | `__builtin_ctzll` → `_BitScanForward64` → de Bruijn 乘法 |
+| **rotate** | `ccbits_rotl32` / `ccbits_rotr32` | 32 | 编译器 idiom 识别 → `_rotl`/`_rotr` → 移位+或 |
+| | `ccbits_rotl64` / `ccbits_rotr64` | 64 | 编译器 idiom 识别 → `_rotl64`/`_rotr64` → 移位+或 |
+| **bswap** | `ccbits_bswap16` | 16 | `__builtin_bswap16` → `_byteswap_ushort` → 移位 |
+| | `ccbits_bswap32` | 32 | `__builtin_bswap32` → `_byteswap_ulong` → 移位 |
+| | `ccbits_bswap64` | 64 | `__builtin_bswap64` → `_byteswap_uint64` → 移位 |
+| **bitrev** | `ccbits_bitrev8` | 8 | `__builtin_bitreverse8`(Clang) → nibble 表 → 交换 |
+| | `ccbits_bitrev32` | 32 | `__builtin_bitreverse32`(Clang) → 二分交换 |
+| | `ccbits_bitrev64` | 64 | `__builtin_bitreverse64`(Clang) → 二分交换 |
+| **pow2** | `ccbits_ceilpow2_32` | 32 | 位涂抹（无分支） |
+| | `ccbits_ceilpow2_64` | 64 | 位涂抹（无分支） |
+| **test** | `ccbits_ispow2_32` (宏) | 32 | `(x) > 0U & ((x) & (x-1U)) == 0U` |
+| | `ccbits_ispow2_64` (宏) | 64 | `(x) > 0ULL & ((x) & (x-1ULL)) == 0ULL` |
+| **bit_width** | `ccbits_bit_width8` | 8 | `32 - clz32((uint8_t)x)` （先掩码再 clz） |
+| | `ccbits_bit_width16` | 16 | `32 - clz32((uint16_t)x)` （先掩码再 clz） |
+| | `ccbits_bit_width32` | 32 | `32 - clz(x)` （借 clz） |
+| | `ccbits_bit_width64` | 64 | `64 - clz(x)` （借 clz） |
+| **mask_low** | `ccbits_mask_low32` | 32 | `(1U << n) - 1U`（n≥32 时饱和为全 1） |
+| | `ccbits_mask_low64` | 64 | `(1ULL << n) - 1ULL`（n≥64 时饱和） |
+| **parity** | `ccbits_parity8` | 8 | `popcount8(x) & 1` |
+| | `ccbits_parity16` | 16 | `popcount16(x) & 1` |
+| | `ccbits_parity32` | 32 | `popcount32(x) & 1` |
+| | `ccbits_parity64` | 64 | `popcount64(x) & 1` |
+| **sign_ext** | `ccbits_sign_ext32` | 32 | XOR-sub 分支无跳转 |
+| | `ccbits_sign_ext64` | 64 | XOR-sub 分支无跳转 |
+
+### 安全保证
+
+| 安全点 | 说明 |
+| --- | --- |
+| **clz/ctz 对零输入** | 返回类型宽度（16/32/64），无 UB |
+| **rotate 超宽移位** | `k` 内部 `k &= N-1` 后再移位，无 UB |
+| **ceilpow2(0)** | 返回 0（有符号溢出回绕） |
+| **ispow2(0)** | 返回 0 |
+
+### 覆盖机制
+
+所有函数均可通过 `#define` **在 `#include` 之前**覆盖：
+
+```c
+// 强制使用特定实现
+#define ccbits_popcount32(x) fast_popcount(x)
+#include "ccbits.h"
+```
+
+### 示例
+
+```c
+#include "ccbits.h"
+#include <stdio.h>
+
+int main() {
+    uint32_t x = 0x12345678U;
+    printf("popcount(%#x) = %d\n", x, ccbits_popcount32(x));       // 13
+    printf("clz(%#x)     = %d\n", x, ccbits_clz32(x));            // 3
+    printf("ctz(%#x)     = %d\n", x, ccbits_ctz32(x));            // 3
+    printf("ceilpow2(%u)  = %u\n", x, ccbits_ceilpow2_32(x));     // 0x20000000
+    printf("ispow2(%#x)  = %d\n", x, ccbits_ispow2_32(x));        // 0
+    printf("bswap(%#x)   = %#x\n", x, ccbits_bswap32(x));         // 0x78563412
+
+    uint32_t r = ccbits_rotl32(x, 8);
+    printf("rotl(%#x, 8) = %#x\n", x, r);                         // 0x34567812
+
+    uint64_t y = 0;
+    printf("clz(0)        = %d\n", ccbits_clz64(y));              // 64，安全
+}
+```
+
+---
+
 ## ccshuffle — Fisher-Yates 洗牌
 
 头文件: [`include/ccshuffle.h`](https://github.com/CandyMi/ccalg/blob/master/include/ccshuffle.h)

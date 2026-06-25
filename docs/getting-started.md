@@ -26,6 +26,7 @@ cmake --install build --prefix /usr/local
 #include "ccalg/cclist.h"     // 双向链表
 #include "ccalg/ccheap.h"     // 优先队列
 #include "ccalg/ccunicode.h"  // UTF-8 编解码
+#include "ccalg/ccbits.h"     // 位运算原语
 ```
 
 ## 2. ccmap — 红黑树（有序映射）

@@ -24,6 +24,7 @@ Compatible with C89 / C99 / C++ / MSVC.  BSD 3-Clause.
 | `ccrandom` | [`include/ccrandom.h`](include/ccrandom.h) | PRNG (Xoroshiro128++ / Xoshiro256** / Xoshiro512**) | No |
 | `ccunicode` | [`include/ccunicode.h`](include/ccunicode.h) | UTF-8 ↔ UCS-4 codec | No |
 | `ccshuffle` | [`include/ccshuffle.h`](include/ccshuffle.h) | Fisher-Yates shuffle | No |
+| `ccbits` | [`include/ccbits.h`](include/ccbits.h) | Bit manipulation (popcount, clz, ctz, rotate, bswap, bitrev) | No |
 
 Most containers are **intrusive** — nodes are embedded in user structs, no hidden allocations. `ccvector` and `ccflatmap` store elements by **value**.
 

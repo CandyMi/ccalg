@@ -16,7 +16,7 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
 | 目标 | 命令 | 说明 |
 | --- | --- | --- |
-| 全量构建 | `cmake --build build` | 8 个测试 + 10 个 benchmark |
+| 全量构建 | `cmake --build build` | 16 个测试 + 10 个 benchmark |
 | 测试 | `cmake --build build --target check` | 构建 + CTest 运行全部单元测试 |
 | 基准 | `cmake --build build --target bench` | 构建 + 依次运行全部 benchmark |
 | 文档 | `cmake --build build --target docs-html` | docs/*.md → HTML（语法高亮） |

@@ -395,7 +395,9 @@ extern "C" {
 ** ═══════════════════════════════════════════════════════════════════════════ */
 
 #ifndef ccbits_rotl32
-  #if defined(_MSC_VER)
+  #if defined(__GNUC__) || defined(__clang__)
+    #define ccbits_rotl32(x, k) __builtin_rotateleft32((x), (k))
+  #elif defined(_MSC_VER)
     #define ccbits_rotl32(x, k) _rotl((x), (k))
   #else
     CCBITS_INLINE uint32_t ccbits_rotl32_impl(uint32_t x, unsigned int k) CCBITS_NOEXCEPT {
@@ -407,7 +409,9 @@ extern "C" {
 #endif
 
 #ifndef ccbits_rotr32
-  #if defined(_MSC_VER)
+  #if defined(__GNUC__) || defined(__clang__)
+    #define ccbits_rotr32(x, k) __builtin_rotateright32((x), (k))
+  #elif defined(_MSC_VER)
     #define ccbits_rotr32(x, k) _rotr((x), (k))
   #else
     CCBITS_INLINE uint32_t ccbits_rotr32_impl(uint32_t x, unsigned int k) CCBITS_NOEXCEPT {
@@ -419,7 +423,9 @@ extern "C" {
 #endif
 
 #ifndef ccbits_rotl64
-  #if defined(_MSC_VER)
+  #if defined(__GNUC__) || defined(__clang__)
+    #define ccbits_rotl64(x, k) __builtin_rotateleft64((x), (k))
+  #elif defined(_MSC_VER)
     #define ccbits_rotl64(x, k) _rotl64((x), (k))
   #else
     CCBITS_INLINE uint64_t ccbits_rotl64_impl(uint64_t x, unsigned int k) CCBITS_NOEXCEPT {
@@ -431,7 +437,9 @@ extern "C" {
 #endif
 
 #ifndef ccbits_rotr64
-  #if defined(_MSC_VER)
+  #if defined(__GNUC__) || defined(__clang__)
+    #define ccbits_rotr64(x, k) __builtin_rotateright64((x), (k))
+  #elif defined(_MSC_VER)
     #define ccbits_rotr64(x, k) _rotr64((x), (k))
   #else
     CCBITS_INLINE uint64_t ccbits_rotr64_impl(uint64_t x, unsigned int k) CCBITS_NOEXCEPT {

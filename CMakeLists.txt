@@ -25,8 +25,11 @@ option(CCALG_SANITIZE "Enable AddressSanitizer + UndefinedBehaviorSanitizer" ON)
 set(_ccalg_sanitize_flags "")
 if(CCALG_SANITIZE)
   if(MSVC)
-    # MSVC ASAN available from VS 16.9+ (cl 19.28+)
-    set(_ccalg_sanitize_flags /fsanitize=address)
+    # MSVC ASAN is available from VS 16.9+, but ClangCL (clang-cl) cannot
+    # link ASan with debug CRT (/MDd).  Only enable for plain MSVC.
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+      set(_ccalg_sanitize_flags /fsanitize=address)
+    endif()
   else()
     set(_ccalg_sanitize_flags -fsanitize=address -fno-omit-frame-pointer -fsanitize=undefined)
   endif()

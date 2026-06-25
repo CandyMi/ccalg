@@ -395,58 +395,83 @@ extern "C" {
 ** ═══════════════════════════════════════════════════════════════════════════ */
 
 #ifndef ccbits_rotl32
-  #if defined(__GNUC__) || defined(__clang__)
-    #define ccbits_rotl32(x, k) __builtin_rotateleft32((x), (k))
-  #elif defined(_MSC_VER)
-    #define ccbits_rotl32(x, k) _rotl((x), (k))
-  #else
-    CCBITS_INLINE uint32_t ccbits_rotl32_impl(uint32_t x, unsigned int k) CCBITS_NOEXCEPT {
-      k &= 31U;
-      return (x << k) | (x >> (32U - k));
-    }
-    #define ccbits_rotl32(x, k) ccbits_rotl32_impl((x), (k))
+  /* Clang provides __builtin_rotateleft32 as a recognized builtin that
+   * compiles to a single rotate instruction at any optimisation level.
+   * GCC recognises the (x << k) | (x >> (32-k)) pattern instead, and
+   * emits the same instruction — but __builtin_rotateleft32 emits an
+   * unresolved libcall at -O0 on older GCC, so use the inline form. */
+  #if defined(__clang__) && defined(__has_builtin)
+    #if __has_builtin(__builtin_rotateleft32)
+      #define ccbits_rotl32(x, k) __builtin_rotateleft32((x), (k))
+    #endif
+  #endif
+  #ifndef ccbits_rotl32
+    #if defined(_MSC_VER)
+      #define ccbits_rotl32(x, k) _rotl((x), (k))
+    #else
+      CCBITS_INLINE uint32_t ccbits_rotl32_impl(uint32_t x, unsigned int k) CCBITS_NOEXCEPT {
+        k &= 31U;
+        return (x << k) | (x >> (32U - k));
+      }
+      #define ccbits_rotl32(x, k) ccbits_rotl32_impl((x), (k))
+    #endif
   #endif
 #endif
 
 #ifndef ccbits_rotr32
-  #if defined(__GNUC__) || defined(__clang__)
-    #define ccbits_rotr32(x, k) __builtin_rotateright32((x), (k))
-  #elif defined(_MSC_VER)
-    #define ccbits_rotr32(x, k) _rotr((x), (k))
-  #else
-    CCBITS_INLINE uint32_t ccbits_rotr32_impl(uint32_t x, unsigned int k) CCBITS_NOEXCEPT {
-      k &= 31U;
-      return (x >> k) | (x << (32U - k));
-    }
-    #define ccbits_rotr32(x, k) ccbits_rotr32_impl((x), (k))
+  #if defined(__clang__) && defined(__has_builtin)
+    #if __has_builtin(__builtin_rotateright32)
+      #define ccbits_rotr32(x, k) __builtin_rotateright32((x), (k))
+    #endif
+  #endif
+  #ifndef ccbits_rotr32
+    #if defined(_MSC_VER)
+      #define ccbits_rotr32(x, k) _rotr((x), (k))
+    #else
+      CCBITS_INLINE uint32_t ccbits_rotr32_impl(uint32_t x, unsigned int k) CCBITS_NOEXCEPT {
+        k &= 31U;
+        return (x >> k) | (x << (32U - k));
+      }
+      #define ccbits_rotr32(x, k) ccbits_rotr32_impl((x), (k))
+    #endif
   #endif
 #endif
 
 #ifndef ccbits_rotl64
-  #if defined(__GNUC__) || defined(__clang__)
-    #define ccbits_rotl64(x, k) __builtin_rotateleft64((x), (k))
-  #elif defined(_MSC_VER)
-    #define ccbits_rotl64(x, k) _rotl64((x), (k))
-  #else
-    CCBITS_INLINE uint64_t ccbits_rotl64_impl(uint64_t x, unsigned int k) CCBITS_NOEXCEPT {
-      k &= 63U;
-      return (x << k) | (x >> (64U - k));
-    }
-    #define ccbits_rotl64(x, k) ccbits_rotl64_impl((x), (k))
+  #if defined(__clang__) && defined(__has_builtin)
+    #if __has_builtin(__builtin_rotateleft64)
+      #define ccbits_rotl64(x, k) __builtin_rotateleft64((x), (k))
+    #endif
+  #endif
+  #ifndef ccbits_rotl64
+    #if defined(_MSC_VER)
+      #define ccbits_rotl64(x, k) _rotl64((x), (k))
+    #else
+      CCBITS_INLINE uint64_t ccbits_rotl64_impl(uint64_t x, unsigned int k) CCBITS_NOEXCEPT {
+        k &= 63U;
+        return (x << k) | (x >> (64U - k));
+      }
+      #define ccbits_rotl64(x, k) ccbits_rotl64_impl((x), (k))
+    #endif
   #endif
 #endif
 
 #ifndef ccbits_rotr64
-  #if defined(__GNUC__) || defined(__clang__)
-    #define ccbits_rotr64(x, k) __builtin_rotateright64((x), (k))
-  #elif defined(_MSC_VER)
-    #define ccbits_rotr64(x, k) _rotr64((x), (k))
-  #else
-    CCBITS_INLINE uint64_t ccbits_rotr64_impl(uint64_t x, unsigned int k) CCBITS_NOEXCEPT {
-      k &= 63U;
-      return (x >> k) | (x << (64U - k));
-    }
-    #define ccbits_rotr64(x, k) ccbits_rotr64_impl((x), (k))
+  #if defined(__clang__) && defined(__has_builtin)
+    #if __has_builtin(__builtin_rotateright64)
+      #define ccbits_rotr64(x, k) __builtin_rotateright64((x), (k))
+    #endif
+  #endif
+  #ifndef ccbits_rotr64
+    #if defined(_MSC_VER)
+      #define ccbits_rotr64(x, k) _rotr64((x), (k))
+    #else
+      CCBITS_INLINE uint64_t ccbits_rotr64_impl(uint64_t x, unsigned int k) CCBITS_NOEXCEPT {
+        k &= 63U;
+        return (x >> k) | (x << (64U - k));
+      }
+      #define ccbits_rotr64(x, k) ccbits_rotr64_impl((x), (k))
+    #endif
   #endif
 #endif
 

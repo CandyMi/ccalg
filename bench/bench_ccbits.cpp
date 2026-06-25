@@ -22,6 +22,15 @@ static double ms(clk::time_point s, clk::time_point e) {
 static volatile uint64_t sink_u64;
 static volatile int      sink_int;
 
+/* ── MSVC-compatible builtin wrappers for benchmarking ──────────────── */
+#if defined(_MSC_VER)
+  #include <intrin.h>
+  #define __builtin_popcountll(x)  ((int)__popcnt64(x))
+  #define __builtin_clzll(x)       ((int)(__lzcnt64(x)))
+  #define __builtin_ctzll(x)       ((int)(_tzcnt_u64(x)))
+  #define __builtin_bswap64(x)     _byteswap_uint64(x)
+#endif
+
 /* ── generate N random uint64 values ──────────────────────────────────── */
 static uint64_t *gen_vals(size_t n, uint64_t seed) {
   uint64_t *v = new uint64_t[n];

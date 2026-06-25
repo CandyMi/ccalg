@@ -209,6 +209,31 @@ ccvector_sort(ccvector_t *v, ccvector_qsort_cmp_t cmp) CCVECTOR_NOEXCEPT {
   qsort(v->buckets, ccvector_size(v), sizeof(CCVECTOR_NODE_T), cmp);
 }
 
+/* ── bsearch ──────────────────────────────────────────────────────────── */
+
+/* bsearch compare function type: must match C standard bsearch() signature. */
+typedef int (*ccvector_bsearch_cmp_t)(const void *, const void *) CCVECTOR_NOEXCEPT;
+
+/** @brief Binary search in a sorted vector.
+ *
+ *  Wraps the C standard bsearch() on the vector's contiguous array.
+ *  The vector MUST be sorted in ascending order per @a cmp before calling.
+ *
+ *  @param v   Vector (must not be NULL, must be sorted).
+ *  @param key Pointer to the search key (passed as first arg to @a cmp).
+ *  @param cmp Comparator matching the sort order.
+ *  @return    Pointer to the matching element, or NULL if not found.
+ *             If multiple elements compare equal, which is returned is
+ *             unspecified (std::bsearch convention). */
+CCVECTOR_INLINE void *
+ccvector_bsearch(ccvector_t *v, const void *key,
+                 ccvector_bsearch_cmp_t cmp) CCVECTOR_NOEXCEPT {
+  if (!v || !v->buckets || !key || !cmp || ccvector_size(v) == 0)
+    return NULL;
+  return bsearch(key, v->buckets, ccvector_size(v),
+                 sizeof(CCVECTOR_NODE_T), cmp);
+}
+
 /* ── reserve ──────────────────────────────────────────────────────────── */
 
 CCVECTOR_INLINE int

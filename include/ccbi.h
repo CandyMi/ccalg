@@ -1470,12 +1470,14 @@ ccbi_mont_mul(ccbi_t *r, const ccbi_t *a, const ccbi_t *b,
    * comparison and subtraction are correct. */
   uint32_t hi_limb = t[2 * k];
   uint32_t need = k + (hi_limb ? 1 : 0);
-  if (ccbi_grow(r, need)) { CCBI_FREE(t); return -1; }
+  if (ccbi_grow(r, need)) { CCBI_FREE(t); ccbi_destroy(&ap); ccbi_destroy(&bp); return -1; }
   memcpy(r->limbs, t + offset, k * sizeof(uint32_t));
   if (hi_limb) r->limbs[k] = hi_limb;
   CCBI_SET_USED(r, need);
   CCBI_SET_SIGN(r, 1);
   CCBI_FREE(t);
+  ccbi_destroy(&ap);
+  ccbi_destroy(&bp);
 
   /* Conditional subtraction + normalize.
    * With hi_limb included, r may hold up to k+1 limbs, but the

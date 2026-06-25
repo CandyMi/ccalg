@@ -23,6 +23,21 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 | 单项构建 | `cmake --build build --target test_ccmap` | 只构建指定目标 |
 | CTest 过滤 | `ctest --test-dir build -L unit` | 按标签过滤测试 |
 
+### CI 构建矩阵
+
+GitHub Actions 在每次推送和 PR 时运行 **14 个构建任务**，覆盖：
+
+| 架构 | 编译器 | 特殊标志 |
+|------|--------|----------|
+| Linux x86_64 | GCC, Clang | — |
+| Linux x86 | GCC (multilib), Clang (multilib) | `-m32` |
+| Linux x86_64 | GCC (ASan), Clang (ASan) | `-fsanitize=address` |
+| macOS arm64 | Apple Clang | — |
+| Windows x64 | MSVC, ClangCL, MinGW GCC | — |
+| Windows x86 | MSVC, ClangCL, MinGW GCC | `-A Win32` 或 `-m32` |
+
+ASan（Address Sanitizer）构建在每次提交时自动发现内存错误。
+
 ### CTest 集成
 
 测试用例已注册到 CTest：

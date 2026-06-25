@@ -377,6 +377,18 @@ flowchart TD
 
 `ccvector_sort` 使用 C 标准库 `qsort` 对元素进行原地排序，O(n log n)。
 
+### 二分查找
+
+排序后可用 `ccvector_bsearch` 进行 O(log n) 二分查找。封装 C 标准库 `bsearch`：
+
+```c
+ccvector_sort(&v, my_compare);
+int key = 42;
+ccvector_node_t *p = ccvector_bsearch(&v, &key, my_compare);
+```
+
+比较器签名与 `qsort`/`bsearch` 一致（返回负数 → 键在元素前，正数 → 键在元素后，0 → 匹配）。
+
 ```c
 ccvector_sort(&v, my_compare);
 ```

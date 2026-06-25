@@ -573,6 +573,19 @@ void ccvector_sort(ccvector_t *v, int (*cmp)(const void *, const void *));
 // NULL / 空 / 单元素 均为安全无操作。
 ```
 
+### 二分查找
+
+```c
+void *ccvector_bsearch(ccvector_t *v, const void *key,
+                       int (*cmp)(const void *, const void *));
+// 在已排序的 vector 上执行二分查找。封装 C 标准库 bsearch。
+// key — 搜索键的指针（作为比较器的第一个参数传入）
+// cmp — 必须与 ccvector_sort 所用的比较器一致
+// 返回匹配元素的指针，或 NULL（未找到）。
+// 若有多个相等元素，返回哪个未定义（标准 bsearch 约定）。
+// NULL 安全。
+```
+
 ### 预留
 
 ```c

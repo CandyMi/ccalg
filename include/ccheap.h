@@ -309,16 +309,17 @@ CCHEAP_INLINE int
 ccheap_init(ccheap_t *heap, ccheap_compare_t f) CCHEAP_NOEXCEPT
 {
   if (ccheap_unlikely(!heap)) return -1;
+#ifndef CCHEAP_COMPARE
+  if (ccheap_unlikely(!f)) return -1;
+  heap->f = f;
+#else
+  (void)f;
+#endif
   heap->data = (ccheap_node_t **)CCHEAP_MALLOC(
       sizeof(ccheap_node_t *) * CCHEAP_DEFAULT_CAP);
   if (!heap->data) return -1;
   heap->len = 0;
   heap->cap = CCHEAP_DEFAULT_CAP;
-#ifndef CCHEAP_COMPARE
-  heap->f = f;
-#else
-  (void)f;
-#endif
   return 0;
 }
 

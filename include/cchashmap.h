@@ -243,18 +243,19 @@ CCHASHMAP_INLINE bool cchashmap_set(cchashmap_t *m, cchashmap_node_t *node,
 
 #define cchashmap_find(m, n) cchashmap_get((m), (n))
 CCHASHMAP_INLINE cchashmap_node_t *cchashmap_get(cchashmap_t *m,
-                                                  cchashmap_node_t *probe) CCHASHMAP_NOEXCEPT {
+                                                  const cchashmap_node_t *probe) CCHASHMAP_NOEXCEPT {
   if (cchashmap_unlikely(!m || !probe || !m->buckets))
     return NULL;
 #ifndef CCHASHMAP_HASH
   cchashmap_hash_t   hash_fn  = m->hash_fn;
   cchashmap_equal_t  equal_fn = m->equal_fn;
 #endif
-  probe->hash = CCHASHMAP_HASH_CALL(probe, m->seed);
-  size_t idx = probe->hash & (m->cap - 1);
+  /* Compute hash locally — never modify the probe node. */
+  uint64_t h = CCHASHMAP_HASH_CALL(probe, m->seed);
+  size_t idx = h & (m->cap - 1);
   cchashmap_node_t *cur = m->buckets[idx];
   while (cur) {
-    if (probe->hash == cur->hash && CCHASHMAP_EQUAL_CALL(probe, cur))
+    if (h == cur->hash && CCHASHMAP_EQUAL_CALL(probe, cur))
       return cur;
     cur = cur->next;
   }

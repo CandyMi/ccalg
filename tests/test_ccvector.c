@@ -299,6 +299,96 @@ TEST(sort_null_safety) {
   ccvector_sort(NULL, sort_asc);
 }
 
+/* ── bsearch tests ─────────────────────────────────────────────────────── */
+
+static int
+bsearch_cmp(const void *key, const void *elem) {
+  uint32_t k = *(const uint32_t *)key;
+  uint32_t v = ((const ccvector_node_t *)elem)->value;
+  return (k > v) - (k < v);
+}
+
+TEST(bsearch_found) {
+  ccvector_t v; ccvector_init(&v);
+  for (uint32_t i = 0; i < 100; i++) {
+    ccvector_node_t e = {.value = i * 10};  /* 0, 10, 20, ..., 990 */
+    ccvector_push_back(&v, e);
+  }
+
+  uint32_t key = 50;
+  ccvector_node_t *p = (ccvector_node_t *)ccvector_bsearch(&v, &key, bsearch_cmp);
+  ASSERT(p != NULL);
+  ASSERT(p->value == 50);
+
+  key = 0;
+  p = (ccvector_node_t *)ccvector_bsearch(&v, &key, bsearch_cmp);
+  ASSERT(p != NULL);
+  ASSERT(p->value == 0);
+
+  key = 990;
+  p = (ccvector_node_t *)ccvector_bsearch(&v, &key, bsearch_cmp);
+  ASSERT(p != NULL);
+  ASSERT(p->value == 990);
+
+  ccvector_destroy(&v);
+}
+
+TEST(bsearch_not_found) {
+  ccvector_t v; ccvector_init(&v);
+  for (uint32_t i = 0; i < 10; i++) {
+    ccvector_node_t e = {.value = i * 10};
+    ccvector_push_back(&v, e);
+  }
+
+  uint32_t key = 5;
+  ASSERT(ccvector_bsearch(&v, &key, bsearch_cmp) == NULL);
+
+  key = 999;
+  ASSERT(ccvector_bsearch(&v, &key, bsearch_cmp) == NULL);
+
+  ccvector_destroy(&v);
+}
+
+TEST(bsearch_empty) {
+  ccvector_t v; ccvector_init(&v);
+  uint32_t key = 42;
+  ASSERT(ccvector_bsearch(&v, &key, bsearch_cmp) == NULL);
+  ccvector_destroy(&v);
+}
+
+TEST(bsearch_null_safety) {
+  ccvector_t v; ccvector_init(&v);
+  ccvector_node_t e = {.value = 42};
+  ccvector_push_back(&v, e);
+
+  uint32_t key = 42;
+  ASSERT(ccvector_bsearch(NULL, &key, bsearch_cmp) == NULL);
+  ASSERT(ccvector_bsearch(&v, NULL, bsearch_cmp) == NULL);
+  ASSERT(ccvector_bsearch(&v, &key, NULL) == NULL);
+  ccvector_destroy(&v);
+}
+
+TEST(bsearch_after_sort) {
+  /* insert unsorted, sort, then bsearch */
+  ccvector_t v; ccvector_init(&v);
+  uint32_t vals[] = {90, 10, 80, 20, 70, 30, 60, 40, 50, 0};
+  for (size_t i = 0; i < 10; i++) {
+    ccvector_node_t e = {.value = vals[i]};
+    ccvector_push_back(&v, e);
+  }
+
+  ccvector_sort(&v, sort_asc);
+  uint32_t key = 50;
+  ccvector_node_t *p = (ccvector_node_t *)ccvector_bsearch(&v, &key, bsearch_cmp);
+  ASSERT(p != NULL);
+  ASSERT(p->value == 50);
+
+  key = 99;
+  ASSERT(ccvector_bsearch(&v, &key, bsearch_cmp) == NULL);
+
+  ccvector_destroy(&v);
+}
+
 /* ── main ─────────────────────────────────────────────────────────────── */
 int main(void) {
   printf("ccvector tests:\n");
@@ -318,6 +408,11 @@ int main(void) {
   RUN(sort_custom_comparator);
   RUN(sort_large);
   RUN(sort_null_safety);
+  RUN(bsearch_found);
+  RUN(bsearch_not_found);
+  RUN(bsearch_empty);
+  RUN(bsearch_null_safety);
+  RUN(bsearch_after_sort);
   printf("\n  %d passed, %d failed\n", passed, failed);
   return failed ? 1 : 0;
 }

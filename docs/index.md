@@ -41,6 +41,7 @@
 | --- | --- |
 | `ccbi` | 任意精度整数运算（大数库），SSO 零分配，Karatsuba/Toom-3 乘法，Montgomery 模幂，二进制 GCD |
 | `ccrandom` | 非加密 PRNG（Xoroshiro128++ / Xoshiro256** / Xoshiro512**） |
+| `ccshuffle` | 无偏 Fisher-Yates 洗牌（Lemire 乘法，零 `div`） |
 | `ccunicode` | UTF-8 ↔ UCS-4 编解码 |
 
 ## 4. 上手

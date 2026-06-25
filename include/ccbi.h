@@ -1759,7 +1759,10 @@ ccbi_to_int(const ccbi_t *z) CCBI_NOEXCEPT {
   if (zu == 0) return 0;
   uint64_t v = z->limbs[0];
   if (zu >= 2) v |= (uint64_t)z->limbs[1] << 32;
-  return (int64_t)(CCBI_SIGN(z) < 0 ? -(int64_t)v : (int64_t)v);
+  /* negation in unsigned arithmetic avoids UB on INT64_MIN;
+   * the final cast is implementation-defined on two's complement
+   * but yields the correct INT64_MIN on all real platforms. */
+  return (int64_t)(CCBI_SIGN(z) < 0 ? -v : v);
 }
 
 CCBI_INLINE int

@@ -24,6 +24,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+#if defined(_MSC_VER)
+  #include <intrin.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -60,6 +64,71 @@ extern "C" {
  *  @param state  Opaque generator state (must not be NULL).
  *  @return       A pseudo-random uint64_t in [0, 2^64−1]. */
 typedef uint64_t (*ccshuffle_prng_t)(void *state) CCSHUFFLE_NOEXCEPT;
+
+/* ── internal: unbiased range [0, range) via Lemire's multiplication method ─
+ *
+ * Returns a uniformly-distributed random index in [0, range) using the
+ * first 64-bit random value `rnd`, with rejection for the bias zone.
+ *
+ * Three implementations, selected at compile time:
+ *
+ *   1) __uint128_t path (GCC/Clang x64 & ARM64, ICC):
+ *        (__uint128_t)rnd * range  →  mul+shr, no `div`
+ *
+ *   2) MSVC intrinsic path (MSVC x64 / ARM64):
+ *        _umul128 / __umulh  —  same single-mul + shift, no `div`
+ *
+ *   3) Fallback (MSVC x86, legacy compilers):
+ *        Classic rejection sampling:  UINT64_MAX - (UINT64_MAX % range)
+ *        then `% range`.  Two `div` ops per element but always correct.
+ *
+ *   In all three paths the rejection zone is ~range/2^64 wide,
+ *   so re-draws are astronomically rare for any practical range.
+ */
+CCSHUFFLE_INLINE size_t
+_ccshuffle_range(uint64_t rnd, size_t range,
+                 void *state, ccshuffle_prng_t next) CCSHUFFLE_NOEXCEPT
+{
+#if defined(__SIZEOF_INT128__) && __SIZEOF_INT128__ == 16
+  /* ── GCC/Clang/ICC: native 128-integer path ────────────────────── */
+  __uint128_t t = (__uint128_t)rnd * range;
+  uint64_t    lo = (uint64_t)t;
+  size_t limit = (size_t)(-range) % range;   /* = 2^64 % range */
+  while ((size_t)lo < limit) {
+    rnd = next(state);
+    t   = (__uint128_t)rnd * range;
+    lo  = (uint64_t)t;
+  }
+  return (size_t)(t >> 64);
+
+#elif defined(_MSC_VER) && (defined(_M_X64) || defined(_M_ARM64))
+  /* ── MSVC x64 / ARM64: intrinsic path ──────────────────────────── */
+  size_t limit = (size_t)(-range) % range;
+  uint64_t lo, hi;
+#if defined(_M_ARM64)
+  lo = rnd * (uint64_t)range;
+  hi = __umulh(rnd, (uint64_t)range);
+#else
+  lo = _umul128(rnd, (uint64_t)range, &hi);
+#endif
+  while ((size_t)lo < limit) {
+    rnd = next(state);
+#if defined(_M_ARM64)
+    lo = rnd * (uint64_t)range;
+    hi = __umulh(rnd, (uint64_t)range);
+#else
+    lo = _umul128(rnd, (uint64_t)range, &hi);
+#endif
+  }
+  return (size_t)hi;
+#else
+  /* ── fallback: rejection sampling (portable, two div ops) ──────── */
+  (void)state; (void)next;
+  uint64_t limit = UINT64_MAX - (UINT64_MAX % range);
+  if (rnd > limit) return _ccshuffle_range(next(state), range, state, next);
+  return (size_t)(rnd % range);
+#endif
+}
 
 /* ── internal: byte-swap helper ───────────────────────────────────────── */
 
@@ -99,7 +168,7 @@ ccshuffle_knuth(void *base, size_t len, size_t sz, void *state,
 
   /* Durstenfeld / Fisher-Yates: i steps from len down to 2 */
   for (i = len; i > 1; i--) {
-    j = prng_next(state) % i;            /* j in [0, i-1] */
+    j = _ccshuffle_range(prng_next(state), i, state, prng_next);
     a = (uint8_t *)base + (i - 1) * sz;  /* element i-1 */
     b = (uint8_t *)base + j * sz;        /* element j   */
     if (a != b) ccshuffle_swap(tmp, a, b, sz);

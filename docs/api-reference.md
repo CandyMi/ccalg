@@ -1029,3 +1029,73 @@ SSO 小值不走分配器。
 | --- | --- | --- |
 | `CCBI_SSO_LIMBS` | `8` | SSO 缓冲区 limb 数（256-bit）。设 0 禁用 SSO |
 | `CCBI_MALLOC` / `CCBI_REALLOC` / `CCBI_FREE` | malloc / realloc / free | 堆分配器替换钩子 |
+
+---
+
+## ccshuffle — Fisher-Yates 洗牌
+
+头文件: [`include/ccshuffle.h`](https://github.com/CandyMi/ccalg/blob/master/include/ccshuffle.h)
+
+**无分配**的原地 Fisher-Yates (Durstenfeld) 洗牌。O(n) 时间，O(1) 空间
+（超过 `CCSHUFFLE_BSIZE` 的大元素暂用 `malloc` 做 swap buffer）。
+
+### 类型
+
+```c
+typedef uint64_t (*ccshuffle_prng_t)(void *state) CCSHUFFLE_NOEXCEPT;
+// PRNG 回调：返回 [0, 2^64) 均匀分布随机值。
+// 可传入 ccrandom128_next / ccrandom256_next / ccrandom512_next。
+```
+
+### 编译期配置
+
+| 宏 | 作用 | 默认 |
+| --- | --- | --- |
+| `CCSHUFFLE_BSIZE` | 栈上 swap buffer 大小（元素 > 此值走 heap `malloc`）| `64` |
+| `CCSHUFFLE_NOEXCEPT` | C++17 noexcept 标注 | 未定义 |
+
+### 洗牌函数
+
+```c
+void ccshuffle_knuth(void *base, size_t len, size_t sz,
+                     void *state, ccshuffle_prng_t prng_next);
+```
+
+**参数：**
+- `base` — 数组起始指针
+- `len` — 元素数量（≤ 1 无操作）
+- `sz` — 每个元素的字节大小
+- `state` — PRNG 状态（传给 `prng_next`）
+- `prng_next` — PRNG 回调
+
+**示例：**
+
+```c
+ccrandom128_t rng;
+ccrandom128_init(&rng, seed);
+
+int arr[100];
+ccshuffle_knuth(arr, 100, sizeof(int), &rng,
+                (ccshuffle_prng_t)ccrandom128_next);
+```
+
+**NULL 安全：** base / state / prng_next 任一为 NULL 时无操作。
+
+### 内部：随机范围生成
+
+```c
+size_t _ccshuffle_range(uint64_t rnd, size_t range,
+                        void *state, ccshuffle_prng_t next);
+```
+
+返回 `[0, range)` 内的均匀随机索引。用于构建其他需要无偏随机索引的组件。
+通过 Lemire 乘法消除模偏差——三平台实现：
+
+| 平台 | 方法 | 指令 |
+| --- | --- | --- |
+| GCC/Clang x64 & ARM64, ICC | `(__uint128_t) rnd * range >> 64` | `mul` + `shr` |
+| MSVC x64 | `_umul128(rnd, range, &hi)` | `mul` + `shr` |
+| MSVC ARM64 | `rnd * range` + `__umulh(rnd, range)` | `mul` + `umulh` |
+| 其他（i686, 老旧编译器） | 拒绝采样 `UINT64_MAX - (UINT64_MAX % range)` | 两个 `div` |
+
+前三个路径完全消除 `div` 指令，拒绝重试概率约 `range / 2^64`（对实际 `range ≤ 10⁶` 约 `3e-14`，基本永不触发）。

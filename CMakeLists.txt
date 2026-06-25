@@ -24,7 +24,10 @@ option(CCALG_SANITIZE "Enable AddressSanitizer + UndefinedBehaviorSanitizer" ON)
 
 set(_ccalg_sanitize_flags "")
 if(CCALG_SANITIZE)
-  if(MSVC)
+  if(MINGW OR MSYS)
+    # MinGW does not ship ASan/UBSan runtime libraries.
+    message(STATUS "CCALG_SANITIZE: MinGW/MSYS — sanitizers unavailable, skipping")
+  elseif(MSVC)
     # MSVC ASAN is available from VS 16.9+, but ClangCL (clang-cl) cannot
     # link ASan with debug CRT (/MDd).  Only enable for plain MSVC.
     if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")

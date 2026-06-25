@@ -25,9 +25,33 @@ static volatile int      sink_int;
 /* ── MSVC-compatible builtin wrappers for benchmarking ──────────────── */
 #if defined(_MSC_VER)
   #include <intrin.h>
-  #define __builtin_popcountll(x)  ((int)__popcnt64(x))
-  #define __builtin_clzll(x)       ((int)(__lzcnt64(x)))
-  #define __builtin_ctzll(x)       ((int)(_tzcnt_u64(x)))
+  #pragma intrinsic(__popcnt, _byteswap_uint64)
+  #if defined(_M_ARM64EC) || defined(_M_ARM64) || defined(_M_X64)
+    #pragma intrinsic(__popcnt64, __lzcnt64, _tzcnt_u64)
+    #define __builtin_popcountll(x)  ((int)__popcnt64(x))
+    #define __builtin_clzll(x)       ((int)(__lzcnt64(x)))
+    #define __builtin_ctzll(x)       ((int)(_tzcnt_u64(x)))
+  #else
+    /* 32-bit MSVC: compose 64-bit popcount from two 32-bit halves */
+    static inline int msvc_popcount64(uint64_t x) {
+      return (int)(__popcnt((unsigned int)(x)) + __popcnt((unsigned int)(x >> 32)));
+    }
+    /* 64-bit clz via 32-bit __lzcnt */
+    static inline int msvc_clz64(uint64_t x) {
+      unsigned long idx;
+      if (_BitScanReverse64(&idx, x)) return (int)(63 - idx);
+      return 64;
+    }
+    /* 64-bit ctz via 32-bit _BitScanForward64 */
+    static inline int msvc_ctz64(uint64_t x) {
+      unsigned long idx;
+      if (_BitScanForward64(&idx, x)) return (int)idx;
+      return 64;
+    }
+    #define __builtin_popcountll(x)  msvc_popcount64(x)
+    #define __builtin_clzll(x)       msvc_clz64(x)
+    #define __builtin_ctzll(x)       msvc_ctz64(x)
+  #endif
   #define __builtin_bswap64(x)     _byteswap_uint64(x)
 #endif
 

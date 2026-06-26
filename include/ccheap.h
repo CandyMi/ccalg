@@ -305,6 +305,9 @@ ccheap_update(ccheap_t *heap, CCHEAP_NODE_T *n) CCHEAP_NOEXCEPT
  *    ccheap_size       — element count — O(1)
  */
 
+#define ccheap_node_get(n, name) (n)->name
+#define ccheap_node_set(n, name, val) ccheap_node_get(n, name) = (val)
+
 CCHEAP_INLINE int
 ccheap_init(ccheap_t *heap, ccheap_compare_t f) CCHEAP_NOEXCEPT
 {

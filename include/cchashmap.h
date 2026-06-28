@@ -215,7 +215,10 @@ CCHASHMAP_INLINE void cchashmap_clear(cchashmap_t *m) CCHASHMAP_NOEXCEPT {
 CCHASHMAP_INLINE bool cchashmap_set(cchashmap_t *m, cchashmap_node_t *node,
                                     cchashmap_node_t **old) CCHASHMAP_NOEXCEPT {
   if (cchashmap_unlikely(!m || !node)) return false;
-  if (!m->buckets) _cchashmap_resize(m);
+  if (!m->buckets) {
+    _cchashmap_resize(m);
+    if (!m->buckets) return false;
+  }
 #ifndef CCHASHMAP_HASH
   cchashmap_hash_t   hash_fn  = m->hash_fn;
   cchashmap_equal_t  equal_fn = m->equal_fn;
@@ -233,8 +236,9 @@ CCHASHMAP_INLINE bool cchashmap_set(cchashmap_t *m, cchashmap_node_t *node,
   node->next = m->buckets[idx];
   m->buckets[idx] = node;
   m->size++;
-  if ((double)m->size / m->cap >= CCHASHMAP_MAX_LOAD)
+  if ((double)m->size / m->cap >= CCHASHMAP_MAX_LOAD) {
     _cchashmap_resize(m);
+  }
   if (old) *old = NULL;
   return true;
 }

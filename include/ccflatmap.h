@@ -164,11 +164,11 @@ _ccflatmap_grow(ccflatmap_t *m) {
 CCFLATMAP_INLINE int
 ccflatmap_init(ccflatmap_t *m, ccflatmap_cmp_t cmp) CCFLATMAP_NOEXCEPT {
   if (ccflatmap_unlikely(!m)) return -1;
+  m->len = 0;
+  m->cap = CCFLATMAP_DEFAULT_CAP;
   m->buckets = (CCFLATMAP_NODE_T *)CCFLATMAP_MALLOC(
       sizeof(CCFLATMAP_NODE_T) * CCFLATMAP_DEFAULT_CAP);
   if (!m->buckets) return -1;
-  m->len = 0;
-  m->cap = CCFLATMAP_DEFAULT_CAP;
 #ifndef CCFLATMAP_COMPARE
   m->cmp = cmp;
 #else

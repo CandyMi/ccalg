@@ -100,11 +100,11 @@ typedef struct ccvector {
 CCVECTOR_INLINE int
 ccvector_init(ccvector_t *v) CCVECTOR_NOEXCEPT {
   if (!v) return -1;
+  v->len = 0;
+  v->cap = CCVECTOR_DEFAULT_CAP;
   v->buckets = (CCVECTOR_NODE_T *)CCVECTOR_MALLOC(
       sizeof(CCVECTOR_NODE_T) * CCVECTOR_DEFAULT_CAP);
   if (!v->buckets) return -1;
-  v->len = 0;
-  v->cap = CCVECTOR_DEFAULT_CAP;
   return 0;
 }
 
@@ -114,11 +114,11 @@ CCVECTOR_INLINE int
 ccvector_init_cap(ccvector_t *v, size_t cap) CCVECTOR_NOEXCEPT {
   if (!v) return -1;
   size_t c = cap > 0 ? cap : CCVECTOR_DEFAULT_CAP;
+  v->len = 0;
+  v->cap = c;
   v->buckets = (CCVECTOR_NODE_T *)CCVECTOR_MALLOC(
       sizeof(CCVECTOR_NODE_T) * c);
   if (!v->buckets) return -1;
-  v->len = 0;
-  v->cap = c;
   return 0;
 }
 

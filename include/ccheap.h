@@ -318,11 +318,11 @@ ccheap_init(ccheap_t *heap, ccheap_compare_t f) CCHEAP_NOEXCEPT
 #else
   (void)f;
 #endif
+  heap->len = 0;
+  heap->cap = CCHEAP_DEFAULT_CAP;
   heap->data = (ccheap_node_t **)CCHEAP_MALLOC(
       sizeof(ccheap_node_t *) * CCHEAP_DEFAULT_CAP);
   if (!heap->data) return -1;
-  heap->len = 0;
-  heap->cap = CCHEAP_DEFAULT_CAP;
   return 0;
 }
 

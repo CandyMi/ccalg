@@ -149,13 +149,13 @@ typedef struct cchashmap {
 
 /* ── internal: resize ─────────────────────────────────────────────────── */
 
-CCHASHMAP_INLINE void _cchashmap_resize(cchashmap_t *m) {
+CCHASHMAP_INLINE bool _cchashmap_resize(cchashmap_t *m) {
   size_t nc = m->buckets ? m->cap * 2 : CCHASHMAP_DEFAULT_SLOT;
 
   /* new bucket array, zero-filled */
   cchashmap_node_t **nb = (cchashmap_node_t **)CCHASHMAP_MALLOC(
       sizeof(cchashmap_node_t *) * nc);
-  if (!nb) return;
+  if (!nb) return false;
   memset(nb, 0, sizeof(cchashmap_node_t *) * nc);
 
   /* rehash old chains into new buckets */
@@ -175,6 +175,7 @@ CCHASHMAP_INLINE void _cchashmap_resize(cchashmap_t *m) {
 
   m->buckets = nb;
   m->cap = nc;
+  return true;
 }
 
 /* ── lifecycle ────────────────────────────────────────────────────────── */
@@ -216,8 +217,7 @@ CCHASHMAP_INLINE bool cchashmap_set(cchashmap_t *m, cchashmap_node_t *node,
                                     cchashmap_node_t **old) CCHASHMAP_NOEXCEPT {
   if (cchashmap_unlikely(!m || !node)) return false;
   if (!m->buckets) {
-    _cchashmap_resize(m);
-    if (!m->buckets) return false;
+    if (!_cchashmap_resize(m)) return false;
   }
 #ifndef CCHASHMAP_HASH
   cchashmap_hash_t   hash_fn  = m->hash_fn;

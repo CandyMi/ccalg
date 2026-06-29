@@ -174,8 +174,12 @@ ccbi_grow(ccbi_t *z, uint32_t need) CCBI_NOEXCEPT {
   /* Current capacity: SSO_LIMBS while limbs points to internal, else from cap field. */
   uint32_t cur_cap = (z->limbs == z->internal) ? (uint32_t)CCBI_SSO_LIMBS : CCBI_CAP(z);
   if (need <= cur_cap) return 0;
+  if (cur_cap > UINT32_MAX / 2) return -1;           /* overflow guard */
   uint32_t new_cap = cur_cap ? cur_cap * 2 : 8;
-  while (new_cap < need) new_cap *= 2;
+  while (new_cap < need) {
+    if (new_cap > UINT32_MAX / 2) return -1;         /* overflow guard */
+    new_cap *= 2;
+  }
   uint32_t *p = (uint32_t *)CCBI_MALLOC(new_cap * sizeof(uint32_t));
   if (!p) return -1;
   uint32_t used = CCBI_USED(z);

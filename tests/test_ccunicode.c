@@ -210,12 +210,6 @@ TEST(reject_zero_len) {
   ASSERT(n == 0);
 }
 
-TEST(reject_negative_len) {
-  uint32_t cp;
-  int n = ccunicode_to_codepoint("A", -1, &cp);
-  ASSERT(n == 0);
-}
-
 TEST(reject_encode_null_str) {
   int n;
   ASSERT(!ccunicode_from_codepoint(0x41, NULL, &n));
@@ -374,7 +368,6 @@ int main(void) {
   RUN(reject_null_str);
   RUN(reject_null_val);
   RUN(reject_zero_len);
-  RUN(reject_negative_len);
   RUN(reject_encode_null_str);
   RUN(reject_encode_null_len);
   RUN(reject_overlong_2byte);

@@ -99,7 +99,7 @@ extern "C" {
  * Returns bytes (1–4) on success, 0 on failure.
  */
 CCUNICODE_INLINE
-int ccunicode_validate_seq(const uint8_t *p, int len, uint32_t *code)
+int ccunicode_validate_seq(const uint8_t *p, size_t len, uint32_t *code)
 {
   if (p[0] < 0x80) {
     if (code) *code = p[0];
@@ -107,7 +107,7 @@ int ccunicode_validate_seq(const uint8_t *p, int len, uint32_t *code)
   }
   int bytes = seq_len[p[0]];
   if (CCUNICODE_UNLIKELY(bytes < 2)) return 0;
-  if (CCUNICODE_UNLIKELY((size_t)len < (size_t)bytes)) return 0;
+  if (CCUNICODE_UNLIKELY(len < (size_t)bytes)) return 0;
 
   /* Safe reads: predictable ternary → cmov/csel, no branch */
   uint32_t b1 = p[1];
@@ -139,15 +139,15 @@ int ccunicode_validate_seq(const uint8_t *p, int len, uint32_t *code)
  * Convert one UTF-8 character to its UCS-4 code point.
  *
  * @param str Pointer to UTF-8 encoded byte sequence (not necessarily null-terminated).
- * @param len Number of bytes available in the buffer pointed to by str.
+ * @param len Number of bytes available in the buffer (must be > 0).
  * @param val Pointer to a uint32_t variable that will receive the code point on success.
  * @return    Number of UTF-8 bytes consumed (1–4) on success,
  *            0 on failure (invalid encoding, incomplete sequence, or invalid code point).
  */
 CCUNICODE_INLINE
-int ccunicode_to_codepoint(const char *str, int len, uint32_t *val) CCUNICODE_NOEXCEPT
+int ccunicode_to_codepoint(const char *str, size_t len, uint32_t *val) CCUNICODE_NOEXCEPT
 {
-  if (CCUNICODE_UNLIKELY(!str || len <= 0 || !val)) return 0;
+  if (CCUNICODE_UNLIKELY(!str || len == 0 || !val)) return 0;
   return ccunicode_validate_seq((const uint8_t *)str, len, val);
 }
 
@@ -234,13 +234,13 @@ bool ccunicode_verify(const char *str, size_t len) CCUNICODE_NOEXCEPT
    * from the hot path.  A single multiply-and-test catches any failure. */
   while (len - offset >= 16) {
     int n1 = ccunicode_validate_seq((const uint8_t *)str + offset,
-                                    (int)(len - offset), NULL);
+                                    len - offset, NULL);
     int n2 = ccunicode_validate_seq((const uint8_t *)str + offset + n1,
-                                    (int)(len - offset - n1), NULL);
+                                    len - offset - n1, NULL);
     int n3 = ccunicode_validate_seq((const uint8_t *)str + offset + n1 + n2,
-                                    (int)(len - offset - n1 - n2), NULL);
+                                    len - offset - n1 - n2, NULL);
     int n4 = ccunicode_validate_seq((const uint8_t *)str + offset + n1 + n2 + n3,
-                                    (int)(len - offset - n1 - n2 - n3), NULL);
+                                    len - offset - n1 - n2 - n3, NULL);
     if (CCUNICODE_UNLIKELY(!(n1 * n2 * n3 * n4))) return false;
     offset += (size_t)(n1 + n2 + n3 + n4);
   }
@@ -253,7 +253,7 @@ bool ccunicode_verify(const char *str, size_t len) CCUNICODE_NOEXCEPT
       p++; remain--;            /* ASCII fast path: inline, no function call */
       continue;
     }
-    int n = ccunicode_validate_seq(p, (int)remain, NULL);
+    int n = ccunicode_validate_seq(p, remain, NULL);
     if (CCUNICODE_UNLIKELY(!n)) return false;
     p += n; remain -= (size_t)n;
   }

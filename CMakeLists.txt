@@ -111,6 +111,40 @@ target_include_directories(bench_ccmap_prefetch_on PRIVATE ${CCALG_INCLUDE_DIR})
 target_compile_options(bench_ccmap_prefetch    PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-O2>)
 target_compile_options(bench_ccmap_prefetch_on PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-O2> -DCCMAP_PREFETCH)
 
+# ── fuzzing targets (Clang + libFuzzer) ──────────────────────────────────
+option(CCALG_FUZZ "Build fuzz harnesses with -fsanitize=fuzzer (requires Clang)" OFF)
+
+if(CCALG_FUZZ)
+  if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+    set(_ccalg_fuzz_flags "-fsanitize=fuzzer,address,undefined")
+
+    macro(add_ccalg_fuzz name)
+      add_executable(${name} fuzz/${name}.c)
+      target_include_directories(${name} PRIVATE ${CCALG_INCLUDE_DIR})
+      target_compile_options(${name} PRIVATE ${_ccalg_fuzz_flags})
+      target_link_options(${name} PRIVATE ${_ccalg_fuzz_flags})
+    endmacro()
+
+    add_ccalg_fuzz(fuzz_ccunicode)
+    add_ccalg_fuzz(fuzz_ccbi)
+    add_ccalg_fuzz(fuzz_ccmap)
+    add_ccalg_fuzz(fuzz_cchashmap)
+
+    add_custom_target(fuzz
+      COMMAND ${CMAKE_COMMAND} -E echo "ccalg fuzz targets built. Run individually:"
+      COMMAND ${CMAKE_COMMAND} -E echo "  ./fuzz/fuzz_ccunicode   <corpus>"
+      COMMAND ${CMAKE_COMMAND} -E echo "  ./fuzz/fuzz_ccbi        <corpus>"
+      COMMAND ${CMAKE_COMMAND} -E echo "  ./fuzz/fuzz_ccmap       <corpus>"
+      COMMAND ${CMAKE_COMMAND} -E echo "  ./fuzz/fuzz_cchashmap   <corpus>"
+      DEPENDS fuzz_ccunicode fuzz_ccbi fuzz_ccmap fuzz_cchashmap
+      USES_TERMINAL
+      COMMENT "Building all fuzz targets"
+    )
+  else()
+    message(WARNING "CCALG_FUZZ=ON requires a Clang compiler (detected: ${CMAKE_C_COMPILER_ID}) — fuzz targets disabled")
+  endif()
+endif()
+
 # ── convenience targets ──────────────────────────────────────────────────
 
 # `cmake --build build --target check` — build + run all tests

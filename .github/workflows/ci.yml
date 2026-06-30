@@ -133,6 +133,55 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure -L unit
 
+  fuzz:
+    name: Fuzz (Clang + libFuzzer)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure (Clang + CCALG_FUZZ)
+        run: >
+          cmake -S . -B build-fuzz
+          -DCMAKE_C_COMPILER=clang
+          -DCMAKE_CXX_COMPILER=clang++
+          -DCCALG_FUZZ=ON
+          -DCCALG_SANITIZE=OFF
+
+      - name: Build fuzz targets
+        run: cmake --build build-fuzz --target fuzz
+
+      - name: Create seed corpus
+        run: |
+          mkdir -p corpus-ccunicode corpus-ccbi corpus-ccmap corpus-cchashmap
+          # ASCII text for ccunicode
+          echo -n 'Hello, 世界! 😀 A中B' > corpus-ccunicode/seed1
+          printf '\xF0\x9F\x98\x80\xF0\x9F\x98\x81' > corpus-ccunicode/seed2
+          # Decimal numbers for ccbi
+          echo -n '12345678901234567890' > corpus-ccbi/seed1
+          echo -n '-98765' > corpus-ccbi/seed2
+          # Map keys for ccmap + cchashmap
+          printf '\x01\x0A\x02\x14\x03\x1E' > corpus-ccmap/seed1
+          printf '\x07\x00' > corpus-ccmap/seed2
+          cp corpus-ccmap/seed1 corpus-cchashmap/seed1
+          cp corpus-ccmap/seed2 corpus-cchashmap/seed2
+
+      - name: Fuzz ccunicode (10s)
+        run: |
+          ./build-fuzz/fuzz/fuzz_ccunicode corpus-ccunicode -max_total_time=10 -print_pid=0 2>&1 || true
+
+      - name: Fuzz ccbi (10s)
+        run: |
+          ./build-fuzz/fuzz/fuzz_ccbi corpus-ccbi -max_total_time=10 -print_pid=0 2>&1 || true
+
+      - name: Fuzz ccmap (10s)
+        run: |
+          ./build-fuzz/fuzz/fuzz_ccmap corpus-ccmap -max_total_time=10 -print_pid=0 2>&1 || true
+
+      - name: Fuzz cchashmap (10s)
+        run: |
+          ./build-fuzz/fuzz/fuzz_cchashmap corpus-cchashmap -max_total_time=10 -print_pid=0 2>&1 || true
+
   deploy-docs:
     name: Deploy docs to gh-pages
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'

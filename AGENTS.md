@@ -6,7 +6,7 @@
 
 ## Project identity
 
-**ccalg** — a header-only C data-structure library, compatible with C89 / C99 / C++ / MSVC.
+**ccalg** — a header-only C data-structure library, compatible with C99 / C++11 / MSVC.
 
 - **License:** BSD 3-Clause
 - **Author:** CandyMi
@@ -361,11 +361,12 @@ at the author's discretion — their public API is documented in `docs/api-refer
 A single file MUST NOT mix `/** */` and plain `/* */` for different doc blocks;
 choose one style per file.
 
-### 3. Language standard & C89 compatibility
+### 3. Language standard
 
-- C99+ and C89 syntax may coexist in the project.
-- **A single file MUST NOT mix C89 and C99+ syntax styles** (e.g. declarations at block start + mid-block declarations).  
-  If mixing is detected, STOP and ask which standard to normalize to.
+- C99+ syntax throughout.  No strict C89 mode — the library requires `<stdint.h>`,
+  `for`-loop initial declarations, and other C99 features.
+- **A single file MUST NOT mix declaration styles** (e.g. block-start + mid-block
+  declarations).  If mixing is detected, STOP and ask which style to normalize to.
 - C++ interop: wrap public declarations in `#ifdef __cplusplus extern "C" {` / `}` if the header may be consumed from C++.
 
 ### 4. Documentation sync

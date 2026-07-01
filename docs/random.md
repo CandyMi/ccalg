@@ -181,7 +181,7 @@ uint64_t x = ccrandom128_next(&rng);  // 42 种子 → GCC, Clang, MSVC, ARM, x8
 ### 2.4 零开销接入
 
 ```c
-#define CCRANDOM_INLINE static       // C89 编译
+#define CCRANDOM_INLINE static       // C99 编译
 // 或
 #define CCRANDOM_INLINE static inline // C99+
 ```
@@ -524,7 +524,7 @@ ccrandom 遵循 ccalg 项目的一贯哲学——**头文件仅零开销**：no 
 | **质量** | BigCrush + PractRand ≥ 32 TiB 双线通过，超越大多数应用需求 |
 | **可复现** | 种一值定终身，平台无关，排错友好 |
 | **资源** | 16–64 字节状态，零动态分配，嵌入式可用 |
-| **集成** | 单头文件 `#include`，无外部依赖，C89/C++98 全线兼容 |
+| **集成** | 单头文件 `#include`，无外部依赖，C99/C++98 全线兼容 |
 
 ### 5.3 关于使用须知
 

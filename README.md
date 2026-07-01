@@ -7,7 +7,7 @@
 
 A header-only library for high-performance data structures in C/C++.
 
-Compatible with C89 / C99 / C++ / MSVC.  BSD 3-Clause.
+Compatible with C99 / C++11 / MSVC.  BSD 3-Clause.
 
 ## Containers
 

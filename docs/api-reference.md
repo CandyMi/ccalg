@@ -828,7 +828,7 @@ bool ccunicode_from_codepoint(uint32_t val, char str[4], int *len);
 
 | 宏 | 作用 | 默认 |
 | --- | --- | --- |
-| `CCUNICODE_INLINE` | 函数内联关键字，可覆盖为 `static`（C89）| `static inline` |
+| `CCUNICODE_INLINE` | 函数内联关键字，可覆盖为 `static`（C99）| `static inline` |
 | `CCUNICODE_NOEXCEPT` | C++17 noexcept 标注 | 未定义 |
 
 ### 性能说明
@@ -890,7 +890,7 @@ double ccrandom512_f64next(ccrandom512_t *s);
 
 | 宏 | 作用 | 默认 |
 | --- | --- | --- |
-| `CCRANDOM_INLINE` | 函数内联关键字，可覆盖为 `static`（C89）| `static inline` |
+| `CCRANDOM_INLINE` | 函数内联关键字，可覆盖为 `static`（C99）| `static inline` |
 | `CCRANDOM_NOEXCEPT` | C++17 noexcept 标注 | 未定义 |
 
 ### 线程安全

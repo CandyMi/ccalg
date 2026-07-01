@@ -132,10 +132,10 @@ if(CCALG_FUZZ)
 
     add_custom_target(fuzz
       COMMAND ${CMAKE_COMMAND} -E echo "ccalg fuzz targets built. Run individually:"
-      COMMAND ${CMAKE_COMMAND} -E echo "  ./fuzz/fuzz_ccunicode   <corpus>"
-      COMMAND ${CMAKE_COMMAND} -E echo "  ./fuzz/fuzz_ccbi        <corpus>"
-      COMMAND ${CMAKE_COMMAND} -E echo "  ./fuzz/fuzz_ccmap       <corpus>"
-      COMMAND ${CMAKE_COMMAND} -E echo "  ./fuzz/fuzz_cchashmap   <corpus>"
+      COMMAND ${CMAKE_COMMAND} -E echo "  ./fuzz/fuzz_ccunicode   [corpus-dir]"
+      COMMAND ${CMAKE_COMMAND} -E echo "  ./fuzz/fuzz_ccbi        [corpus-dir]"
+      COMMAND ${CMAKE_COMMAND} -E echo "  ./fuzz/fuzz_ccmap       [corpus-dir]"
+      COMMAND ${CMAKE_COMMAND} -E echo "  ./fuzz/fuzz_cchashmap   [corpus-dir]"
       DEPENDS fuzz_ccunicode fuzz_ccbi fuzz_ccmap fuzz_cchashmap
       USES_TERMINAL
       COMMENT "Building all fuzz targets"

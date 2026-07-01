@@ -55,6 +55,13 @@ jobs:
             cflags: -m32
             cxxflags: -m32
 
+          # ── Linux — Intel oneAPI (icx/icpx) ─────────────────────────────
+          - name: Linux x86_64 (Intel icx)
+            os: ubuntu-24.04
+            cc: icx
+            cxx: icpx
+            intel: 1
+
           - name: macOS arm64 (Apple Silicon)
             os: macos-14
             cc: clang
@@ -108,6 +115,18 @@ jobs:
       - name: Install multilib (Linux 32-bit)
         if: matrix.pkgs
         run: sudo apt-get update && sudo apt-get install -y ${{ matrix.pkgs }}
+
+      - name: Setup Intel oneAPI
+        if: matrix.intel
+        run: |
+          cd /tmp
+          wget -qO- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | \
+            sudo apt-key add -
+          sudo add-apt-repository -y "deb https://apt.repos.intel.com/oneapi all main"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
+          # Add icx/icpx to PATH for subsequent steps
+          echo "/opt/intel/oneapi/compiler/latest/bin" >> "$GITHUB_PATH"
 
       - name: Setup MSYS2 (MinGW)
         if: matrix.msystem

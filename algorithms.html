@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ccalg - 算法原理</title>
+<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+<script>
+tailwind.config = {
+  darkMode: 'media',
+  theme: {
+    extend: {
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+            'code::before': { content: 'none' },
+            'code::after': { content: 'none' },
+            'blockquote p:first-of-type::before': { content: 'none' },
+            'blockquote p:last-of-type::after': { content: 'none' },
+          }
+        }
+      }
+    }
+  }
+}
+</script>
+<style>
+/* ── sidebar collapse (spanning multiple elements — CSS is cleaner than JS class toggling) ── */
+.sidebar-collapsed .sidebar { width: 44px !important; padding: 8px 4px !important; }
+.sidebar-collapsed .sidebar h2,
+.sidebar-collapsed .sidebar nav { display: none; }
+.sidebar-collapsed .main { margin-left: 44px !important; max-width: none; }
+@media (max-width: 767px) {
+  .sidebar-collapsed .sidebar { width: 100% !important; padding: 1rem !important; }
+  .sidebar-collapsed .sidebar h2,
+  .sidebar-collapsed .sidebar nav { display: block; }
+  .sidebar-collapsed .main { margin-left: 0 !important; }
+}
+/* ── TOC collapse ── */
+.toc-collapsed .toc { display: none; }
+.toc-collapsed .toc-icon { transform: rotate(180deg); }
+/* ── TOC scrollbar ── */
+.toc-links { scrollbar-width: none; }
+.toc-links::-webkit-scrollbar { display: none; }
+/* ── TOC active link (Tailwind prose overrides need !important) ── */
+.toc a.active { color: #2563eb !important; border-left-color: #2563eb !important; font-weight: 500; }
+@media (prefers-color-scheme: dark) {
+  .toc a.active { color: #60a5fa !important; border-left-color: #60a5fa !important; }
+}
+/* ── citation links inside prose ── */
+a.citation {
+  text-decoration: none; color: inherit; font-weight: 500;
+  border: 1px solid #d1d5db; border-radius: 3px;
+  padding: 0 0.25em; font-size: 0.9em; vertical-align: super;
+  line-height: 1; transition: background 0.15s;
+}
+a.citation:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+@media (prefers-color-scheme: dark) {
+  a.citation { border-color: #475569; }
+  a.citation:hover { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+}
+li[id^="ref-"] { scroll-margin-top: 80px; }
+/* ── responsive: hide TOC on narrow screens ── */
+@media (max-width: 1100px) {
+  .toc, .toc-toggle { display: none !important; }
+}
+</style>
+</head>
+<body class="flex min-h-screen bg-white dark:bg-teal-950 text-teal-900 dark:text-teal-100 font-sans antialiased">
+<aside class="sidebar w-full h-auto static border-b border-teal-200 dark:border-teal-800 p-4
+              md:fixed md:left-0 md:top-0 md:h-full md:w-[220px] md:border-r md:border-b-0 md:p-8
+              bg-teal-50 dark:bg-teal-900 overflow-hidden hover:overflow-y-auto z-30
+              transition-[width,padding] duration-300"
+       id="sidebar">
+  <button class="block w-8 h-8 ml-auto border border-teal-300 dark:border-teal-700
+                 rounded-md bg-white dark:bg-teal-800 text-teal-600 dark:text-teal-300
+                 text-lg cursor-pointer leading-7 text-center
+                 hover:bg-blue-600 hover:text-white hover:border-blue-600
+                 dark:hover:bg-blue-600 dark:hover:text-white
+                 transition-colors duration-200 flex-shrink-0"
+          id="toggleSidebar" title="收起侧边栏">☰</button>
+  <h2 class="text-2xl font-bold mt-3 mb-4 pb-2 border-b border-teal-200 dark:border-teal-700
+             text-teal-800 dark:text-teal-100 text-center">目录</h2>
+  <nav class="flex flex-wrap gap-1 md:flex-col md:gap-0.5">
+      <a href="index.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">一、基本介绍</a>
+      <a href="getting-started.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">二、快速开始</a>
+      <a href="api-reference.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">三、接口参考</a>
+      <a href="algorithms.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150 bg-blue-600 text-white hover:bg-blue-700 hover:text-white dark:bg-blue-600 dark:text-white">四、算法原理</a>
+      <a href="building.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">五、构建指南</a>
+      <a href="benchmarks.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">六、性能基准</a>
+      <a href="thread-safety.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">七、线程安全</a>
+      <a href="random.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">八、伪随机数</a>
+      <a href="ccbi.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">九、大数库</a>
+  </nav>
+</aside>
+<main class="main flex-1 px-4 py-6 md:ml-[220px] md:px-10 md:py-8 max-w-[900px]
+             transition-[margin] duration-300" id="main">
+  <article class="prose prose-slate dark:prose-invert max-w-none
+                  prose-headings:scroll-mt-20
+                  prose-pre:rounded-lg prose-pre:border prose-pre:border-teal-200
+                  dark:prose-pre:border-teal-800
+                  prose-img:rounded-lg
+                  prose-table:block prose-table:overflow-x-auto
+                  md:prose-table:table">
+<h1 id="_1">算法原理</h1>
+<blockquote>
+<p>每个容器的核心算法与数据结构图解</p>
+</blockquote>
+<hr />
+<h2 id="ccmap">ccmap — 红黑树</h2>
+<p>红黑树是自平衡二叉搜索树，每个节点有红/黑颜色属性。ccmap 是侵入式实现——节点嵌入用户结构体。</p>
+<h3 id="_2">使用场景</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>定时器管理</strong></td>
+<td>以超时时间为 key，<code>first</code> 即最近到期定时器。O(1) 取最小 + O(log n) 增删，替代线性扫描</td>
+</tr>
+<tr>
+<td><strong>连接跟踪</strong></td>
+<td>以 socket fd 为 key 管理 TCP 会话表，O(log n) 查找/更新/关闭，遍历有序（按 fd 排序）</td>
+</tr>
+<tr>
+<td><strong>路由表</strong></td>
+<td>IP 前缀为 key，最长前缀匹配用 <code>find</code> + <code>prev/next</code> 范围扫描</td>
+</tr>
+<tr>
+<td><strong>有序事件队列</strong></td>
+<td>事件按时间戳排序，<code>begin→next</code> 顺序处理，支持动态插入/取消（erase）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_3">红黑树五条性质</h3>
+<ol>
+<li>节点非红即黑</li>
+<li>根节点是黑色</li>
+<li>所有叶子（NIL）是黑色</li>
+<li>红色节点的两个子节点必须是黑色（无连续红）</li>
+<li>从任意节点到其所有后代叶子的每条路径上，黑色节点数量相同（黑高一致）</li>
+</ol>
+<h3 id="_4">插入流程</h3>
+<p>插入后可能违反性质 2 或 4，通过<strong>重新着色 + 旋转</strong>修复：</p>
+<pre><code class="language-mermaid">flowchart TD
+    A[&quot;新节点 = 红色&quot;] --&gt; B{&quot;父节点是黑色?&quot;}
+    B --&gt;|是| C[&quot;✅ 完成，无需修复&quot;]
+    B --&gt;|否| D{&quot;叔叔节点是红色?&quot;}
+    D --&gt;|是| E[&quot;重新着色：父+叔→黑，祖父→红&quot;]
+    E --&gt; F[&quot;问题上移至祖父&quot;]
+    F --&gt; B
+    D --&gt;|否| G{&quot;当前节点是\n父的右孩子?&quot;}
+    G --&gt;|是| H[&quot;左旋父节点&quot;]
+    H --&gt; I[&quot;右旋祖父 + 重新着色&quot;]
+    G --&gt;|否| I
+
+    style A fill:#f96,stroke:#333
+    style C fill:#6f6,stroke:#333
+    style E fill:#ff9,stroke:#333
+    style I fill:#9cf,stroke:#333
+</code></pre>
+<h3 id="_5">旋转操作</h3>
+<blockquote>
+<p>参数 <code>x</code> 为旋转轴心节点，<code>y</code> 为其子节点。旋转保持 BST 性质，仅改变局部指针。</p>
+</blockquote>
+<pre><code class="language-mermaid">graph TD
+    subgraph 右旋[&quot;右旋 _rb_rot_right(m, x)&quot;]
+        subgraph Rbefore[&quot;Before&quot;]
+            Xr(&quot;x&quot;) --&gt; Yr(&quot;y&quot;)
+            Xr --&gt; Gr(&quot;γ&quot;)
+            Yr --&gt; Ar(&quot;α&quot;)
+            Yr --&gt; Br(&quot;β&quot;)
+        end
+        subgraph Rafter[&quot;After&quot;]
+            Yr2(&quot;y&quot;) --&gt; Ar2(&quot;α&quot;)
+            Yr2 --&gt; Xr2(&quot;x&quot;)
+            Xr2 --&gt; Br2(&quot;β&quot;)
+            Xr2 --&gt; Gr2(&quot;γ&quot;)
+        end
+        Rbefore --&gt; Rafter
+    end
+    subgraph 左旋[&quot;左旋 _rb_rot_left(m, x)&quot;]
+        subgraph Lbefore[&quot;Before&quot;]
+            Xl(&quot;x&quot;) --&gt; Al(&quot;α&quot;)
+            Xl --&gt; Yl(&quot;y&quot;)
+            Yl --&gt; Bl(&quot;β&quot;)
+            Yl --&gt; Gl(&quot;γ&quot;)
+        end
+        subgraph Lafter[&quot;After&quot;]
+            Yl2(&quot;y&quot;) --&gt; Xl2(&quot;x&quot;)
+            Yl2 --&gt; Gl2(&quot;γ&quot;)
+            Xl2 --&gt; Al2(&quot;α&quot;)
+            Xl2 --&gt; Bl2(&quot;β&quot;)
+        end
+        Lbefore --&gt; Lafter
+    end
+</code></pre>
+<hr />
+<h2 id="cchashmap">cchashmap — 链式哈希表</h2>
+<p>侵入式链式哈希表。节点缓存 hash 值避免重复计算。</p>
+<h3 id="_6">使用场景</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>DNS 缓存</strong></td>
+<td>域名为 key，解析结果为 value，O(1) 查询 + 自动淘汰（外部维护 TTL）</td>
+</tr>
+<tr>
+<td><strong>会话存储</strong></td>
+<td>session ID → 用户数据，无序遍历，纯 O(1) 读写</td>
+</tr>
+<tr>
+<td><strong>去重过滤器</strong></td>
+<td>URL / 消息 ID 去重，快速判存在，无需排序</td>
+</tr>
+<tr>
+<td><strong>对象池</strong></td>
+<td>资源句柄 → 对象指针，频繁获取/归还，均摊 O(1)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_7">结构</h3>
+<pre><code class="language-mermaid">flowchart TD
+    subgraph buckets[&quot;桶数组 (cchashmap_node_t **)&quot;]
+        B0[&quot;[0]&quot;] --&gt; N1[&quot;node {key:42, hash:42}&quot;]
+        B1[&quot;[1]&quot;] --&gt; NULL
+        B2[&quot;[2]&quot;] --&gt; N2[&quot;node {key:18, hash:18}&quot;] --&gt; N3[&quot;node {key:34, hash:34}&quot;]
+        B3[&quot;[3]&quot;] --&gt; NULL
+        B4[&quot;[4]&quot;] --&gt; N4[&quot;node {key:20, hash:20}&quot;]
+    end
+
+    style B0 fill:#e8e8e8,stroke:#333
+    style B1 fill:#e8e8e8,stroke:#333
+    style B2 fill:#e8e8e8,stroke:#333
+    style B3 fill:#e8e8e8,stroke:#333
+    style B4 fill:#e8e8e8,stroke:#333
+</code></pre>
+<h3 id="_8">核心操作流程</h3>
+<pre><code class="language-mermaid">flowchart TD
+    subgraph insert[&quot;插入 set(k, v)&quot;]
+        I1[&quot;hash = hash_fn(k, seed)&quot;] --&gt; I2[&quot;idx = hash &amp; (cap - 1)&quot;]
+        I2 --&gt; I3[&quot;遍历 buckets[idx] 链表&quot;]
+        I3 --&gt; I4{&quot;找到重复?&quot;}
+        I4 --&gt;|是| I5[&quot;❌ 返回 false, *out=已存在&quot;]
+        I4 --&gt;|否| I6[&quot;头插: node→next = buckets[idx]&quot;]
+        I6 --&gt; I7[&quot;buckets[idx] = node, size++&quot;]
+        I7 --&gt; I8{&quot;size/cap ≥ MAX_LOAD?&quot;}
+        I8 --&gt;|是| I9[&quot;resize: 2× 扩容 + rehash&quot;]
+        I8 --&gt;|否| I10[&quot;✅ 返回 true&quot;]
+    end
+
+    subgraph find[&quot;查找 get(probe)&quot;]
+        F1[&quot;hash = hash_fn(probe, seed)&quot;] --&gt; F2[&quot;idx = hash &amp; (cap - 1)&quot;]
+        F2 --&gt; F3[&quot;遍历 buckets[idx] 链表&quot;]
+        F3 --&gt; F4{&quot;hash 匹配 AND equal?&quot;}
+        F4 --&gt;|是| F5[&quot;✅ 返回节点指针&quot;]
+        F4 --&gt;|否| F6[&quot;返回 NULL&quot;]
+    end
+</code></pre>
+<h3 id="rehash">扩容 (Rehash)</h3>
+<pre><code class="language-mermaid">flowchart LR
+    subgraph old[&quot;旧桶 (cap=4)&quot;]
+        O0[&quot;[0]: A→D&quot;]
+        O1[&quot;[1]: 空&quot;]
+        O2[&quot;[2]: B→C&quot;]
+        O3[&quot;[3]: 空&quot;]
+    end
+    subgraph new[&quot;新桶 (cap=8)&quot;]
+        N0[&quot;[0]:&quot;]
+        N1[&quot;[1]:&quot;]
+        N2[&quot;[2]: C→D&quot;]
+        N3[&quot;[3]:&quot;]
+        N4[&quot;[4]: A&quot;]
+        N5[&quot;[5]:&quot;]
+        N6[&quot;[6]: B&quot;]
+        N7[&quot;[7]:&quot;]
+    end
+    old --&gt;|&quot;2×扩容, 重新 hash&amp;7&quot;| new
+</code></pre>
+<ul>
+<li>容量始终为 2 的幂 → <code>hash &amp; (cap - 1)</code> 替代取模</li>
+<li>负载因子默认 1.25 → 触发 2× 扩容</li>
+<li>懒分配：首次 insert 才分配桶数组</li>
+</ul>
+<hr />
+<h2 id="ccheap-d-ary">ccheap — D-ary 堆</h2>
+<p>D-ary 堆是二叉堆的泛化，每个节点有 D 个子节点（ccheap 支持 2/4/8）。</p>
+<h3 id="_9">使用场景</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>任务调度器</strong></td>
+<td>priority 越小的任务越先执行，<code>pop</code> 取最高优先级，<code>insert</code> 添加新任务</td>
+</tr>
+<tr>
+<td><strong>定时器轮询</strong></td>
+<td>timeout 为 priority，<code>peek</code> 查看最近超时而不弹出，结合事件循环使用</td>
+</tr>
+<tr>
+<td><strong>Top-K 查询</strong></td>
+<td>维护大小为 K 的最小堆，遍历全量数据，堆顶即为第 K 大</td>
+</tr>
+<tr>
+<td><strong>事件驱动模拟</strong></td>
+<td>离散事件按时间戳排序，每次 pop 最早事件执行</td>
+</tr>
+<tr>
+<td><strong>A* 路径搜索</strong></td>
+<td>节点 cost 为优先级，<code>ccheap_update</code> 在发现更优路径时 O(log n) 更新已存在节点的代價</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_10">堆结构（以二叉堆为例）</h3>
+<pre><code class="language-mermaid">flowchart TD
+    R[&quot;[0] priority=1 (min)&quot;] --&gt; L[&quot;[1] priority=5&quot;]
+    R --&gt; RI[&quot;[2] priority=3&quot;]
+    L --&gt; LL[&quot;[3] priority=9&quot;]
+    L --&gt; LR[&quot;[4] priority=7&quot;]
+    RI --&gt; RL[&quot;[5] priority=4&quot;]
+    RI --&gt; RR[&quot;[6] priority=8&quot;]
+
+    style R fill:#6f6,stroke:#333
+</code></pre>
+<h3 id="sift-up">插入 (上滤 / Sift-up)</h3>
+<pre><code class="language-mermaid">flowchart TD
+    A[&quot;新元素追加到数组尾部&quot;] --&gt; B[&quot;i = len - 1&quot;]
+    B --&gt; C{&quot;i &gt; 0 且 parent &lt; node?&quot;}
+    C --&gt;|是| D[&quot;swap(i, parent)&quot;]
+    D --&gt; E[&quot;i = parent&quot;]
+    E --&gt; C
+    C --&gt;|否| F[&quot;✅ 完成&quot;]
+</code></pre>
+<h3 id="sift-down">弹出 (下滤 / Sift-down)</h3>
+<pre><code class="language-mermaid">flowchart TD
+    A[&quot;取出 data[0] (堆顶)&quot;] --&gt; B{&quot;len == 1?&quot;}
+    B --&gt;|是| C[&quot;len--，返回堆顶&quot;]
+    B --&gt;|否| D[&quot;data[0] = data[len-1], len--&quot;]
+    D --&gt; E[&quot;i = 0&quot;]
+    E --&gt; F{&quot;子节点中有更大的?&quot;}
+    F --&gt;|是| G[&quot;swap(i, 最大子节点)&quot;]
+    G --&gt; H[&quot;i = 最大子节点索引&quot;]
+    H --&gt; F
+    F --&gt;|否| I[&quot;✅ 完成，返回堆顶&quot;]
+
+### Decrease-key / 节点更新 (可选)
+
+A* / Dijkstra 等算法需要在搜索过程中降低已存在节点的优先级。
+通过 `#define CCHEAP_NODE_INDEX &lt;字段名&gt;` 开启索引追踪，节点嵌入额外的
+`size_t` 字段记录其在堆数组中的位置，提供 `ccheap_update` 操作。
+
+```c
+#define CCHEAP_NODE_INDEX heap_idx
+#define CCHEAP_COMPARE(a, b) ((int64_t)((b)-&gt;cost - (a)-&gt;cost))
+#include &quot;ccheap.h&quot;
+
+struct search_node {
+    ccheap_node_t hn;        // 内含 .heap_idx 字段
+    int x, y;
+    double g, f;
+};
+
+// 找到更优路径 → O(log n) 更新
+n-&gt;f = new_f;
+ccheap_update(&amp;open_set, &amp;n-&gt;hn);
+</code></pre>
+<p><strong>算法流程：</strong></p>
+<ul>
+<li><code>ccheap_update</code> 用节点的 <code>CCHEAP_NODE_INDEX</code> 字段 O(1) 定位其在数组中的位置</li>
+<li>先尝试<strong>上滤</strong>（bubble-up）：若优先级提高，向根方向交换</li>
+<li>再尝试<strong>下滤</strong>（sift-down）：若优先级降低，向叶方向下沉</li>
+<li>两次尝试保证节点落在正确位置</li>
+</ul>
+<p><strong>零开销：</strong> 不定义 <code>CCHEAP_NODE_INDEX</code> 时，节点保持 8 字节，无额外指令。</p>
+<p><strong>对比懒删除方案：</strong></p>
+<table>
+<thead>
+<tr>
+<th>方案</th>
+<th>操作</th>
+<th>堆大小</th>
+<th>额外内存</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>懒删除（无宏）</td>
+<td>发现更优路径时 push 新节点，pop 时跳过 stale</td>
+<td>可能膨胀</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>CCHEAP_NODE_INDEX</code></td>
+<td><code>ccheap_update</code> O(log n) 原地更新</td>
+<td>紧凑</td>
+<td>每个节点 +8B</td>
+</tr>
+</tbody>
+</table>
+<pre><code>
+### D-ary 子节点
+
+| Arity | 子节点公式 | 编译期展开 |
+| --- | --- | --- |
+| 2 | `parent*2+1, parent*2+2` | 2 路 if |
+| 4 | `parent*4+k+1` (k=0..3) | 4 路 if |
+| 8 | `parent*8+k+1` (k=0..7) | 8 路 if |
+
+&gt; 子节点比较通过 `#if CCHEAP_ARITY_N &gt; N` 编译期展开，无循环开销。
+
+---
+
+## cclink — 侵入式单向链表
+
+### 使用场景
+
+| 场景 | 说明 |
+| --- | --- |
+| **哈希桶链** | `cchashmap` 内部每个槽位的冲突链即可用 cclink 实现，纯 forward 遍历 |
+| **空闲列表 (free list)** | 对象池中未分配块用单链串起，头取头放 O(1) |
+| **LIFO 栈** | `push`=头插 O(1)，`pop_front`=头删 O(1)，无需双向指针 |
+| **指令队列** | 简单 FIFO 不要求反向遍历的场景，内存开销最小（每个节点仅 1 指针） |
+
+### 数据结构
+
+```mermaid
+flowchart LR
+    H[&quot;head&quot;] --&gt; N1[&quot;node A&quot;] --&gt; N2[&quot;node B&quot;] --&gt; N3[&quot;node C&quot;] --&gt; NULL
+</code></pre>
+<ul>
+<li>每个节点只存 <code>next</code> 指针</li>
+<li>无内部哨兵节点</li>
+</ul>
+<h3 id="_11">操作流程</h3>
+<ul>
+<li>头插 O(1)，尾插 O(n)</li>
+</ul>
+<hr />
+<h2 id="cclist">cclist — 侵入式双向链表</h2>
+<h3 id="_12">使用场景</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>LRU 缓存</strong></td>
+<td>访问时 <code>remove</code> + <code>push_front</code> O(1)，淘汰时 <code>pop_back</code> O(1)</td>
+</tr>
+<tr>
+<td><strong>消息队列</strong></td>
+<td>生产者 <code>push_back</code>，消费者 <code>pop_front</code>，均为 O(1)</td>
+</tr>
+<tr>
+<td><strong>帧渲染链表</strong></td>
+<td>UI 控件/游戏对象按 Z-order 双向链接，支持 O(1) 插入/移除任意位置</td>
+</tr>
+<tr>
+<td><strong>多级队列</strong></td>
+<td><code>splice_back</code> 将整个子队列原子移动到主队列，O(1) 无拷贝</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_13">数据结构</h3>
+<pre><code class="language-mermaid">flowchart LR
+    H[&quot;head sentinel\n(dummy)&quot;] &lt;--&gt; N1[&quot;node A&quot;] &lt;--&gt; N2[&quot;node B&quot;] &lt;--&gt; T[&quot;tail sentinel\n(dummy)&quot;]
+    H -..-&gt; N1
+    T -..-&gt; N2
+</code></pre>
+<ul>
+<li>使用 head/tail 哨兵节点简化边界条件</li>
+</ul>
+<h3 id="_14">操作流程</h3>
+<ul>
+<li><code>push_front</code> / <code>push_back</code> 均为 O(1)</li>
+<li><code>insert_before</code> / <code>insert_after</code> 给定节点 O(1)</li>
+<li><code>splice_back</code>: 将整个 src 链表移至 dst 尾部，O(1)</li>
+</ul>
+<hr />
+<h2 id="ccvector">ccvector — 动态数组</h2>
+<p>值存储的连续内存数组，自动扩容。</p>
+<h3 id="_15">使用场景</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>批量数据收集</strong></td>
+<td>遍历过程中 <code>push_back</code> 收集结果，最后一次性处理，利用 CPU 缓存局部性</td>
+</tr>
+<tr>
+<td><strong>栈 (LIFO)</strong></td>
+<td><code>push_back</code> / <code>pop_back</code> 实现，O(1) 均摊，连续内存无碎片</td>
+</tr>
+<tr>
+<td><strong>临时缓冲区</strong></td>
+<td>替代 <code>malloc</code> 管理动态数组，自动扩容无需手动 realloc</td>
+</tr>
+<tr>
+<td><strong>数值计算</strong></td>
+<td>稠密矩阵/向量按索引随机访问 O(1)，比链表快 10-100×（缓存友好）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_16">数据结构</h3>
+<ul>
+<li>连续内存数组，元素值存储</li>
+<li><code>len</code>（元素数量）+ <code>cap</code>（容量）</li>
+</ul>
+<h3 id="_17">扩容流程</h3>
+<p><strong>均摊扩容：</strong></p>
+<pre><code class="language-mermaid">flowchart TD
+    A[&quot;push_back 调用&quot;] --&gt; B{&quot;len == cap?&quot;}
+    B --&gt;|否| C[&quot;data[len++] = elem\n✅ O(1)&quot;]
+    B --&gt;|是| D[&quot;realloc: new_cap = cap * 2&quot;]
+    D --&gt; E[&quot;复制旧元素到新内存&quot;]
+    E --&gt; F[&quot;data[len++] = elem&quot;]
+    F --&gt; G[&quot;✅ 均摊 O(1)&quot;]
+
+    style C fill:#6f6,stroke:#333
+    style G fill:#ff9,stroke:#333
+</code></pre>
+<p>扩容策略：初始 cap=8，每次翻倍，均摊 O(1)。</p>
+<h3 id="_18">排序</h3>
+<p><code>ccvector_sort</code> 使用 C 标准库 <code>qsort</code> 对元素进行原地排序，O(n log n)。</p>
+<h3 id="_19">二分查找</h3>
+<p>排序后可用 <code>ccvector_bsearch</code> 进行 O(log n) 二分查找。封装 C 标准库 <code>bsearch</code>：</p>
+<pre><code class="language-c">ccvector_sort(&amp;v, my_compare);
+int key = 42;
+ccvector_node_t *p = ccvector_bsearch(&amp;v, &amp;key, my_compare);
+</code></pre>
+<p>比较器签名与 <code>qsort</code>/<code>bsearch</code> 一致（返回负数 → 键在元素前，正数 → 键在元素后，0 → 匹配）。</p>
+<pre><code class="language-c">ccvector_sort(&amp;v, my_compare);
+</code></pre>
+<p>比较器签名与 <code>qsort</code> 一致：</p>
+<pre><code class="language-c">int my_compare(const void *a, const void *b) {
+    // 返回负数 → a 排在 b 前面
+    // 返回正数 → b 排在 a 前面
+    // 返回 0   → 相等
+}
+</code></pre>
+<p><code>qsort</code> 是 C89 标准函数，所有平台（MSVC / GCC / Clang / 嵌入式）均可使用，实现真正的跨平台排序支持。</p>
+<hr />
+<h2 id="ccflatmap">ccflatmap — 排序数组映射</h2>
+<p>基于排序数组的 key-value 映射，二分查找 O(log n)，插入 O(n)。</p>
+<h3 id="_20">使用场景</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>配置表</strong></td>
+<td>启动时批量加载 → <code>push_back</code> + <code>sort</code> O(n log n)，运行时仅 <code>find</code> O(log n)，不改动</td>
+</tr>
+<tr>
+<td><strong>静态字典</strong></td>
+<td>编译期确定的键值对（国家代码、语言包），连续内存极低空间开销</td>
+</tr>
+<tr>
+<td><strong>只读索引</strong></td>
+<td>定期全量重建（<code>push_back</code> + <code>sort</code>），查询 QPS 远高于插入 TPS</td>
+</tr>
+<tr>
+<td><strong>二分训练数据</strong></td>
+<td>大规模排序数组的二分查找，branchless cmov 免分支预测失败惩罚</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_21">数据结构</h3>
+<ul>
+<li>连续内存排序数组，key-value 元素</li>
+<li><code>len</code>（元素数量）+ <code>cap</code>（容量）</li>
+</ul>
+<h3 id="_22">操作流程</h3>
+<p><strong>插入：</strong></p>
+<pre><code class="language-mermaid">flowchart TD
+    A[&quot;二分查找定位插入点&quot;] --&gt; B{&quot;key 已存在?&quot;}
+    B --&gt;|是| C[&quot;替换 value，❌ 不增加 size&quot;]
+    B --&gt;|否| D[&quot;插入点右侧元素整体右移&quot;]
+    D --&gt; E[&quot;写入新元素: key + value&quot;]
+    E --&gt; F{&quot;扩容?&quot;}
+    F --&gt;|是| G[&quot;2× realloc&quot;]
+    F --&gt;|否| H[&quot;✅ 完成&quot;]
+
+    style C fill:#f96,stroke:#333
+    style H fill:#6f6,stroke:#333
+</code></pre>
+<p><strong>二分查找：</strong></p>
+<pre><code class="language-mermaid">flowchart TD
+    A[&quot;lo=0, hi=len-1&quot;] --&gt; B{&quot;lo &lt;= hi?&quot;}
+    B --&gt;|否| C[&quot;❌ 未找到，lo 即插入点&quot;]
+    B --&gt;|是| D[&quot;mid = lo + (hi-lo)/2&quot;]
+    D --&gt; E{&quot;data[mid].key == key?&quot;}
+    E --&gt;|是| F[&quot;✅ 返回索引&quot;]
+    E --&gt;|小于| G[&quot;lo = mid + 1&quot;]
+    E --&gt;|大于| H[&quot;hi = mid - 1&quot;]
+    G --&gt; B
+    H --&gt; B
+</code></pre>
+<hr />
+<h2 id="cctreap-treap-tree-heap">cctreap — Treap (Tree + Heap)</h2>
+<p>Treap 是二叉搜索树和堆的随机化结合体。每个节点同时维护 <strong>BST 键序</strong>（key）和 <strong>max-heap 堆序</strong>（priority）。随机 priority 使树在期望下保持 O(log n) 高度。</p>
+<h3 id="_23">使用场景</h3>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>排行榜</strong></td>
+<td>玩家分数为 key，<code>kth(k)</code> 取第 k 名 O(log n)，<code>rank(player)</code> 查排名 O(log n)</td>
+</tr>
+<tr>
+<td><strong>分位数统计</strong></td>
+<td><code>kth(size*0.5)</code> 中位数，<code>kth(size*0.99)</code> P99，O(log n) 无需全量排序</td>
+</tr>
+<tr>
+<td><strong>滑动窗口</strong></td>
+<td>维护最近 N 条记录的有序集合，过期时 <code>erase</code> 最旧，<code>kth</code> 查任意位置</td>
+</tr>
+<tr>
+<td><strong>数据库索引模拟</strong></td>
+<td>需要 ORDER BY + LIMIT + OFFSET 的单表查询，treap 一条龙支持</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_24">数据结构</h3>
+<table>
+<thead>
+<tr>
+<th>性质</th>
+<th>规则</th>
+<th>实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BST 性质</td>
+<td>左子树 key &lt; 当前 key &lt; 右子树 key</td>
+<td><code>CCTREAP_COMPARE</code></td>
+</tr>
+<tr>
+<td>堆性质</td>
+<td>当前 priority &gt; 所有子节点 priority (max-heap)</td>
+<td><code>_TP_PRIO_CMP</code>（内部）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>priority 存储在 <code>cctreap_node_t::priority</code> 内，插入时由 xorshift64 自动生成（可通过 <code>CCTREAP_RAND</code> 宏替换）。用户无需手动管理。</p>
+</blockquote>
+<h3 id="_25">操作流程</h3>
+<p><strong>插入：</strong></p>
+<p>BST 下降定位 → 插为叶子 → <strong>向上旋转</strong>恢复堆序：</p>
+<pre><code class="language-mermaid">graph TD
+    A[&quot;BST 插入（设为叶子）&quot;] --&gt; B{&quot;priority &gt; parent.priority ?&quot;}
+    B --&gt;|是| C[&quot;旋转上浮（左/右旋）&quot;]
+    C --&gt; B
+    B --&gt;|否| D[&quot;✅ 完成，更新 size&quot;]
+</code></pre>
+<p><strong>删除：</strong> 将目标节点 <strong>向下旋转至叶子</strong> 后摘除：</p>
+<pre><code class="language-mermaid">graph TD
+    A[&quot;目标节点 z&quot;] --&gt; B{&quot;z 是叶子?&quot;}
+    B --&gt;|是| C[&quot;摘除 z，更新 size&quot;]
+    B --&gt;|否| D[&quot;比较左右子 priority&quot;]
+    D --&gt; E[&quot;向 priority 更大的子节点旋转&quot;]
+    E --&gt; B
+</code></pre>
+<h3 id="_26">其它特性</h3>
+<p>利用节点内嵌的 <code>size</code>（子树节点数）实现 O(log n) 确定查询：</p>
+<p><strong>kth（第 k 小）</strong>：</p>
+<pre><code class="language-mermaid">graph TD
+    A[&quot;x = root, L = size(x.left)&quot;] --&gt; B{&quot;k &lt; L ?&quot;}
+    B --&gt;|是| C[&quot;x = x.left&quot;]
+    B --&gt;|否| D{&quot;k == L ?&quot;}
+    D --&gt;|是| E[&quot;✅ 返回 x&quot;]
+    D --&gt;|否| F[&quot;k -= L + 1, x = x.right&quot;]
+    C --&gt; A
+    F --&gt; A
+</code></pre>
+<p><strong>rank（排名）</strong>：沿 BST 下降，每往右走一步累加左子树大小 + 1，命中时返回累加值 + size(left)。未找到返回 -1。</p>
+<blockquote>
+<p>kth 和 rank 是确定性 O(log n)，不依赖 priority 随机性。</p>
+</blockquote>
+<h3 id="ccmap_1">与 ccmap 对比</h3>
+<blockquote>
+<p>以下对比中 <code>其它特性</code> 指 kth/rank 等顺序统计操作。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>特性</th>
+<th>ccmap (红黑树)</th>
+<th>cctreap (treap)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>平衡机制</td>
+<td>确定性着色+旋转</td>
+<td>随机 priority + 旋转</td>
+</tr>
+<tr>
+<td>期望高度</td>
+<td>≤ 2·log₂(n+1) 确定</td>
+<td>≤ O(log n) 期望</td>
+</tr>
+<tr>
+<td>最坏高度</td>
+<td>2·log₂(n+1) 确定</td>
+<td>O(n) 极低概率</td>
+</tr>
+<tr>
+<td>节点大小 (64-bit)</td>
+<td>24B</td>
+<td>32B (含 size + priority)</td>
+</tr>
+<tr>
+<td>kth / rank</td>
+<td>不支持</td>
+<td>O(log n)</td>
+</tr>
+<tr>
+<td>迭代</td>
+<td>O(log n) / O(1) 均摊</td>
+<td>O(log n) / O(1) 均摊</td>
+</tr>
+<tr>
+<td>first/last 缓存</td>
+<td>✅ O(1)</td>
+<td>✅ O(1)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_27">零开销回调</h2>
+<p>所有支持比较/哈希的容器均提供两种分发模式：</p>
+<pre><code class="language-mermaid">flowchart LR
+    subgraph fn_ptr[&quot;函数指针模式 (默认)&quot;]
+        A[&quot;cmp_fn(a, b)&quot;] --&gt; B[&quot;间接调用\n(indirect call)&quot;]
+    end
+    subgraph macro[&quot;宏模式 (零开销)&quot;]
+        C[&quot;CCXXX_COMPARE(a, b)&quot;] --&gt; D[&quot;直接内联\n(zero overhead)&quot;]
+    end
+    fn_ptr --&gt;|&quot;#define CCXXX_COMPARE&quot;| macro
+</code></pre>
+<ul>
+<li>宏模式下比较/哈希逻辑被编译器直接内联</li>
+<li>无函数指针间接调用、无寄存器溢出</li>
+<li>适合热路径极致性能场景</li>
+</ul>
+<hr />
+<h2 id="ccbi">ccbi — 大数运算</h2>
+<h3 id="_28">内部表示</h3>
+<p><strong>小端序符号-绝对值（sign-magnitude）</strong>，limb 基数为 2³²。</p>
+<pre><code>limbs[0..used-1], 小端序
+  limb[0] = 低 32-bit, limb[used-1] = 高 32-bit
+</code></pre>
+<ul>
+<li><code>meta</code> 字段: <code>sign(2-bit) | used(15-bit) | cap(15-bit)</code> 压入一个 uint32_t</li>
+<li><code>CCBI_SSO_LIMBS</code> 可配置（默认 8），<code>sizeof(ccbi_t) = 12 + 4·CCBI_SSO_LIMBS</code></li>
+</ul>
+<h3 id="ssosmall-string-optimization">SSO（Small-String Optimization）</h3>
+<pre><code>used ≤ CCBI_SSO_LIMBS:  limbs → internal[] (栈上，零分配)
+used &gt; CCBI_SSO_LIMBS:  ccbi_grow → malloc → limbs → 堆
+</code></pre>
+<h3 id="_29">加法 / 减法</h3>
+<p>教科书逐 limb 进位/借位：</p>
+<pre><code>for i = 0..max(n,m):
+    sum[i] = a[i] + b[i] + carry    (carry = 0/1)
+</code></pre>
+<p><code>ccbi_limb_add</code> / <code>ccbi_limb_sub</code> / <code>ccbi_limb_mul</code> 是跨容器共用的 limb 原语。</p>
+<h3 id="_30">乘法 — 三级派发</h3>
+<pre><code>n &lt; 16              → schoolbook O(n²)
+16 ≤ n &lt; CCBI_TOOM3 → Karatsuba  O(n^1.585)
+n ≥ CCBI_TOOM3_THRESH (默认 64) → Toom-3  O(n^1.465)
+</code></pre>
+<p><code>squaring</code> 自动检测 <code>a == b</code>，交叉项只算一次再×2，减少 ~47% 乘法。</p>
+<h3 id="_31">除法 — 左对齐商数位 + 预计算倒数</h3>
+<p><strong>单 limb 除数快速路径</strong>: 教材式逐位试商。</p>
+<p><strong>多 limb 除数</strong>: 预计算 <code>v_recip = ceil(2^64 / v_top)</code>（一次 divq），
+每轮试商用 <code>qd = (u128)u_top * v_recip &gt;&gt; 64</code>（一次 mulq）代替 <code>u_top / v_top</code>（一次 divq）。</p>
+<pre><code>while |u| ≥ |v|:
+    qd = 试商（mulq）
+    u -= qd * v (shifted)
+    如果借位传播过头: qd--; u += v
+    存储 qd
+</code></pre>
+<h3 id="montgomery-cios-sliding-window">模幂 — Montgomery CIOS + Sliding Window</h3>
+<ul>
+<li><strong>小模数</strong> (k &lt; 4): 二进制法</li>
+<li><strong>大模数</strong> (k ≥ 4): Montgomery CIOS + Sliding Window (w=4)</li>
+</ul>
+<pre><code>预计算 R² mod m
+base → Montgomery 域
+for 指数 bit 窗口:
+    平方 wlen 次
+    × table[window]（Sliding Window 减少乘法次数）
+转换回整数域
+</code></pre>
+<h3 id="_32">位运算</h3>
+<p>按 magnitude（绝对值）运算，结果恒为非负。</p>
+<pre><code>AND:  for i = 0..min(|a|,|b|)-1:  z[i] = a[i] &amp; b[i]  高位截断
+OR:   for i = 0..max(|a|,|b|)-1:  z[i] = a[i] | b[i]  高位从较长者拷贝
+XOR:  for i = 0..max(|a|,|b|)-1:  z[i] = a[i] ^ b[i]  高位拷贝，可能归零
+NOT:  bl = bit_length(a)
+      for i = 0..(bl/32)-1:  z[i] = ~a[i]
+      if bl%32:  z[last] = (~a[last]) &amp; ((1&lt;&lt;bl%32)-1)  掩码高位
+</code></pre>
+<p><code>ccbi_not</code> 仅在 <code>bit_length(a)</code> 范围内取反，所以 <code>~1 = 0</code>、<code>~2 = 1</code>。</p>
+<p>单 bit 操作为 O(1) limb 定位 ± 潜在 grow：</p>
+<pre><code>test_bit:  limb = i/32;  (z-&gt;limbs[limb] &gt;&gt; i%32) &amp; 1
+set_bit:   z-&gt;limbs[limb] |= 1 &lt;&lt; i%32    (越界自动 grow)
+clear_bit: z-&gt;limbs[limb] &amp;= ~(1 &lt;&lt; i%32) (越界无操作)
+flip_bit:  z-&gt;limbs[limb] ^= 1 &lt;&lt; i%32    (越界等同 set_bit)
+</code></pre>
+<h3 id="_33">字符串转换</h3>
+<h4 id="from_str-9">from_str — 十进制 9 位分块</h4>
+<pre><code>普通路径:     N 次 mul_uint(10) + add_uint(digit)
+分块路径: ceil(N/9) 次 mul_uint(10⁹) + add_uint(chunk)
+</code></pre>
+<p>非十进制保持逐字符路径。</p>
+<h4 id="to_str-api">to_str — 用户缓冲 API</h4>
+<pre><code>ccbi_to_str_len(z, base)        → 预计算所需缓冲区大小
+ccbi_to_str_buf(z, buf, len, base) → 写入用户缓冲区（零分配）
+ccbi_to_str(z, base)             → 内部 malloc（向后兼容）
+</code></pre>
+<h3 id="stein">最大公约数 — 二进制 Stein 算法</h3>
+<pre><code>如果 |a,b| 均为偶数: gcd = 2 * gcd(a/2, b/2)
+gcd 逻辑:
+    while a != 0:
+        while a 为偶数: a /= 2
+        while b 为偶数: b /= 2
+        if |a| ≥ |b|: a = (a - b) / 2
+        else:          b = (b - a) / 2
+</code></pre>
+<ul>
+<li>避免除法（仅用移位 + 减法），比 Euclid 在长整数上更优</li>
+<li>每次迭代至少消除一个尾零</li>
+</ul>
+<hr />
+<h2 id="ccbits">ccbits — 位运算原语</h2>
+<p>位运算原语库，跨平台/编译器，GCC/Clang/MSVC 平台使用编译器内建（一条指令），
+未知编译器使用纯 C 可移植 fallback。</p>
+<h3 id="popcount-population-count">popcount — 人口计数（Population Count）</h3>
+<p><strong>SWAR（并行加法器）：</strong></p>
+<p>将 32/64 位整数划分为不同大小的块，通过并行掩码加法累加 1-bit 计数。</p>
+<p>以 32-bit 为例：</p>
+<pre><code>Step 1: 每 2-bit 一组统计 1 的个数
+  x = x - ((x &gt;&gt; 1) &amp; 0x55555555)
+
+Step 2: 每 4-bit 一组，2-bit 部分和相加
+  x = (x &amp; 0x33333333) + ((x &gt;&gt; 2) &amp; 0x33333333)
+
+Step 3: 每 8-bit 一组，4-bit 部分和相加
+  x = (x + (x &gt;&gt; 4)) &amp; 0x0F0F0F0F
+
+Step 4: 累加 2 字节
+  x = x + (x &gt;&gt; 8)
+
+Step 5: 累加 4 字节，取低 6-bit
+  x = x + (x &gt;&gt; 16)
+  return x &amp; 0x3F
+</code></pre>
+<p><strong>进位过程图解（以 <code>0x5B</code> = 0101 1011 为例）：</strong></p>
+<pre><code>                   01  01  10  11
+                   ↓   ↓   ↓   ↓
+Step 1 (2-bit):    01  01  01  10    (每个 2-bit 块的 1 个数)
+Step 2 (4-bit):    0010  0011         (2-bit 和两两相加)
+Step 3 (8-bit):    00000101           (4-bit 和相加) → 结果 5 ✓
+</code></pre>
+<p><strong>平台路径：</strong></p>
+<table>
+<thead>
+<tr>
+<th>编译器</th>
+<th>实现</th>
+<th>指令</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GCC/Clang</td>
+<td><code>__builtin_popcount{ll}</code></td>
+<td><code>POPCNT</code> (x86) / <code>VCNT</code> (ARM NEON)</td>
+</tr>
+<tr>
+<td>MSVC</td>
+<td><code>__popcnt16</code> / <code>__popcnt</code> / <code>__popcnt64</code></td>
+<td><code>POPCNT</code></td>
+</tr>
+<tr>
+<td>其他</td>
+<td>SWAR 5 级加法</td>
+<td>纯移位+掩码</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="clz">clz — 前导零计数</h3>
+<p><strong>二分分解法：</strong></p>
+<p>逐级检测高位区间是否为零，缩小范围。以 32-bit 为例：</p>
+<pre><code class="language-c">n = 32;
+if (x &gt;&gt; 16) { n -= 16; x &gt;&gt;= 16; }   // 高 16 位有 1？缩小到高 16 位
+if (x &gt;&gt;  8) { n -=  8; x &gt;&gt;=  8; }   // 高 8 位有 1？
+if (x &gt;&gt;  4) { n -=  4; x &gt;&gt;=  4; }
+if (x &gt;&gt;  2) { n -=  2; x &gt;&gt;=  2; }
+if (x &gt;&gt;  1) { n -=  1; }
+return n - x;                           // x 最终为 0 或 1，减去 x 即最后修正
+</code></pre>
+<p><strong>图解 <code>clz(0x0A000000)</code>：</strong></p>
+<pre><code>x  = 0000 1010 0000 0000 0000 0000 0000 0000
+    │                                              n=32
+    ├─ x&gt;&gt;16 = 0x0A00 ≠ 0 → n=16, x=0x0A00
+    │                                              n=16
+    ├─ x&gt;&gt;8 = 0x0A ≠ 0 → n=8, x=0x0A
+    │                                              n=8
+    ├─ x&gt;&gt;4 = 0 ≠ 0? No
+    ├─ x&gt;&gt;2 = 2 ≠ 0? → n=6, x=2
+    ├─ x&gt;&gt;1 = 1 ≠ 0? → n=5, x=1
+    └─ return 5 - 1 = 4  ✓  (前导 4 个 0)
+</code></pre>
+<p><strong>零值安全：</strong> 对 GCC/Clang 路径，三元 <code>x ? __builtin_clz(x) : 32</code> 防止 <code>__builtin_clz(0)</code> 的 UB。</p>
+<hr />
+<h3 id="ctz">ctz — 尾零计数</h3>
+<p><strong>16-bit：二分分解法</strong>（与 clz 类似，从低位开始检测）。</p>
+<p><strong>32/64-bit：de Bruijn 乘法</strong>（单次乘法 + 查表，无分支）：</p>
+<pre><code class="language-c">// 分离最低位: lsb = x &amp; -x          (得到 2^k 形式的幂)
+// de Bruijn 序列: 0x077CB531 (32-bit)
+// idx = (lsb * 0x077CB531) &gt;&gt; 27    (将 2^k 映射到 [0, 31])
+// return table[idx]
+</code></pre>
+<p><strong>原理：</strong> de Bruijn 序列 <code>B(2, k)</code> 是长度为 <code>2^k</code> 的循环序列，包含所有 <code>k</code> 位二进制子串恰好一次。
+取 <code>k=5</code> 的 de Bruijn 序列 <code>0x077CB531</code>，乘以 <code>2^k</code>（即 <code>lsb</code>）相当于左移 <code>k</code> 位，
+高 5-bit 唯一标识 <code>k</code> 的值。只需一个 32 元素查表即可得到 <code>ctz</code>。</p>
+<pre><code>lsb = x &amp; -x           ← 最低位：0x00000080 (= 2⁷)
+lsb * 0x077CB531
+   = 0x077CB531 &lt;&lt; 7   ← 高 5-bit = 00001 110 → idx = 7
+table[7] = 7           ← ctz(0x...80) = 7 ✓
+</code></pre>
+<hr />
+<h3 id="rotl-rotr">rotl / rotr — 循环移位</h3>
+<p>所有主流编译器都将 <code>(x &lt;&lt; k) | (x &gt;&gt; (N - k))</code> 模式识别为一条 <code>ROL</code>/<code>ROR</code> 指令。
+<code>k = k &amp; (N-1)</code> 保证即使调用方传入 <code>k ≥ N</code> 也不触发 C 语言 UB。</p>
+<table>
+<thead>
+<tr>
+<th>编译器</th>
+<th>生成指令</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GCC/Clang (x86)</td>
+<td><code>ROL</code> / <code>ROR</code> (1 周期)</td>
+</tr>
+<tr>
+<td>GCC/Clang (ARM)</td>
+<td><code>ROR</code> (单条)</td>
+</tr>
+<tr>
+<td>MSVC (x86/x64)</td>
+<td><code>_rotl</code> / <code>_rotr</code> → <code>ROL</code> / <code>ROR</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="bswap">bswap — 字节序反转</h3>
+<p><strong>16-bit：</strong> <code>(x &gt;&gt; 8) | (x &lt;&lt; 8)</code></p>
+<p><strong>32-bit：</strong> 二级 delta-swap（先交换 16-bit 半字内的字节，再交换半字）：</p>
+<pre><code>x         = AB CD EF GH
+Step 1    = 0B 0D 0F 0H | A0 C0 E0 G0  =  BA DC FE HG
+Step 2    = 0000 FE HG  |  BA DC 0000   =  HG FE DC BA
+</code></pre>
+<p><strong>64-bit：</strong> 三级 delta-swap（8→16→32-bit）。</p>
+<table>
+<thead>
+<tr>
+<th>编译器</th>
+<th>指令</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GCC/Clang</td>
+<td><code>__builtin_bswap{16,32,64}</code> / <code>MOVBE</code> / <code>REV</code> (ARM)</td>
+</tr>
+<tr>
+<td>MSVC</td>
+<td><code>_byteswap_ushort/ulong/uint64</code> / <code>BSWAP</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="bitrev">bitrev — 位反转</h3>
+<p><strong>二进制 delta-swap 法（二分反转）：</strong></p>
+<p>每次交换相邻 bit 块，块大小逐级加倍，256 次交换后达到完全反转。</p>
+<p>以 8-bit 为例：</p>
+<pre><code>x        = ab cd ef gh
+Step 1   = ba dc fe hg     (交换相邻 1-bit)
+Step 2   = dc ba hg fe     (交换相邻 2-bit)
+Step 3   = hg fe dc ba     (交换相邻 4-bit)  ✓ 完成反转
+</code></pre>
+<p>32-bit 需要 5 级（1→2→4→8→16-bit），64-bit 需要 6 级。</p>
+<p><strong>Clang 特殊路径：</strong> <code>__builtin_bitreverse{8,32,64}</code> 在 ARM 上编译为单条 <code>RBIT</code> 指令。</p>
+<hr />
+<h3 id="ceilpow2-2">ceilpow2 — 上取整 2 的幂</h3>
+<p><strong>位涂抹法（无分支）：</strong></p>
+<pre><code class="language-c">x--;                      // 处理已经是 2 的幂的情况
+x |= x &gt;&gt; 1;              // 将最高位右侧 1-bit 填满
+x |= x &gt;&gt; 2;
+x |= x &gt;&gt; 4;
+x |= x &gt;&gt; 8;
+x |= x &gt;&gt; 16;             // (32-bit 到此为止)
+x |= x &gt;&gt; 32;             // (64-bit 额外一步)
+return x + 1;
+</code></pre>
+<p><strong>图解 <code>ceilpow2(21)</code>：</strong></p>
+<pre><code>x     = 10101 (21)
+x--   = 10100 (20)
+&gt;&gt;1   = 01010 | 10100 = 11110
+&gt;&gt;2   = 00111 | 11110 = 11111
+&gt;&gt;4   = 00001 | 11111 = 11111  (已饱和)
+...
+x+1   = 100000 (32)  ✓
+</code></pre>
+<p><strong>零值处理：</strong> <code>x=0</code> 时 <code>x--</code> 得 0xFFFFFFFF，涂抹后仍为全 1，<code>x+1</code> 溢回 0。</p>
+<hr />
+<h3 id="ispow2-2">ispow2 — 判 2 的幂</h3>
+<pre><code class="language-c">#define ccbits_ispow2_32(x)  (((x) &gt; 0U) &amp; (((x) &amp; ((x) - 1U)) == 0U))
+</code></pre>
+<p><strong>原理：</strong> 2 的幂的二进制形式为 <code>100...0</code>，减 1 得 <code>011...1</code>，两者按位与得 0。</p>
+<pre><code>4     = 100    → 4-1 = 011    → 100 &amp; 011 = 0  → 是 ✓
+3     = 011    → 3-1 = 010    → 011 &amp; 010 = 2  → 否 ✓
+0     = 000    → 0-1 = 111    → 000 &amp; 111 = 0  → 0 &gt; 0 为假 → 0 ✓
+</code></pre>
+<p><code>&amp;</code>（位与）代替 <code>&amp;&amp;</code>（逻辑与）规避短路分支，整个表达式无跳转。</p>
+<hr />
+<h3 id="bit_width">bit_width — 最小位宽</h3>
+<p><strong>原理：</strong> <code>bit_width(x) = floor(log₂(x)) + 1</code>。对于 <code>x&gt;0</code>，等价于 <code>N - clz(x)</code>。</p>
+<pre><code>bit_width(0)  = 0        （特判）
+bit_width(1)  = 32 - 31  = 1
+bit_width(8)  = 32 - 28  = 4
+bit_width(15) = 32 - 28  = 4    ← 不是对齐到 4，而是 15 需 4-bit 表示
+bit_width(16) = 32 - 27  = 5    ← 16 = 10000，需要 5-bit
+</code></pre>
+<p>提供 8/16/32/64 四种宽度，由 <code>clz</code> 派生，无独立平台路径。
+窄宽度（<code>bit_width8/16</code>）统一调用 <code>clz32</code>：</p>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>公式</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ccbits_bit_width8</code></td>
+<td><code>32 - clz32((uint8_t)x)</code></td>
+<td><code>0xFF → 32-24 = 8</code></td>
+</tr>
+<tr>
+<td><code>ccbits_bit_width16</code></td>
+<td><code>32 - clz32((uint16_t)x)</code></td>
+<td><code>0x8000 → 32-16 = 16</code></td>
+</tr>
+<tr>
+<td><code>ccbits_bit_width32</code></td>
+<td><code>32 - clz32(x)</code></td>
+<td><code>0x7FFFFFFF → 32-1 = 31</code></td>
+</tr>
+<tr>
+<td><code>ccbits_bit_width64</code></td>
+<td><code>64 - clz64(x)</code></td>
+<td><code>0x8000000000000000 → 64-0 = 64</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>uint8_t</code>/<code>uint16_t</code> 强转先零扩展再 CLZ，编译器优为 <code>movzx</code> + <code>bsr</code>/<code>lzcnt</code>，零额外开销。</p>
+<hr />
+<h3 id="mask_low">mask_low — 低位掩码</h3>
+<p><strong>原理：</strong> <code>(1 &lt;&lt; n) - 1</code>。当 <code>n ≥ 宽度</code> 时饱和为全 1（防止 C 语言移位 ≥ 宽度是 UB）。</p>
+<pre><code>mask_low(0)  = (1 &lt;&lt; 0) - 1 = 0
+mask_low(5)  = (1 &lt;&lt; 5) - 1 = 0x1F
+mask_low(8)  = (1 &lt;&lt; 8) - 1 = 0xFF
+mask_low(32) → n≥32 → 0xFFFFFFFF
+</code></pre>
+<hr />
+<h3 id="parity">parity — 奇偶校验</h3>
+<p><strong>原理：</strong> <code>popcount(x) &amp; 1</code>。1 的个数为奇数时返回 1，偶数时返回 0。</p>
+<pre><code>parity(0x00000000) = 0 → 0 bits → even → 0
+parity(0x00000001) = 1 → 1 bit  → odd  → 1
+parity(0x00000011) = 2 → 2 bits → even → 0
+parity(0xFFFFFFFF) = 0 → 32 bits → even → 0
+</code></pre>
+<p>提供 8/16/32/64 四种宽度，统一由对应 <code>popcount</code> 派生：</p>
+<table>
+<thead>
+<tr>
+<th>函数</th>
+<th>实现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ccbits_parity8</code></td>
+<td><code>popcount8(x) &amp; 1</code></td>
+</tr>
+<tr>
+<td><code>ccbits_parity16</code></td>
+<td><code>popcount16(x) &amp; 1</code></td>
+</tr>
+<tr>
+<td><code>ccbits_parity32</code></td>
+<td><code>popcount32(x) &amp; 1</code></td>
+</tr>
+<tr>
+<td><code>ccbits_parity64</code></td>
+<td><code>popcount64(x) &amp; 1</code></td>
+</tr>
+</tbody>
+</table>
+<p>在 x86 上编译器将 <code>popcount &amp; 1</code> 优化为单条 <code>POPCNT</code> + <code>AND reg, 1</code>。</p>
+<hr />
+<h3 id="sign_ext">sign_ext — 符号扩展</h3>
+<p><strong>原理：</strong> 将低 N 位视为有符号数，扩展到全宽度。使用<strong>经典的 XOR-sub 分支无跳转技巧</strong>：</p>
+<pre><code class="language-c">m = 1U &lt;&lt; (n - 1);           // 符号位掩码
+return (int32_t)((x ^ m) - m);
+</code></pre>
+<p><strong>图解</strong> <code>sign_ext32(0x1F, 5)</code>（将低 5-bit 11111 视为 -1 扩展）：</p>
+<pre><code>x     = ...0 11111           (低 5-bit: 11111, 符号位=1)
+m     = ...0 10000           (第 4-bit 掩码)
+x ^ m = ...0 01111           (翻转符号位)
+-m    = ...1 10000           (补码)
+
+(x ^ m) - m = ...0 01111 - ...1 10000
+           = ...0 01111 + ...0 10000    (补码加法)
+           = ...1 11111 = -1            ✓
+</code></pre>
+<p><strong>图解</strong> <code>sign_ext32(0x0F, 5)</code>（低 5-bit 01111 = 15，符号位=0）：</p>
+<pre><code>x     = ...0 01111           (低 5-bit: 01111, 符号位=0)
+m     = ...0 10000
+x ^ m = ...0 11111           (不变号，仅低 5-bit 翻转)
+-m    = ...1 10000
+
+(x ^ m) - m = ...0 11111 - ...1 10000
+           = ...0 11111 + ...0 10000
+           = ...0 11111 = 15           ✓   (符号位 0 → 正数)
+</code></pre>
+<p><strong>边界处理：</strong> <code>n=0 或 n≥宽度</code> 时直接返回 x 本身（无符号扩展空间）。</p>
+  </article>
+  <footer class="mt-12 pt-4 border-t border-teal-200 dark:border-teal-800
+                 text-sm text-teal-500 dark:text-teal-400">
+    <p>ccalg — header-only C data-structure library · BSD 3-Clause ·
+    <a href="https://github.com/CandyMi/ccalg" class="text-blue-600 dark:text-blue-400 hover:underline">GitHub</a></p>
+  </footer>
+</main>
+<button class="toc-toggle fixed right-3 top-[50px] z-[101] px-2.5 py-1
+               border border-teal-300 dark:border-teal-700 rounded-t-md
+               bg-white dark:bg-teal-900 text-teal-600 dark:text-teal-300
+               text-sm cursor-pointer whitespace-nowrap
+               hover:bg-blue-600 hover:text-white hover:border-blue-600
+               dark:hover:bg-blue-600 dark:hover:text-white
+               transition-colors duration-200"
+        id="tocToggle" title="折叠目录">点击收起 <span class="toc-icon inline-block transition-transform duration-300">▶</span></button>
+<nav class="toc fixed right-3 top-20 w-[210px] max-h-[calc(100vh-120px)]
+            flex flex-col text-sm z-[100] bg-white dark:bg-teal-900
+            border border-teal-200 dark:border-teal-800 rounded-xl
+            shadow-lg shadow-teal-200/50 dark:shadow-teal-950/50
+            opacity-90 hover:opacity-100 transition-opacity duration-200"
+     id="toc">
+  <div class="flex justify-between items-center flex-shrink-0 font-semibold
+              text-teal-800 dark:text-teal-100 text-sm
+              px-3 py-2.5 border-b border-teal-200 dark:border-teal-800">
+    <span>本页目录</span>
+    <a href="#" class="text-teal-400 dark:text-teal-500 text-base font-normal
+                       no-underline hover:text-blue-600 dark:hover:text-blue-400 px-1"
+       title="回到顶部">↑</a>
+  </div>
+  <div class="toc-links overflow-y-auto flex-1 px-3 py-2">
+<a href="#ccmap" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="ccmap">ccmap — 红黑树</a>
+<a href="#_2" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_2">使用场景</a>
+<a href="#_3" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_3">红黑树五条性质</a>
+<a href="#_4" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_4">插入流程</a>
+<a href="#_5" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_5">旋转操作</a>
+<a href="#cchashmap" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="cchashmap">cchashmap — 链式哈希表</a>
+<a href="#_6" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_6">使用场景</a>
+<a href="#_7" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_7">结构</a>
+<a href="#_8" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_8">核心操作流程</a>
+<a href="#rehash" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="rehash">扩容 (Rehash)</a>
+<a href="#ccheap-d-ary" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="ccheap-d-ary">ccheap — D-ary 堆</a>
+<a href="#_9" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_9">使用场景</a>
+<a href="#_10" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_10">堆结构（以二叉堆为例）</a>
+<a href="#sift-up" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="sift-up">插入 (上滤 / Sift-up)</a>
+<a href="#sift-down" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="sift-down">弹出 (下滤 / Sift-down)</a>
+<a href="#_11" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_11">操作流程</a>
+<a href="#cclist" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="cclist">cclist — 侵入式双向链表</a>
+<a href="#_12" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_12">使用场景</a>
+<a href="#_13" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_13">数据结构</a>
+<a href="#_14" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_14">操作流程</a>
+<a href="#ccvector" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="ccvector">ccvector — 动态数组</a>
+<a href="#_15" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_15">使用场景</a>
+<a href="#_16" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_16">数据结构</a>
+<a href="#_17" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_17">扩容流程</a>
+<a href="#_18" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_18">排序</a>
+<a href="#_19" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_19">二分查找</a>
+<a href="#ccflatmap" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="ccflatmap">ccflatmap — 排序数组映射</a>
+<a href="#_20" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_20">使用场景</a>
+<a href="#_21" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_21">数据结构</a>
+<a href="#_22" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_22">操作流程</a>
+<a href="#cctreap-treap-tree-heap" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="cctreap-treap-tree-heap">cctreap — Treap (Tree + Heap)</a>
+<a href="#_23" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_23">使用场景</a>
+<a href="#_24" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_24">数据结构</a>
+<a href="#_25" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_25">操作流程</a>
+<a href="#_26" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_26">其它特性</a>
+<a href="#ccmap_1" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="ccmap_1">与 ccmap 对比</a>
+<a href="#_27" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="_27">零开销回调</a>
+<a href="#ccbi" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="ccbi">ccbi — 大数运算</a>
+<a href="#_28" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_28">内部表示</a>
+<a href="#ssosmall-string-optimization" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="ssosmall-string-optimization">SSO（Small-String Optimization）</a>
+<a href="#_29" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_29">加法 / 减法</a>
+<a href="#_30" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_30">乘法 — 三级派发</a>
+<a href="#_31" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_31">除法 — 左对齐商数位 + 预计算倒数</a>
+<a href="#montgomery-cios-sliding-window" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="montgomery-cios-sliding-window">模幂 — Montgomery CIOS + Sliding Window</a>
+<a href="#_32" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_32">位运算</a>
+<a href="#_33" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_33">字符串转换</a>
+<a href="#stein" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="stein">最大公约数 — 二进制 Stein 算法</a>
+<a href="#ccbits" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="ccbits">ccbits — 位运算原语</a>
+<a href="#popcount-population-count" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="popcount-population-count">popcount — 人口计数（Population Count）</a>
+<a href="#clz" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="clz">clz — 前导零计数</a>
+<a href="#ctz" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="ctz">ctz — 尾零计数</a>
+<a href="#rotl-rotr" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="rotl-rotr">rotl / rotr — 循环移位</a>
+<a href="#bswap" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="bswap">bswap — 字节序反转</a>
+<a href="#bitrev" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="bitrev">bitrev — 位反转</a>
+<a href="#ceilpow2-2" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="ceilpow2-2">ceilpow2 — 上取整 2 的幂</a>
+<a href="#ispow2-2" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="ispow2-2">ispow2 — 判 2 的幂</a>
+<a href="#bit_width" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="bit_width">bit_width — 最小位宽</a>
+<a href="#mask_low" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="mask_low">mask_low — 低位掩码</a>
+<a href="#parity" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="parity">parity — 奇偶校验</a>
+<a href="#sign_ext" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="sign_ext">sign_ext — 符号扩展</a>
+  </div>
+</nav>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+mermaid.initialize({ startOnLoad: false, theme: 'base' });
+// protect mermaid blocks from highlight.js — convert before hljs runs
+document.querySelectorAll('pre code.language-mermaid').forEach(function(el) {
+  el.parentElement.classList.add('mermaid');
+  el.parentElement.innerHTML = el.textContent;
+});
+hljs.highlightAll();
+mermaid.run();
+
+// ── sidebar toggle ─────────────────────────────────────────────────
+(function() {
+  var btn = document.getElementById('toggleSidebar');
+  var body = document.body;
+  if (!btn) return;
+
+  function apply(state) {
+    body.classList.toggle('sidebar-collapsed', state);
+    btn.title = state ? '展开侧边栏' : '收起侧边栏';
+    btn.innerHTML = state ? '☰' : '☰';
+  }
+
+  btn.addEventListener('click', function() {
+    var collapsed = !body.classList.contains('sidebar-collapsed');
+    apply(collapsed);
+    try { localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0'); } catch(e) {}
+  });
+
+  // restore saved state
+  try {
+    if (localStorage.getItem('sidebar-collapsed') === '1') apply(true);
+  } catch(e) {}
+})();
+
+// ── TOC collapse toggle ──────────────────────────────────────────────
+(function() {
+  var btn = document.getElementById('tocToggle');
+  var toc = document.getElementById('toc');
+  if (!btn || !toc) return;
+
+  function apply(state) {
+    document.body.classList.toggle('toc-collapsed', state);
+    btn.innerHTML = state ? '点击展开 <span class="toc-icon inline-block transition-transform duration-300">▶</span>' : '点击收起 <span class="toc-icon inline-block transition-transform duration-300">▶</span>';
+    btn.title = state ? '展开目录' : '折叠目录';
+  }
+
+  btn.addEventListener('click', function() {
+    var collapsed = !document.body.classList.contains('toc-collapsed');
+    apply(collapsed);
+    try { localStorage.setItem('toc-collapsed', collapsed ? '1' : '0'); } catch(e) {}
+  });
+
+  try {
+    if (localStorage.getItem('toc-collapsed') === '1') apply(true);
+  } catch(e) {}
+})();
+
+// ── TOC scroll-spy (midpoint activation) ────────────────────────────
+(function() {
+  var toc = document.getElementById('toc');
+  if (!toc) return;
+  var links = toc.querySelectorAll('.toc-links a');
+  if (!links.length) { toc.style.display = 'none'; return; }
+
+  // collect heading targets
+  var headings = [];
+  links.forEach(function(a) {
+    var el = document.getElementById(a.getAttribute('data-target'));
+    if (el) headings.push({ el: el, link: a });
+  });
+
+  // find which heading's midpoint is active
+  function updateActive() {
+    var mid = window.scrollY + window.innerHeight / 2;
+    var activeIdx = -1;
+    for (var i = headings.length - 1; i >= 0; i--) {
+      if (headings[i].el.offsetTop <= mid) { activeIdx = i; break; }
+    }
+
+    links.forEach(function(a, idx) {
+      a.classList.toggle('active', idx === activeIdx);
+    });
+
+    if (activeIdx >= 0 && headings[activeIdx]) {
+      headings[activeIdx].link.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+    }
+  }
+
+  updateActive();
+
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() { ticking = false; updateActive(); });
+      ticking = true;
+    }
+  }, { passive: true });
+})();
+</script>
+<script>
+// Load HLJS theme CSS AFTER Tailwind CDN has injected its styles.
+// Tailwind CDN injects styles async (DOMContentLoaded / rAF) — we use
+// double rAF to guarantee HLJS loads last and wins cascade ties.
+requestAnimationFrame(function() {
+  requestAnimationFrame(function() {
+    var light = document.createElement('link');
+    light.rel = 'stylesheet';
+    light.media = '(prefers-color-scheme: light)';
+    light.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs.min.css';
+    document.head.appendChild(light);
+    var dark = document.createElement('link');
+    dark.rel = 'stylesheet';
+    dark.media = '(prefers-color-scheme: dark)';
+    dark.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs2015.min.css';
+    document.head.appendChild(dark);
+  });
+});
+</script>
+</body>
+</html>

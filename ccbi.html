@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="scroll-smooth">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ccalg - 大数库</title>
+<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+<script>
+tailwind.config = {
+  darkMode: 'media',
+  theme: {
+    extend: {
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+            'code::before': { content: 'none' },
+            'code::after': { content: 'none' },
+            'blockquote p:first-of-type::before': { content: 'none' },
+            'blockquote p:last-of-type::after': { content: 'none' },
+          }
+        }
+      }
+    }
+  }
+}
+</script>
+<style>
+/* ── sidebar collapse (spanning multiple elements — CSS is cleaner than JS class toggling) ── */
+.sidebar-collapsed .sidebar { width: 44px !important; padding: 8px 4px !important; }
+.sidebar-collapsed .sidebar h2,
+.sidebar-collapsed .sidebar nav { display: none; }
+.sidebar-collapsed .main { margin-left: 44px !important; max-width: none; }
+@media (max-width: 767px) {
+  .sidebar-collapsed .sidebar { width: 100% !important; padding: 1rem !important; }
+  .sidebar-collapsed .sidebar h2,
+  .sidebar-collapsed .sidebar nav { display: block; }
+  .sidebar-collapsed .main { margin-left: 0 !important; }
+}
+/* ── TOC collapse ── */
+.toc-collapsed .toc { display: none; }
+.toc-collapsed .toc-icon { transform: rotate(180deg); }
+/* ── TOC scrollbar ── */
+.toc-links { scrollbar-width: none; }
+.toc-links::-webkit-scrollbar { display: none; }
+/* ── TOC active link (Tailwind prose overrides need !important) ── */
+.toc a.active { color: #2563eb !important; border-left-color: #2563eb !important; font-weight: 500; }
+@media (prefers-color-scheme: dark) {
+  .toc a.active { color: #60a5fa !important; border-left-color: #60a5fa !important; }
+}
+/* ── citation links inside prose ── */
+a.citation {
+  text-decoration: none; color: inherit; font-weight: 500;
+  border: 1px solid #d1d5db; border-radius: 3px;
+  padding: 0 0.25em; font-size: 0.9em; vertical-align: super;
+  line-height: 1; transition: background 0.15s;
+}
+a.citation:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+@media (prefers-color-scheme: dark) {
+  a.citation { border-color: #475569; }
+  a.citation:hover { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+}
+li[id^="ref-"] { scroll-margin-top: 80px; }
+/* ── responsive: hide TOC on narrow screens ── */
+@media (max-width: 1100px) {
+  .toc, .toc-toggle { display: none !important; }
+}
+</style>
+</head>
+<body class="flex min-h-screen bg-white dark:bg-teal-950 text-teal-900 dark:text-teal-100 font-sans antialiased">
+<aside class="sidebar w-full h-auto static border-b border-teal-200 dark:border-teal-800 p-4
+              md:fixed md:left-0 md:top-0 md:h-full md:w-[220px] md:border-r md:border-b-0 md:p-8
+              bg-teal-50 dark:bg-teal-900 overflow-hidden hover:overflow-y-auto z-30
+              transition-[width,padding] duration-300"
+       id="sidebar">
+  <button class="block w-8 h-8 ml-auto border border-teal-300 dark:border-teal-700
+                 rounded-md bg-white dark:bg-teal-800 text-teal-600 dark:text-teal-300
+                 text-lg cursor-pointer leading-7 text-center
+                 hover:bg-blue-600 hover:text-white hover:border-blue-600
+                 dark:hover:bg-blue-600 dark:hover:text-white
+                 transition-colors duration-200 flex-shrink-0"
+          id="toggleSidebar" title="收起侧边栏">☰</button>
+  <h2 class="text-2xl font-bold mt-3 mb-4 pb-2 border-b border-teal-200 dark:border-teal-700
+             text-teal-800 dark:text-teal-100 text-center">目录</h2>
+  <nav class="flex flex-wrap gap-1 md:flex-col md:gap-0.5">
+      <a href="index.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">一、基本介绍</a>
+      <a href="getting-started.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">二、快速开始</a>
+      <a href="api-reference.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">三、接口参考</a>
+      <a href="algorithms.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">四、算法原理</a>
+      <a href="building.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">五、构建指南</a>
+      <a href="benchmarks.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">六、性能基准</a>
+      <a href="thread-safety.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">七、线程安全</a>
+      <a href="random.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150">八、伪随机数</a>
+      <a href="ccbi.html" class="block py-2 px-3 rounded-md text-sm font-medium no-underline text-teal-700 dark:text-teal-300 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 transition-colors duration-150 bg-blue-600 text-white hover:bg-blue-700 hover:text-white dark:bg-blue-600 dark:text-white">九、大数库</a>
+  </nav>
+</aside>
+<main class="main flex-1 px-4 py-6 md:ml-[220px] md:px-10 md:py-8 max-w-[900px]
+             transition-[margin] duration-300" id="main">
+  <article class="prose prose-slate dark:prose-invert max-w-none
+                  prose-headings:scroll-mt-20
+                  prose-pre:rounded-lg prose-pre:border prose-pre:border-teal-200
+                  dark:prose-pre:border-teal-800
+                  prose-img:rounded-lg
+                  prose-table:block prose-table:overflow-x-auto
+                  md:prose-table:table">
+<h1 id="ccbi">ccbi — 大数库</h1>
+<blockquote>
+<p><strong>任意精度整数运算库</strong>，提供完整的有符号整数运算，支持 2~36 进制字符串转换，
+包含 GCD、模幂等经典算法。</p>
+</blockquote>
+<p><code>ccbi</code> 是 <code>ccalg</code> 项目的一部分，遵循 <strong>header-only · C99 兼容 · BSD 协议</strong> 的传统。</p>
+<hr />
+<h2 id="1">1. 设计</h2>
+<h3 id="11">1.1 内部表示</h3>
+<p>采用 <strong>小端序符号-绝对值</strong>（sign-magnitude）表示法，limb 基数为 2³²。</p>
+<pre><code>ccbi_t (20 + 4·CCBI_SSO_LIMBS B)
+  limbs   : uint32_t*      → 指向 internal[] 或堆
+  internal: uint32_t[CCBI_SSO_LIMBS] → 内联缓冲区
+  sign    : int            → -1/0/1
+  used    : uint32_t       → used limb count
+  cap     : uint32_t       → allocated limb capacity
+</code></pre>
+<ul>
+<li><code>limbs[0]</code> = 最低 32-bit，<code>limbs[used-1]</code> = 最高</li>
+<li>两 limb 乘积产生 64-bit 中间结果</li>
+<li><strong>SSO (Small-String Optimization)</strong>: 当 <code>used ≤ CCBI_SSO_LIMBS</code> 时完全零分配</li>
+</ul>
+<p><strong>SSO 配置表</strong>（<code>#define CCBI_SSO_LIMBS &lt;N&gt;</code> 覆盖默认值）：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">CCBI_SSO_LIMBS</th>
+<th style="text-align: center;">结构体大小</th>
+<th style="text-align: center;">零分配阈值</th>
+<th style="text-align: left;">备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">28 B</td>
+<td style="text-align: center;">≤ 64-bit</td>
+<td style="text-align: left;">最少，省栈</td>
+</tr>
+<tr>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">36 B</td>
+<td style="text-align: center;">≤ 128-bit</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: center;"><strong>8</strong> (默认)</td>
+<td style="text-align: center;"><strong>52 B</strong></td>
+<td style="text-align: center;"><strong>≤ 256-bit</strong></td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">16</td>
+<td style="text-align: center;">84 B</td>
+<td style="text-align: center;">≤ 512-bit</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">32</td>
+<td style="text-align: center;">148 B</td>
+<td style="text-align: center;">≤ 1024-bit</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">64</td>
+<td style="text-align: center;">276 B</td>
+<td style="text-align: center;">≤ 2048-bit</td>
+<td style="text-align: left;"></td>
+</tr>
+<tr>
+<td style="text-align: center;">128</td>
+<td style="text-align: center;">532 B</td>
+<td style="text-align: center;">≤ 4096-bit</td>
+<td style="text-align: left;"></td>
+</tr>
+</tbody>
+</table>
+<p><code>cap</code> 为 <code>uint32_t</code> 无上限（最大可表示约 16TB 的大数），<code>CCBI_SSO_LIMBS</code> 有效范围主要受栈空间约束：<code>sizeof(ccbi_t) = 20 + 4·CCBI_SSO_LIMBS</code>。</p>
+<h3 id="12">1.2 核心算法</h3>
+<p><code>n</code> 表示操作数的 limb 数（32-bit 为单位），<code>N</code> 表示十进制字符串长度，<code>e</code> 表示指数位长度，<code>k</code> 表示模数 limb 数。</p>
+<table>
+<thead>
+<tr>
+<th>运算</th>
+<th>算法</th>
+<th style="text-align: center;">时间复杂度</th>
+<th style="text-align: left;">数值举例<br>(limb 操作数)</th>
+<th style="text-align: left;">CPU 耗时估算<br>(x86-64 @ ~3 GHz, 单核)</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>加法/减法</td>
+<td>教科书逐字进位/借位</td>
+<td style="text-align: center;"><strong>O(n)</strong></td>
+<td style="text-align: left;">512-bit: ~17 次<br>2048-bit: ~65 次</td>
+<td style="text-align: left;">512-bit: &lt; 0.1 μs<br>2048-bit: &lt; 0.1 μs</td>
+<td style="text-align: left;">单次线性扫描</td>
+</tr>
+<tr>
+<td>乘法</td>
+<td>Karatsuba + 教科书回退<br><strong>+ 平方自动检测</strong></td>
+<td style="text-align: center;"><strong>O(n^1.585)</strong></td>
+<td style="text-align: left;">512-bit: ~560 次¹<br>1024-bit: ~2800 次<br>2048-bit: ~14000 次</td>
+<td style="text-align: left;">512-bit: ~0.8 μs<br>1024-bit: ~4 μs<br>2048-bit: ~20 μs</td>
+<td style="text-align: left;">普通教科书 n² 次乘；<br>平方路径 n(n+1)/2 次 (−47%)；<br>Montgomery 幂运算中 ~80% 的<br>乘法为平方，整体模幂加速 ~35%</td>
+</tr>
+<tr>
+<td>除法</td>
+<td>多 limb 试商除法<br><strong>+ 预计算倒数</strong></td>
+<td style="text-align: center;"><strong>O(n²)</strong></td>
+<td style="text-align: left;">1024÷512-bit: ~4000 次<br>2048÷1024-bit: ~16000 次</td>
+<td style="text-align: left;">~8 μs<br>~32 μs</td>
+<td style="text-align: left;">每轮试商用预计算倒数 (ceil(2^64/v_top))<br>代替 divq：一次预计算 divq + 每轮<br>1× mulq (3-5 cyc) vs 每轮 1× divq (25-50 cyc)；<br>单 limb 除数为 O(n) 快速路径</td>
+</tr>
+<tr>
+<td>GCD</td>
+<td>二进制 Stein 算法</td>
+<td style="text-align: center;"><strong>O(n²)</strong></td>
+<td style="text-align: left;">1024-bit: ~15000 次<br>2048-bit: ~60000 次</td>
+<td style="text-align: left;">~30 μs<br>~120 μs</td>
+<td style="text-align: left;">最坏 O(n) 轮移位+减法</td>
+</tr>
+<tr>
+<td>模幂</td>
+<td>Montgomery CIOS + Sliding Window (w=4)</td>
+<td style="text-align: center;"><strong>O(log e · k²)</strong></td>
+<td style="text-align: left;">2048-bit 模, 指数 2048-bit:<br>~2048 × 8192 × 0.8<br>≈ 1340 万次</td>
+<td style="text-align: left;">~20 ms¹</td>
+<td style="text-align: left;">CIOS 内层 ~2k² 次运算；<br>Sliding Window 降倍数约 20%；<br>受益于平方路径，模幂加快 ~35%</td>
+</tr>
+<tr>
+<td>from_str (base=10)</td>
+<td>9 位分块转换</td>
+<td style="text-align: center;"><strong>O(N²)</strong></td>
+<td style="text-align: left;">100 位: ~1000 次<br>1000 位: ~14 万次</td>
+<td style="text-align: left;">100 位: &lt; 0.1 μs<br>1000 位: ~0.3 ms</td>
+<td style="text-align: left;">N/9 轮迭代, 每轮 O(limb_cnt)<br>随数字增长线性增加</td>
+</tr>
+<tr>
+<td>to_str / to_str_buf</td>
+<td>逐 base 除法取余</td>
+<td style="text-align: center;"><strong>O(N²)</strong></td>
+<td style="text-align: left;">100 位: ~1000 次<br>1000 位: ~14 万次</td>
+<td style="text-align: left;">100 位: &lt; 0.1 μs<br>1000 位: ~0.5 ms</td>
+<td style="text-align: left;">每次 udiv_limb 为 O(n)；<br>n 随输出长度线性增长</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>¹ 平方路径和除法倒数来自运行时自动检测，无需用户干预。CPU 耗时基于 limb 操作数按平均指令吞吐换算，实际受缓存、分支预测和编译器优化影响。</p>
+</blockquote>
+<h3 id="13">1.3 运行时常数优化</h3>
+<p>以下优化在 <code>ccbi_mul</code> 和 <code>ccbi_div_rem</code> 内部自动触发，对外 API 完全透明：</p>
+<p><strong>平方自动检测</strong></p>
+<p>当 <code>ccbi_mul(z, a, b)</code> 的 <code>a</code> 与 <code>b</code> 指向同一对象（<code>a == b</code>）时，<code>_ccbi_mul_schoolbook</code> 可通过三级派发链（schoolbook → Karatsuba → Toom-3）的基例自动利用对称性，将乘法次数从 n² 降至 n(n+1)/2。</p>
+<p><strong>除法预计算倒数</strong> (<code>ccbi_div_rem</code>)</p>
+<p>标准化后在循环外计算 <code>v_recip = ceil(2^64 / v_top_limb)</code>（一次 64/32 除法），每轮试商用：</p>
+<pre><code class="language-c">qd = (uint32_t)((u128)u_top * v_recip &gt;&gt; 64);   // 1× mulq (3-5 cyc)
+</code></pre>
+<p>代替：</p>
+<pre><code class="language-c">qd = (uint32_t)(u_top / v_top_limb);             // 1× divq (25-50 cyc)
+</code></pre>
+<p>不支持 <code>__uint128_t</code> 的编译器自动回退原始 <code>divq</code> 路径。</p>
+<h3 id="14">1.4 分配器钩子</h3>
+<pre><code class="language-c">#define CCBI_MALLOC(sz)   CCBI_REALLOC(NULL, sz)
+#define CCBI_REALLOC(p,sz) realloc
+#define CCBI_FREE(p)      free(p)
+</code></pre>
+<p>预定义后 <code>#include "ccbi.h"</code> 即可替换。SSO 小值不走分配器。</p>
+<hr />
+<h2 id="2-api">2. API 参考</h2>
+<h3 id="_1">类型</h3>
+<pre><code class="language-c">#define CCBI_SSO_LIMBS  8   /* 可用户重定义 */
+
+typedef struct ccbi {
+    uint32_t  *limbs;
+    uint32_t   internal[CCBI_SSO_LIMBS];
+    uint32_t   meta;  /* sign(2) | used(15) | cap(15) */
+} ccbi_t;
+</code></pre>
+<p>元数据通过宏访问：<code>CCBI_SIGN(z)</code>, <code>CCBI_USED(z)</code>, <code>CCBI_CAP(z)</code>, <code>CCBI_SET_SIGN(z,v)</code>, 等。</p>
+<h3 id="_2">生命周期</h3>
+<pre><code class="language-c">void   ccbi_init(ccbi_t *z);          // 初始化为零（指向 SSO 缓冲）
+void   ccbi_destroy(ccbi_t *z);       // 仅在堆上时 free
+int    ccbi_copy(ccbi_t *z, const ccbi_t *src); // 深拷贝
+void   ccbi_swap(ccbi_t *a, ccbi_t *b); // O(1) 指针/SSO 全交换
+void   ccbi_zero(ccbi_t *z);           // 清零（归还堆到 SSO）
+void   ccbi_one(ccbi_t *z);            // 设为 1（SSO，零分配）
+</code></pre>
+<h3 id="_3">赋值</h3>
+<pre><code class="language-c">int  ccbi_from_int(ccbi_t *z, int64_t v);
+int  ccbi_from_uint(ccbi_t *z, uint64_t v);
+int  ccbi_from_str(ccbi_t *z, const char *str, int base);
+// base 范围 2~36。十进制有 9 位分块快速路径。支持 + / - 前缀。
+</code></pre>
+<h3 id="_4">比较</h3>
+<pre><code class="language-c">int    ccbi_cmp(const ccbi_t *a, const ccbi_t *b);    // &lt;0 / 0 / &gt;0
+int    ccbi_cmp_int(const ccbi_t *a, int64_t b);
+int    ccbi_cmp_abs(const ccbi_t *a, const ccbi_t *b);
+int    ccbi_sign(const ccbi_t *z);
+int    ccbi_is_zero(const ccbi_t *z);
+int    ccbi_is_one(const ccbi_t *z);
+int    ccbi_is_neg(const ccbi_t *z);
+</code></pre>
+<h3 id="_5">算术</h3>
+<pre><code class="language-c">int  ccbi_add(ccbi_t *z, const ccbi_t *a, const ccbi_t *b);
+int  ccbi_sub(ccbi_t *z, const ccbi_t *a, const ccbi_t *b);
+int  ccbi_mul(ccbi_t *z, const ccbi_t *a, const ccbi_t *b);
+int  ccbi_div_rem(ccbi_t *q, ccbi_t *r, const ccbi_t *a, const ccbi_t *b);
+int  ccbi_mod(ccbi_t *r, const ccbi_t *a, const ccbi_t *m);
+
+void ccbi_neg(ccbi_t *z, const ccbi_t *a);
+void ccbi_abs(ccbi_t *z, const ccbi_t *a);
+int  ccbi_inc(ccbi_t *z);
+int  ccbi_dec(ccbi_t *z);
+int  ccbi_add_uint(ccbi_t *z, uint32_t v);
+int  ccbi_mul_uint(ccbi_t *z, uint32_t v);
+int  ccbi_muladd(ccbi_t *z, const ccbi_t *x, uint32_t y);  // z += x·y
+</code></pre>
+<h3 id="_6">移位</h3>
+<pre><code class="language-c">int    ccbi_shl(ccbi_t *z, const ccbi_t *a, size_t n);
+int    ccbi_shr(ccbi_t *z, const ccbi_t *a, size_t n);
+size_t ccbi_bit_length(const ccbi_t *z);
+</code></pre>
+<h3 id="_7">数论</h3>
+<pre><code class="language-c">int ccbi_gcd(ccbi_t *z, const ccbi_t *a, const ccbi_t *b);
+int ccbi_pow_mod(ccbi_t *z, const ccbi_t *base,
+                 const ccbi_t *exp, const ccbi_t *mod);
+</code></pre>
+<h3 id="_8">转换</h3>
+<pre><code class="language-c">int64_t   ccbi_to_int(const ccbi_t *z);
+
+// 用户提供缓冲区版本（推荐）：
+int       ccbi_to_str_len(const ccbi_t *z, int base);
+int       ccbi_to_str_buf(const ccbi_t *z, char *buf, size_t len, int base);
+
+// 自动分配版本（向后兼容）：
+char     *ccbi_to_str(const ccbi_t *z, int base);  // caller 负责 free
+void      ccbi_free_str(char *s);
+
+int       ccbi_print(const ccbi_t *z, int base, int newline);
+</code></pre>
+<p>用法示例：</p>
+<pre><code class="language-c">// 缓冲版（零分配）：
+char buf[64];
+int n = ccbi_to_str_buf(&amp;a, buf, sizeof(buf), 10);
+printf(&quot;result = %.*s\n&quot;, n, buf);
+
+// 自动分配版：
+char *s = ccbi_to_str(&amp;a, 10);
+printf(&quot;result = %s\n&quot;, s);
+ccbi_free_str(s);
+</code></pre>
+<hr />
+<h2 id="3">3. 快速上手</h2>
+<pre><code class="language-c">#include &quot;ccbi.h&quot;
+#include &lt;stdio.h&gt;
+
+int main() {
+    ccbi_t a, b, c;
+    ccbi_init(&amp;a); ccbi_init(&amp;b); ccbi_init(&amp;c);
+
+    ccbi_from_int(&amp;a, 12345);
+    ccbi_from_str(&amp;b, &quot;987654321098765432109876543210&quot;, 10);
+    ccbi_mul(&amp;c, &amp;a, &amp;b);
+    char *s = ccbi_to_str(&amp;c, 10);
+    printf(&quot;result = %s\n&quot;, s);
+    ccbi_free_str(s);
+
+    ccbi_destroy(&amp;a); ccbi_destroy(&amp;b); ccbi_destroy(&amp;c);
+    return 0;
+}
+</code></pre>
+<p>编译：</p>
+<pre><code class="language-bash">cc -I include -o example example.c &amp;&amp; ./example
+</code></pre>
+<p>SSO 大小可调：</p>
+<pre><code class="language-bash">cc -DCCBI_SSO_LIMBS=16 -I include -o example example.c &amp;&amp; ./example
+</code></pre>
+  </article>
+  <footer class="mt-12 pt-4 border-t border-teal-200 dark:border-teal-800
+                 text-sm text-teal-500 dark:text-teal-400">
+    <p>ccalg — header-only C data-structure library · BSD 3-Clause ·
+    <a href="https://github.com/CandyMi/ccalg" class="text-blue-600 dark:text-blue-400 hover:underline">GitHub</a></p>
+  </footer>
+</main>
+<button class="toc-toggle fixed right-3 top-[50px] z-[101] px-2.5 py-1
+               border border-teal-300 dark:border-teal-700 rounded-t-md
+               bg-white dark:bg-teal-900 text-teal-600 dark:text-teal-300
+               text-sm cursor-pointer whitespace-nowrap
+               hover:bg-blue-600 hover:text-white hover:border-blue-600
+               dark:hover:bg-blue-600 dark:hover:text-white
+               transition-colors duration-200"
+        id="tocToggle" title="折叠目录">点击收起 <span class="toc-icon inline-block transition-transform duration-300">▶</span></button>
+<nav class="toc fixed right-3 top-20 w-[210px] max-h-[calc(100vh-120px)]
+            flex flex-col text-sm z-[100] bg-white dark:bg-teal-900
+            border border-teal-200 dark:border-teal-800 rounded-xl
+            shadow-lg shadow-teal-200/50 dark:shadow-teal-950/50
+            opacity-90 hover:opacity-100 transition-opacity duration-200"
+     id="toc">
+  <div class="flex justify-between items-center flex-shrink-0 font-semibold
+              text-teal-800 dark:text-teal-100 text-sm
+              px-3 py-2.5 border-b border-teal-200 dark:border-teal-800">
+    <span>本页目录</span>
+    <a href="#" class="text-teal-400 dark:text-teal-500 text-base font-normal
+                       no-underline hover:text-blue-600 dark:hover:text-blue-400 px-1"
+       title="回到顶部">↑</a>
+  </div>
+  <div class="toc-links overflow-y-auto flex-1 px-3 py-2">
+<a href="#1" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="1">1. 设计</a>
+<a href="#11" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="11">1.1 内部表示</a>
+<a href="#12" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="12">1.2 核心算法</a>
+<a href="#13" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="13">1.3 运行时常数优化</a>
+<a href="#14" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="14">1.4 分配器钩子</a>
+<a href="#2-api" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="2-api">2. API 参考</a>
+<a href="#_1" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_1">类型</a>
+<a href="#_2" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_2">生命周期</a>
+<a href="#_3" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_3">赋值</a>
+<a href="#_4" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_4">比较</a>
+<a href="#_5" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_5">算术</a>
+<a href="#_6" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_6">移位</a>
+<a href="#_7" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_7">数论</a>
+<a href="#_8" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-3 text-xs" data-target="_8">转换</a>
+<a href="#3" class="block py-1 no-underline border-l-2 border-transparent text-teal-500 dark:text-teal-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150 leading-snug pl-2 text-[0.82em]" data-target="3">3. 快速上手</a>
+  </div>
+</nav>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script>
+mermaid.initialize({ startOnLoad: false, theme: 'base' });
+// protect mermaid blocks from highlight.js — convert before hljs runs
+document.querySelectorAll('pre code.language-mermaid').forEach(function(el) {
+  el.parentElement.classList.add('mermaid');
+  el.parentElement.innerHTML = el.textContent;
+});
+hljs.highlightAll();
+mermaid.run();
+
+// ── sidebar toggle ─────────────────────────────────────────────────
+(function() {
+  var btn = document.getElementById('toggleSidebar');
+  var body = document.body;
+  if (!btn) return;
+
+  function apply(state) {
+    body.classList.toggle('sidebar-collapsed', state);
+    btn.title = state ? '展开侧边栏' : '收起侧边栏';
+    btn.innerHTML = state ? '☰' : '☰';
+  }
+
+  btn.addEventListener('click', function() {
+    var collapsed = !body.classList.contains('sidebar-collapsed');
+    apply(collapsed);
+    try { localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0'); } catch(e) {}
+  });
+
+  // restore saved state
+  try {
+    if (localStorage.getItem('sidebar-collapsed') === '1') apply(true);
+  } catch(e) {}
+})();
+
+// ── TOC collapse toggle ──────────────────────────────────────────────
+(function() {
+  var btn = document.getElementById('tocToggle');
+  var toc = document.getElementById('toc');
+  if (!btn || !toc) return;
+
+  function apply(state) {
+    document.body.classList.toggle('toc-collapsed', state);
+    btn.innerHTML = state ? '点击展开 <span class="toc-icon inline-block transition-transform duration-300">▶</span>' : '点击收起 <span class="toc-icon inline-block transition-transform duration-300">▶</span>';
+    btn.title = state ? '展开目录' : '折叠目录';
+  }
+
+  btn.addEventListener('click', function() {
+    var collapsed = !document.body.classList.contains('toc-collapsed');
+    apply(collapsed);
+    try { localStorage.setItem('toc-collapsed', collapsed ? '1' : '0'); } catch(e) {}
+  });
+
+  try {
+    if (localStorage.getItem('toc-collapsed') === '1') apply(true);
+  } catch(e) {}
+})();
+
+// ── TOC scroll-spy (midpoint activation) ────────────────────────────
+(function() {
+  var toc = document.getElementById('toc');
+  if (!toc) return;
+  var links = toc.querySelectorAll('.toc-links a');
+  if (!links.length) { toc.style.display = 'none'; return; }
+
+  // collect heading targets
+  var headings = [];
+  links.forEach(function(a) {
+    var el = document.getElementById(a.getAttribute('data-target'));
+    if (el) headings.push({ el: el, link: a });
+  });
+
+  // find which heading's midpoint is active
+  function updateActive() {
+    var mid = window.scrollY + window.innerHeight / 2;
+    var activeIdx = -1;
+    for (var i = headings.length - 1; i >= 0; i--) {
+      if (headings[i].el.offsetTop <= mid) { activeIdx = i; break; }
+    }
+
+    links.forEach(function(a, idx) {
+      a.classList.toggle('active', idx === activeIdx);
+    });
+
+    if (activeIdx >= 0 && headings[activeIdx]) {
+      headings[activeIdx].link.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+    }
+  }
+
+  updateActive();
+
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() { ticking = false; updateActive(); });
+      ticking = true;
+    }
+  }, { passive: true });
+})();
+</script>
+<script>
+// Load HLJS theme CSS AFTER Tailwind CDN has injected its styles.
+// Tailwind CDN injects styles async (DOMContentLoaded / rAF) — we use
+// double rAF to guarantee HLJS loads last and wins cascade ties.
+requestAnimationFrame(function() {
+  requestAnimationFrame(function() {
+    var light = document.createElement('link');
+    light.rel = 'stylesheet';
+    light.media = '(prefers-color-scheme: light)';
+    light.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs.min.css';
+    document.head.appendChild(light);
+    var dark = document.createElement('link');
+    dark.rel = 'stylesheet';
+    dark.media = '(prefers-color-scheme: dark)';
+    dark.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/vs2015.min.css';
+    document.head.appendChild(dark);
+  });
+});
+</script>
+</body>
+</html>
